@@ -730,24 +730,6 @@ print(and_query(postings, 'living', 'dead'))   # [36]</code></pre>
       <li><b>Zones</b> (from the notebook): restrict a term to one part of the document, e.g. the <i>Subject</i> or <i>From</i> header of a post, the title or the author.</li>
     </ul>
 
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Exercises from the lecture</h3>
-    <div class="dt-ex-list">
-      <details class="dt-ex">
-        <summary><span class="dt-ex-no">4</span><span class="dt-ex-q">With the positional entry for <code>be</code> above, which of the documents 1, 2, 4, 5 could contain <i>"to be or not to be"</i>?</span></summary>
-        <div class="dt-ex-sol">
-          <p>In the phrase, <code>be</code> is at positions \(p+1\) and \(p+5\), so a document needs two positions of <code>be</code> exactly 4 apart.</p>
-          <p>Doc 1 (7, 18, 33, 72, 86, 231): no pair 4 apart. Doc 2 (3, 149): no. <b>Doc 4</b>: 430 and 434. <b>Doc 5</b>: 363 and 367. So only docs 4 and 5 can contain it.</p>
-          <p>To be sure, check the other terms too. The lecture's entry for <code>to</code> has <code>4: 8, 16, 190, 429, 433</code>: <code>to</code> at 429 and 433, <code>be</code> at 430 and 434, so doc 4 is a candidate at positions 429–434 (still to check: <code>or</code> at 431, <code>not</code> at 432).</p>
-        </div>
-      </details>
-      <details class="dt-ex">
-        <summary><span class="dt-ex-no">5</span><span class="dt-ex-q">Adapt the linear merge of postings to handle proximity queries. Can you make it work for any value of \(k\)?</span></summary>
-        <div class="dt-ex-sol">
-          <p>Merge the two postings lists by document id as before. For a document in both lists, walk its two position lists with two pointers, like a second merge: for each position \(p_1\) of the first term, keep a window of the positions \(p_2\) of the second term with \(|p_1 - p_2| \le k\), dropping positions that fall behind and adding those that come into range. Every pair in the window is a match.</p>
-          <p>Each position enters and leaves the window once, so the work is linear in the number of positions plus the number of matches, for any \(k\) (IIR, Figure 2.12).</p>
-        </div>
-      </details>
-    </div>
   </section>
 
   <!-- ===== SUMMARY ===== -->
