@@ -1866,3 +1866,6 @@ svg [fill="#b8394f"] { fill: var(--red-ink); } svg [stroke="#b8394f"] { stroke: 
 .ph-tok.q { background: color-mix(in srgb, var(--ucs) 22%, var(--surface)); }
 .ph-tok.m { background: var(--bfs); color: #fff; } .ph-tok.m sub { color: #fff; }
 @media (max-width: 760px) { .ib-docs, .mg-inputs { grid-template-columns: minmax(0, 1fr); } .ii-step { grid-template-columns: minmax(0, 1fr); gap: 0.2rem; } }
+.lab-main :not(pre) > code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.86em; font-weight: 600; padding: 0.08em 0.4em; border-radius: 6px; color: var(--ink); background: color-mix(in srgb, var(--indigo) 11%, var(--surface)); border: 1px solid color-mix(in srgb, var(--indigo) 24%, var(--surface)); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+table.summary thead code { background: rgba(255, 255, 255, 0.18); border-color: rgba(255, 255, 255, 0.35); color: #fff; }
+.ii-hl { font-family: 'Poppins', sans-serif; font-weight: 800; color: var(--ink); padding: 0.05em 0.45em; border-radius: 6px; background: color-mix(in srgb, var(--ucs) 32%, var(--surface)); }
