@@ -66,7 +66,7 @@
     <p class="section-lede">Our collection: <b>14 BBC News headlines</b>, one document each. Before we can index them, every headline is turned into a list of <b>tokens</b>.</p>
 
     <ol class="concept-list">
-      <li><b>Tokenize</b>: split each sentence with NLTK's <code>TweetTokenizer</code>. Punctuation marks become tokens of their own: <code>.</code> and <code>,</code></li>
+      <li><b>Tokenize</b>: split each sentence with NLTK's <code>TweetTokenizer</code>. Punctuation marks become tokens of their own: <code>Istanbul.</code> → <code>Istanbul</code> <code>.</code></li>
       <li><b>Lower-case</b>: <code>The</code> (doc 11) and <code>the</code> (docs 1, 13) become the same term <code>the</code>.</li>
       <li><b>Unique tokens</b>: flatten the lists with <code>sum(…, [])</code> and put them in a <code>set</code>: <b>83</b> terms.</li>
       <li><b>Incidence matrix</b>: one row per term, one column per document → shape <b>(83, 14)</b>.</li>
