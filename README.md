@@ -9,6 +9,7 @@ Lab notes with interactive widgets, served from `docs/` on GitHub Pages: **[elit
 | Lab | Topic |
 | :--- | :--- |
 | 01 | [Inverted Index and Boolean Queries](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab01-inverted-index.html) |
+| 02 | [Text Preprocessing](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab02-text-preprocessing.html) |
 
 ## 💻 Jupyter Notebooks
 

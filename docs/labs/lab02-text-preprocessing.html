@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab 02 — Text Preprocessing | Class Notes</title>
+<meta name="description" content="Interactive notes on text preprocessing for indexing: sentence and word tokenizers, normalization, stopwords, stemming and lemmatization, and a preprocessing pipeline for the 20 Newsgroups posts.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css">
+<script src="../theme.js"></script>
+</head>
+<body>
+
+<header class="site-nav">
+  <button class="side-toggle" type="button" aria-controls="lab-menu" aria-expanded="false" aria-label="Labs menu"><span></span></button>
+  <a class="brand" href="../index.html"><span class="dot"></span> Class Notes</a>
+  <nav><a href="../index.html">Home</a></nav>
+  <button class="theme-toggle" type="button" aria-label="Switch colour theme"><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+</header>
+
+<div class="lab-layout">
+  <aside class="lab-menu" id="lab-menu" aria-label="Labs">
+    <p class="lm-h">Labs</p>
+    <ol>
+      <li><a href="lab01-inverted-index.html"><span class="lm-n">01</span>Inverted Index and Boolean Queries</a></li>
+      <li><a href="lab02-text-preprocessing.html" aria-current="page"><span class="lm-n">02</span>Text Preprocessing</a></li>
+    </ol>
+  </aside>
+  <script>(function(){var b=document.body,t=document.querySelector(".side-toggle"),m=document.getElementById("lab-menu"),c=m.querySelector("[aria-current]");if(c&&m.scrollHeight>m.clientHeight)m.scrollTop=c.offsetTop-m.clientHeight/2;function s(o){b.classList.toggle("menu-open",o);t.setAttribute("aria-expanded",o)}t.addEventListener("click",function(e){e.stopPropagation();s(!b.classList.contains("menu-open"))});document.addEventListener("click",function(e){if(b.classList.contains("menu-open")&&!m.contains(e.target))s(false)});document.addEventListener("keydown",function(e){if(e.key==="Escape")s(false)})})();</script>
+<main class="lab-main">
+
+<section class="hero art-hero art-tp">
+  <svg id="tp-hero-bg" class="hero-art" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+  <div class="wrap">
+    <p class="eyebrow">Lab 02</p>
+    <h1>Text Preprocessing</h1>
+    <div class="badges">
+      <span class="badge ids">Index pipeline</span>
+      <span class="badge bfs">Tokenization</span>
+      <span class="badge dfs">Normalization</span>
+      <span class="badge ucs">Stemming</span>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+
+  <!-- ===== OVERVIEW ===== -->
+  <section class="block" id="overview">
+    <h2 class="section-title">Overview of the lab</h2>
+    <ol class="concept-list">
+      <li><a href="#pipeline">Main steps for building an index</a></li>
+      <li><a href="#tokenization">Tokenization: sentences and words</a></li>
+      <li><a href="#normalization">Normalization and stopwords</a></li>
+      <li><a href="#stemming">Stemming and lemmatization</a></li>
+      <li><a href="#exercise">Exercise: preprocessing the 20 Newsgroups posts</a></li>
+      <li><a href="#querying">Querying with the same preprocessing</a></li>
+    </ol>
+  </section>
+
+  <!-- ===== PIPELINE ===== -->
+  <section class="block algo-section ids" id="pipeline">
+    <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Big picture</span>
+    <h2 class="section-title">Main steps for building an index</h2>
+    <p class="section-lede">The text of each document passes through a <b>tokenizer</b> and <b>linguistic modules</b> before the <b>indexer</b> of <a href="lab01-inverted-index.html#construction">Lab 01</a> sorts the terms into a dictionary and postings.</p>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">See it with the notebook's example document</h4>
+    <div class="playground">
+      <div class="fig-scroll"><svg id="fl-svg" class="ml-plot" viewBox="0 0 760 122" aria-label="Documents, tokenizer, linguistic modules and indexer"></svg></div>
+      <div class="pg-controls" style="margin-top:0.6rem;">
+        <div class="strategy-pick" id="fl-steps"></div>
+        <div class="play-btns">
+          <button class="icon-btn" id="fl-prev" title="Previous step">⏮</button>
+          <button class="icon-btn" id="fl-next" title="Next step">⏭</button>
+        </div>
+      </div>
+      <p class="ib-cap" id="fl-cap"></p>
+      <div id="fl-out" class="ii-steps"></div>
+    </div>
+  </section>
+
+  <!-- ===== TOKENIZATION ===== -->
+  <section class="block algo-section bfs" id="tokenization">
+    <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Tokenization</span>
+    <h2 class="section-title">Tokenization</h2>
+    <p class="section-lede">Split a document into <b>sentences</b>, then each sentence into <b>tokens</b>. Every decision here (keep <code>km/h</code> together? split <code>can't</code>?) changes which terms end up in the index.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Sentences: Punkt</h3>
+    <p class="section-lede"><code>PunktSentenceTokenizer</code> splits the example document into its <b>4</b> sentences. Punkt is unsupervised: it learns abbreviations, collocations and typical sentence starters from a corpus of text.</p>
+    <ul class="concept-list">
+      <li><b><code>PunktSentenceTokenizer()</code></b>: the notebook's call, with no training text, so it knows no abbreviations.</li>
+      <li><b><code>sent_tokenize(text)</code></b>: loads the Punkt model pre-trained on English (<code>punkt_tab</code>). Lab 01's <code>preprocess_document</code> uses it.</li>
+    </ul>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: split into sentences</h4>
+    <p class="section-lede">The outputs were computed with NLTK 3.9. Compare the two models on <b>Abbreviations</b>.</p>
+    <div class="playground">
+      <div class="pg-controls"><div class="strategy-pick" id="ss-pre"></div></div>
+      <div class="pg-controls"><div class="strategy-pick" id="ss-model"></div></div>
+      <div id="ss-out"></div>
+    </div>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Words: four NLTK tokenizers</h3>
+    <ul class="concept-list">
+      <li><b><code>WhitespaceTokenizer</code></b>: splits on spaces, tabs and newlines only; punctuation stays attached (<code>Portugal,</code>).</li>
+      <li><b><code>WordPunctTokenizer</code></b>: the regex <code>\w+|[^\w\s]+</code>, i.e. runs of letters and digits, and runs of punctuation.</li>
+      <li><b><code>TreebankWordTokenizer</code></b>: the Penn Treebank conventions: splits contractions (<code>ca</code> <code>n't</code>), separates most punctuation, keeps <code>50,000</code> and <code>366.88</code> whole. It expects one sentence at a time: only a <b>final</b> period is split off.</li>
+      <li><b><code>TweetTokenizer</code></b>: regexes for URLs, emoticons, <code>@handles</code>, <code>#hashtags</code>, e-mails and phone numbers, then words.</li>
+    </ul>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: compare the tokenizers</h4>
+    <p class="section-lede">The first row holds the notebook's examples, with its comments. The second row has more cases to try. Or type your own text. Punctuation-only tokens are red.</p>
+    <div class="playground">
+      <div class="tz-pre"><span class="ii-lbl">Notebook</span><div class="strategy-pick" id="tz-pre1"></div></div>
+      <div class="tz-pre"><span class="ii-lbl">More</span><div class="strategy-pick" id="tz-pre2"></div></div>
+      <textarea id="tz-in" class="ii-text" rows="2" spellcheck="false" aria-label="Text to tokenize"></textarea>
+      <p class="tz-note" id="tz-note"></p>
+      <div id="tz-out" class="ii-steps"></div>
+    </div>
+    <p class="caption-note">💡 The widgets run JavaScript ports of the NLTK 3.9 tokenizers and stemmers. They were checked against NLTK on all 33,228 sentences of <code>mini_newsgroups</code> and all 56,530 distinct words in them, with identical output.</p>
+
+    <details class="code-card">
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">tokenizers.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py">from nltk.tokenize import PunktSentenceTokenizer
+from nltk.tokenize import TweetTokenizer, WhitespaceTokenizer, WordPunctTokenizer, TreebankWordTokenizer
+
+example_document = """
+Hurricane-force winds have struck central and northern Portugal, leaving 300,000 homes without power.
+
+The remnants of Hurricane Leslie swept in overnight on Saturday, with winds gusting up to 176km/h (109mph).
+
+Civil defence officials said 27 people suffered minor injuries, with localised flooding, hundreds of trees uprooted and a number of flights cancelled.
+
+The storm, one of the most powerful to ever hit the country, is now passing over northern Spain.
+"""
+sent_tokenizer = PunktSentenceTokenizer()
+sentences = sent_tokenizer.tokenize(example_document)   # 4 sentences
+
+tweet_tok, whsp_tok, wordpunct_tok, treebank_tok = TweetTokenizer(), WhitespaceTokenizer(), WordPunctTokenizer(), TreebankWordTokenizer()
+
+print(whsp_tok.tokenize(sentences[0]))
+# ['Hurricane-force', 'winds', 'have', 'struck', 'central', 'and', 'northern', 'Portugal,', 'leaving', '300,000', 'homes', 'without', 'power.']
+print(wordpunct_tok.tokenize('On a $50,000 mortgage of 30 years at 8 percent, the monthly payment would be $366.88.'))
+# ['On', 'a', '$', '50', ',', '000', 'mortgage', ..., 'be', '$', '366', '.', '88', '.']
+print(treebank_tok.tokenize('On a $50,000 mortgage of 30 years at 8 percent, the monthly payment would be $366.88.'))
+# ['On', 'a', '$', '50,000', 'mortgage', ..., 'be', '$', '366.88', '.']
+print(treebank_tok.tokenize('My email is admin@sth.com'))    # ['My', 'email', 'is', 'admin', '@', 'sth.com']
+print(tweet_tok.tokenize('My email is admin@sth.com'))       # ['My', 'email', 'is', 'admin@sth.com']
+print(tweet_tok.tokenize('Last sunny day before winter :) #sunisenergy'))
+# ['Last', 'sunny', 'day', 'before', 'winter', ':)', '#sunisenergy']
+print(tweet_tok.tokenize('Here is my ip address 192.33.24.45'))   # we might want to fix this
+# ['Here', 'is', 'my', 'ip', 'address', '192.33', '.', '24.45']
+print(tweet_tok.tokenize("I can't stop singing that song!"))     # we might want to split can't in can, 't instead
+# ['I', "can't", 'stop', 'singing', 'that', 'song', '!']</code></pre>
+    </details>
+
+    <div class="dt-ex-list" style="margin-top:1.4rem;">
+      <details class="dt-ex">
+        <summary><span class="dt-ex-no">1</span><span class="dt-ex-q">Exercise: play with the tokenizers and find more vulnerabilities.</span></summary>
+        <div class="dt-ex-sol">
+          <p><b>URLs, e-mails, file names</b>: WordPunct and Treebank cut a URL into pieces that match unrelated words; Treebank also splits e-mails at <code>@</code>.</p>
+          <p><b>Hyphens and dates</b>: <code>state-of-the-art</code>, <code>York-based</code>, <code>2024-09-27</code>: one token or several? Tweet produces <code>2024-09-</code> <code>27</code>.</p>
+          <p><b>Names with symbols</b>: <code>C++</code>, <code>C#</code>, <code>Node.js</code>, <code>O'Neill</code>, <code>AT&amp;T</code>.</p>
+          <p><b>Abbreviations</b>: <code>U.S.A.</code>, <code>e.g.</code>, <code>p.m.</code> are spelled out letter by letter, and they also confuse sentence splitting.</p>
+          <p><b>Numbers</b>: IP addresses, phone numbers, times (<code>10:30am</code>), prices (<code>€25.50</code>), units (<code>176km/h</code>).</p>
+          <p><b>Apostrophes</b>: <code>can't</code>, <code>won't</code>, <code>workstation's</code>, and the typographic <code>’</code> in <code>c’è</code>.</p>
+          <p><b>Other languages</b>: German compounds and Chinese or Japanese text have no spaces between words and need a word segmenter.</p>
+          <p>There is no single right answer: choose what the <b>queries</b> of your users need, and apply the same tokenizer to documents and queries.</p>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ===== NORMALIZATION ===== -->
+  <section class="block algo-section dfs" id="normalization">
+    <span class="badge dfs" style="margin-bottom:0.6rem; display:inline-block;">Normalization</span>
+    <h2 class="section-title">Normalization</h2>
+    <p class="section-lede">Depending on the domain and the task at hand, we normalize the text. Some normalization steps:</p>
+    <ul class="concept-list">
+      <li><b>Irrelevant parts</b>: whole chunks of the document might be irrelevant, e.g. HTML tags.</li>
+      <li><b>Numbers</b>: remove them or replace them with a common token.</li>
+      <li><b>Other token types</b> we don't care about, e.g. URLs, @ mentions, 😀: remove or replace them the same way.</li>
+      <li><b>Lower-case</b> all words, or even use a tool to upper-case all named entities, like geographic names.</li>
+      <li><b>Equivalence classes</b> for matching synonyms, abbreviations, etc.</li>
+      <li><b>Stopwords</b>: remove them. The list of stopwords is usually manually curated.</li>
+      <li><b>Google N-Grams</b>: a huge corpus of statistics showing the frequency of word n-grams in web pages, for many languages. Use it to examine which words are used most often.</li>
+      <li><b>Stemming</b>: crude removal of prefixes and suffixes, to reduce the word form and match words like <i>car-sharing</i> and <i>car sharing</i>.</li>
+      <li><b>Lemmatization</b>: replace the word by its lemma (its dictionary form).</li>
+    </ul>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: normalize a text</h4>
+    <p class="section-lede">TweetTokenizer tokens, then the steps you switch on. Struck-out tokens are dropped, and changed tokens show their old form crossed out. The default is the notebook's sentence.</p>
+    <div class="playground">
+      <div class="pg-controls"><div class="strategy-pick" id="nz-pre"></div></div>
+      <textarea id="nz-in" class="ii-text" rows="2" spellcheck="false" aria-label="Text to normalize"></textarea>
+      <div class="pg-controls" style="margin-top:0.8rem;">
+        <label class="ii-check"><input type="checkbox" id="nz-lower" checked> lower-case</label>
+        <label class="ii-check"><input type="checkbox" id="nz-punct" checked> drop punctuation</label>
+        <label class="ii-check"><input type="checkbox" id="nz-num"> drop numbers</label>
+        <label class="ii-check"><input type="checkbox" id="nz-stop" checked> drop NLTK stopwords</label>
+      </div>
+      <div class="pg-controls"><div class="strategy-pick" id="nz-norm"></div></div>
+      <p class="bt-legend" style="margin:0 0 0.5rem;"><span class="k" style="background:#d9546e;"></span> punctuation &nbsp; <span class="k" style="background:var(--ids);"></span> number &nbsp; <span class="k" style="background:var(--ink-soft);"></span> stopword &nbsp; <span class="k" style="background:var(--ucs);"></span> changed</p>
+      <div id="nz-out"></div>
+    </div>
+    <p class="caption-note">💡 In <b>When it hurts</b>, lower-casing makes <i>IT</i> the stopword <i>it</i>, and <i>The Who</i> and <i>To be or not to be</i> disappear completely.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Stopwords</h3>
+    <p class="section-lede">NLTK's English list, as printed in the notebook: <b>179</b> words (the current NLTK data has 198). It includes fragments such as <code>don</code>, <code>ll</code>, <code>ve</code>, <code>t</code>, which tokenizers produce when they split contractions.</p>
+    <div class="playground">
+      <div class="pg-controls">
+        <input id="sw-q" class="ii-input" style="max-width:20rem;" placeholder="Check words, e.g. us who not" autocomplete="off" spellcheck="false" aria-label="Words to check">
+        <span class="note" id="sw-count"></span>
+      </div>
+      <div class="chip-row sw-list" id="sw-list"></div>
+    </div>
+
+    <div class="dt-ex-list" style="margin-top:1.4rem;">
+      <p class="ii-lbl" style="margin:0 0 0.5rem;">Exercise: find examples when we wouldn't like to normalize text with each of the proposed methods.</p>
+      <details class="dt-ex">
+        <summary><span class="dt-ex-no">2</span><span class="dt-ex-q">Removing HTML tags and other chunks</span></summary>
+        <div class="dt-ex-sol"><p>Tags carry structure: words in <code>&lt;title&gt;</code> or <code>&lt;h1&gt;</code> matter more than words in the footer (zones, Lab 01). On a site about web development, <code>&lt;table&gt;</code> may be exactly what users search for. In the newsgroup posts, dropping the headers also drops the <i>Subject</i>, the best summary of the post.</p></div>
+      </details>
+      <details class="dt-ex">
+        <summary><span class="dt-ex-no">3</span><span class="dt-ex-q">Removing or replacing numbers</span></summary>
+        <div class="dt-ex-sol"><p>Numbers are often the query: <i>Windows 95</i>, <i>COVID-19</i>, <i>iPhone 15</i>, <i>1984</i> (the novel), error <i>404</i>, a year in news search, a product code. In sci.crypt, the query <i>1993</i> is left with no terms (see <a href="#querying">querying</a>).</p></div>
+      </details>
+      <details class="dt-ex">
+        <summary><span class="dt-ex-no">4</span><span class="dt-ex-q">Removing URLs, @ mentions and emoji</span></summary>
+        <div class="dt-ex-sol"><p>Users search for a domain (<i>nltk.org</i>) or a person (<i>@nlp_lab</i>). Emoji carry sentiment and meaning (😀 vs 😡) that sentiment analysis needs. Splitting a URL into words (<i>en</i>, <i>wikipedia</i>, <i>org</i>) is often better than removing it.</p></div>
+      </details>
+      <details class="dt-ex">
+        <summary><span class="dt-ex-no">5</span><span class="dt-ex-q">Lower-casing</span></summary>
+        <div class="dt-ex-sol"><p>Case separates meanings: <i>US</i> / <i>us</i>, <i>WHO</i> / <i>who</i>, <i>IT</i> / <i>it</i>, <i>Apple</i> / <i>apple</i>, <i>Bush</i> / <i>bush</i>, <i>DES</i> (the cipher) / <i>des</i>. After lower-casing, <i>WHO</i> and <i>IT</i> are even removed as stopwords.</p></div>
+      </details>
+      <details class="dt-ex">
+        <summary><span class="dt-ex-no">6</span><span class="dt-ex-q">Equivalence classes (synonyms, abbreviations)</span></summary>
+        <div class="dt-ex-sol"><p>Synonyms depend on context: <i>jaguar</i> = <i>car</i> only for some queries. <i>C.A.T.</i> (a company) is not <i>cat</i>, and <i>Windows</i> is not <i>windows</i>. Expanding every query with its synonyms raises recall but lowers precision.</p></div>
+      </details>
+      <details class="dt-ex">
+        <summary><span class="dt-ex-no">7</span><span class="dt-ex-q">Removing stopwords</span></summary>
+        <div class="dt-ex-sol"><p>Phrases made of stopwords: <i>To be or not to be</i>, the bands <i>The Who</i> and <i>Take That</i>. Meaning carried by stopwords: <i>flights to London</i> vs <i>flights from London</i>, negation <i>not good</i>. Sentiment analysis needs <i>not</i>; in sci.crypt, <i>not secure</i> becomes just <i>secure</i>.</p></div>
+      </details>
+      <details class="dt-ex">
+        <summary><span class="dt-ex-no">8</span><span class="dt-ex-q">Stemming</span></summary>
+        <div class="dt-ex-sol"><p><b>Over-stemming</b> merges unrelated words: <i>university</i>, <i>universe</i> → <code>univers</code>; <i>organization</i>, <i>organ</i> → <code>organ</code>; <i>general</i>, <i>generator</i> → <code>gener</code> (Porter); <i>data</i>, <i>date</i> → <code>dat</code> and <i>news</i> → <code>new</code> (Lancaster). <b>Under-stemming</b> misses irregular forms: <i>children</i> / <i>child</i>, <i>mice</i> / <i>mouse</i>, <i>ran</i> / <i>run</i>. Names get stemmed too: <i>Portugal</i> → <code>portug</code>.</p></div>
+      </details>
+      <details class="dt-ex">
+        <summary><span class="dt-ex-no">9</span><span class="dt-ex-q">Lemmatization</span></summary>
+        <div class="dt-ex-sol"><p>It needs the part of speech: <code>lemmatize('meeting')</code> is <code>meeting</code> (a noun), <code>lemmatize('meeting', 'v')</code> is <code>meet</code>. With the default noun reading, <code>lemmatize('was')</code> gives <code>wa</code> and <code>lemmatize('us')</code> gives <code>u</code>; <i>better</i> → <i>good</i> only with <code>pos='a'</code>. It is slower than stemming, and words that are not in the dictionary (typos, names) are left unchanged.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ===== STEMMING ===== -->
+  <section class="block algo-section ucs" id="stemming">
+    <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Stemming</span>
+    <h2 class="section-title">Stemming and lemmatization</h2>
+    <p class="section-lede">Resources: <a href="https://www.geeksforgeeks.org/introduction-to-stemming/" target="_blank" rel="noopener">Introduction to stemming</a> (GeeksforGeeks) and <a href="https://www.semanticscholar.org/paper/A-Comparative-Study-of-Stemming-Algorithms-Ms-.-Jivani/1c0c0fa35d4ff8a2f925eb955e48d655494bd167" target="_blank" rel="noopener">A Comparative Study of Stemming Algorithms</a> (Jivani, 2011).</p>
+    <div class="definition-box">
+      <div class="dbox-label">📐 Stemmer vs lemmatizer</div>
+      <p>A <b>stemmer</b> cuts suffixes with rules and no dictionary; the result need not be a word (<code>automobil</code>, <code>eventu</code>). A <b>lemmatizer</b> looks the word up (NLTK uses WordNet) and returns a dictionary form (<code>pollutions</code> → <code>pollution</code>). It needs the part of speech and leaves unknown words, such as the notebook's typo <i>decreas</i>, as they are.</p>
+    </div>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Where stemming is used</h3>
+    <ul class="concept-list">
+      <li><b>Information retrieval</b> systems like search engines.</li>
+      <li><b>Domain analysis</b>: determining domain vocabularies.</li>
+      <li><b>Indexing</b>: mapping documents that use different forms of a word to common subjects.</li>
+      <li><b>Sentiment analysis</b> of reviews and comments (e.g. for online retail stores): stemming is a text-preparation step.</li>
+      <li><b>Document clustering</b> (text clustering): subject extraction, automatic document structuring, fast information retrieval.</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Popular stemmers</h3>
+    <div class="table-wrap">
+      <table class="summary st-kinds">
+        <thead><tr><th>Stemmer</th><th>Idea</th><th>✅ Advantage</th><th>❌ Limitation</th></tr></thead>
+        <tbody>
+          <tr data-s="ucs"><td><b>Porter</b></td><td>Removes the common morphological and inflectional endings of English words, in five steps of rules.</td><td>Best output compared to other stemmers, lower error rate.</td><td>The stems are not always real words.</td></tr>
+          <tr data-s="ucs"><td><b>Lovins</b></td><td>Removes the longest suffix, then recodes the stem to turn it into a valid word.</td><td>Fast; handles irregular plurals like <i>teeth</i> and <i>tooth</i>.</td><td>Time consuming, and frequently fails to form words from the stems.</td></tr>
+          <tr data-s="ucs"><td><b>Dawson</b></td><td>Suffixes stored in reversed order, indexed by their length and last letter.</td><td>Fast; covers more suffixes.</td><td>Very complex to implement.</td></tr>
+          <tr data-s="ucs"><td><b>Krovetz</b></td><td>Plural → singular, past tense → present, removes <i>-ing</i>.</td><td>Light; can be a pre-stemmer for other stemmers.</td><td>Inefficient for large documents.</td></tr>
+          <tr data-s="ucs"><td><b>Snowball</b></td><td>Also called Porter2: improves on Porter and has versions for many languages.</td><td>Can stem non-English words too.</td><td>Still rule-based: over- and under-stemming.</td></tr>
+          <tr data-s="ucs"><td><b>N-gram</b></td><td>Compares words by their shared character n-grams.</td><td>Based on string comparisons; <b>language independent</b>.</td><td>Needs space to create and index the n-grams; not time efficient.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="caption-note">💡 The notebook calls the N-gram stemmer "language dependent". The cited survey (Jivani, 2011, Table 2) lists it as <b>language independent</b>: it uses only string statistics, with no rules for a particular language. The <a href="https://www.nltk.org/api/nltk.stem.lancaster.html" target="_blank" rel="noopener">Lancaster</a> (Paice/Husk) stemmer used below is the most aggressive of NLTK's three.</p>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: compare the stemmers and the lemmatizer</h4>
+    <p class="section-lede">The default is the notebook's list; the first three columns match its table. <b>Car sharing</b> is the notebook's lemmatizer example. Type any words.</p>
+    <div class="playground">
+      <div class="pg-controls"><div class="strategy-pick" id="st-pre"></div></div>
+      <textarea id="st-in" class="ii-text" rows="2" spellcheck="false" aria-label="Words to stem"></textarea>
+      <div class="table-wrap st-tw" style="margin-top:0.8rem;"><table class="summary st-table" id="st-table"></table></div>
+      <h5 class="st-h">Words that end up as the same term</h5>
+      <div id="st-groups" class="ii-steps"></div>
+    </div>
+    <p class="caption-note">💡 The lemmas were precomputed with NLTK's <code>WordNetLemmatizer</code> for every word of <code>mini_newsgroups</code>; other words you type are shown unchanged. The lemmatizer is case-sensitive: <code>Car</code> stays <code>Car</code>, while the stemmers lower-case first.</p>
+
+    <details class="code-card">
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">stemming.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py">import nltk
+nltk.download('wordnet')
+nltk.download('omw-1.4')
+nltk.download('stopwords')
+from nltk.stem.porter import PorterStemmer
+from nltk.stem import WordNetLemmatizer, porter, lancaster, snowball
+from nltk.corpus import stopwords
+from nltk.tokenize import TweetTokenizer
+from collections import defaultdict
+import pandas as pd
+
+tweet_tok = TweetTokenizer()
+
+stemmer = PorterStemmer()
+lemmatizer = WordNetLemmatizer()
+tokens = tweet_tok.tokenize('Car sharing will bring a whole new era to the automobile industry. Eventually, it may even decreas air pollutions.')
+for token in tokens:
+    print(token, lemmatizer.lemmatize(token), stemmer.stem(token))
+# Car Car car / sharing sharing share / automobile automobile automobil / industry industry industri
+# Eventually Eventually eventu / decreas decreas decrea / pollutions pollution pollut ...
+
+print(len(stopwords.words('english')))   # 179 in the notebook's NLTK data, 198 in current NLTK data
+
+stem_list = [porter.PorterStemmer(), lancaster.LancasterStemmer(), snowball.SnowballStemmer('english')]
+examples = ['agreed', 'children', 'flies', 'humbled', 'colonizer', 'owned', 'meeting', 'sitting', 'understood', 'whom']
+result = defaultdict(list)
+for word in examples:
+    result['original'].append(word)
+    for s in stem_list:   # the notebook reuses the name `stemmer` here
+        result[s.__class__.__name__].append(s.stem(word))
+print(pd.DataFrame(result).to_markdown())
+# |  0 | agreed   | agre     | agree  | agre     |
+# |  1 | children | children | childr | children |
+# |  2 | flies    | fli      | fli    | fli      |  ...</code></pre>
+    </details>
+  </section>
+
+  <!-- ===== EXERCISE ===== -->
+  <section class="block algo-section ids" id="exercise">
+    <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Exercise</span>
+    <h2 class="section-title">Exercise: preprocessing the 20 Newsgroups posts</h2>
+    <p class="section-lede">Explore the dataset from 20 Newsgroups and create another preprocessing method, which will clean the text of the news articles:</p>
+    <ul class="concept-list">
+      <li>Select one of the tokenizers, or try to write one of your own.</li>
+      <li>Clean the headings and any common parts.</li>
+      <li>Lower-case the text and see if you might want to remove any token types (e.g. URLs; you might also want to split URLs into meaningful words and use them as tokens).</li>
+      <li>Explore the most frequent words in the corpus and add more stopwords (depending on your tokenizer, you might need to modify the stopwords, too). Then remove them from the text.</li>
+      <li>Have a method variable for choosing lemmatization or stemming.</li>
+      <li>Finally, compare how all the steps reduced or modified the index.</li>
+    </ul>
+
+    <details class="code-card">
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">tokenize_documents.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py">from nltk.tokenize import sent_tokenize, TweetTokenizer
+from string import punctuation
+from os import scandir
+from collections import Counter
+from pandas import DataFrame
+from nltk.corpus import stopwords
+from nltk.stem.porter import PorterStemmer
+tw_tokenizer = TweetTokenizer()
+
+def tokenize_documents(path, tokenizer):
+    """
+    Returns a list of tokenized documents: lower-cased tokens without punctuation.
+    """
+    documents = []
+    for entry in sorted(scandir(path), key=lambda e: e.name):
+        with open(entry.path, errors='ignore') as f:
+            content = f.read()
+        tokens = []
+        for sentence in sent_tokenize(content):
+            tokens += [tok.lower() for tok in tokenizer.tokenize(sentence) if tok not in punctuation]
+        documents.append(tokens)
+    return documents
+
+print(tokenize_documents('data/mini_newsgroups/sci.crypt/', tw_tokenizer)[1][:12])
+# ['path', 'cantaloupe.srv.cs.cmu.edu', 'das-news.harvard.edu', 'ogicse', 'uwm.edu', 'zaphod.mps.ohio-state.edu',
+#  'howland.reston.ans.net', 'sol.ctr.columbia.edu', 'news.cs.columbia.edu', 'ji', 'from', 'ji@cs.columbia.edu']
+
+# how the most frequent tokens change
+word_freqs = Counter(sum(tokenize_documents('data/mini_newsgroups/sci.crypt/', tw_tokenizer), []))
+df = DataFrame(list(word_freqs.items()), columns=['text', 'freq'])
+df.sort_values(['freq'], inplace=True, ascending=False)
+print(df.head())                 # the 1718, to 831, of 711, a 563, and 506
+
+en_stopwords = set(stopwords.words('english'))
+df_no_stopwords = df[~df['text'].isin(en_stopwords)].copy()
+print(df_no_stopwords.head())    # sci.crypt 158, cantaloupe.srv.cs.cmu.edu 150, encryption 148, key 133, clipper 115
+
+df_no_stopwords['stemmed'] = df_no_stopwords['text'].apply(PorterStemmer().stem)
+stemmed_freqs = df_no_stopwords.groupby(['stemmed'])['freq'].sum()
+stemmed_freqs.sort_values(inplace=True, ascending=False)
+print(stemmed_freqs.head())      # key 198, encrypt 187, use 185, sci.crypt 158, cantaloupe.srv.cs.cmu.edu 150
+
+print(len(df), len(df_no_stopwords), len(stemmed_freqs))
+# 5769 5624 4592 with the notebook's 179 stopwords; 5769 5612 4580 with the 198 of current NLTK data</code></pre>
+    </details>
+    <p class="caption-note">💡 <code>scandir</code> and <code>os.listdir</code> return files in an order that depends on the machine, so we sort by file name. The notebook's document <code>[1]</code> is then the file <code>15169</code>.</p>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: the preprocessing pipeline on sci.crypt</h4>
+    <p class="section-lede">The 100 real <code>sci.crypt</code> posts. The default settings are the notebook's (Tweet, lower-case, no punctuation, NLTK stopwords, Porter): <b>5,769 → 5,624 → 4,592</b> terms, top term <code>key</code> with <b>198</b> occurrences. Switch the steps on and off and watch the dictionary.</p>
+    <div class="playground">
+      <div class="pp-grid">
+        <div class="pp-row"><span class="pp-n">1</span><span class="ii-lbl">Tokenizer</span><div class="strategy-pick" id="pp-tok"></div></div>
+        <div class="pp-row"><span class="pp-n">2</span><span class="ii-lbl">Headers</span><div class="strategy-pick" id="pp-head"></div><label class="ii-check"><input type="checkbox" id="pp-quotes"> drop quoted replies (<code>&gt;</code> lines)</label></div>
+        <div class="pp-row"><span class="pp-n">3</span><span class="ii-lbl">Clean-up</span><label class="ii-check"><input type="checkbox" id="pp-lower" checked> lower-case</label><label class="ii-check"><input type="checkbox" id="pp-punct" checked> drop punctuation</label><label class="ii-check"><input type="checkbox" id="pp-num"> drop numbers</label></div>
+        <div class="pp-row"><span class="pp-n">4</span><span class="ii-lbl">Hosts, e-mails</span><div class="strategy-pick" id="pp-hosts"></div></div>
+        <div class="pp-row"><span class="pp-n">5</span><span class="ii-lbl">Stopwords</span><div class="strategy-pick" id="pp-stop"></div></div>
+        <div class="pp-row pp-custom" id="pp-custom-row"><span class="pp-n"></span><span class="ii-lbl">Your stopwords</span><textarea id="pp-custom" class="ii-text" rows="2" spellcheck="false" aria-label="Your stopwords"></textarea></div>
+        <div class="pp-row"><span class="pp-n">6</span><span class="ii-lbl">Normalization</span><div class="strategy-pick" id="pp-norm"></div></div>
+      </div>
+      <button type="button" class="strat-btn" id="pp-reset" style="margin:0.4rem 0 0.2rem;">↺ Notebook settings</button>
+      <div class="stat-strip" id="pp-stats"></div>
+      <div class="fig-scroll"><svg id="pp-funnel" class="ml-plot" viewBox="0 0 760 200" aria-label="Dictionary size after each step"></svg></div>
+      <div class="pg-grid" style="margin-top:0.8rem;">
+        <div class="table-wrap pp-tw"><table class="summary pp-top" id="pp-top"></table></div>
+        <div id="pp-doc"></div>
+      </div>
+    </div>
+    <p class="caption-note">💡 <b>Your stopwords</b> starts with header field names, the newsgroup and host found in every post, and frequent words from the top of the notebook's table; edit the list freely. <b>Hosts, e-mails</b> covers tokens with <code>.</code>, <code>@</code>, <code>!</code> or <code>/</code> between letters or digits, such as <code>cantaloupe.srv.cs.cmu.edu</code>. <b>Split into words</b> turns them into <code>cantaloupe</code> <code>srv</code> <code>cs</code> <code>cmu</code> <code>edu</code>. With the Whitespace tokenizer, splitting <i>adds</i> terms.</p>
+  </section>
+
+  <!-- ===== QUERYING ===== -->
+  <section class="block algo-section bfs" id="querying">
+    <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Querying</span>
+    <h2 class="section-title">Querying with the same preprocessing</h2>
+    <p class="section-lede">You will also have to include all the steps for the query words in your query methods: a query term matches only if it went through the same tokenizer, case folding, stopword list and stemmer as the documents.</p>
+    <ul class="concept-list">
+      <li><b>Positive</b>: stemming and lemmatization match other forms of a word (higher <b>recall</b>).</li>
+      <li><b>Negative</b>: unrelated words merge, and removed words (stopwords, numbers) make parts of the query disappear (lower <b>precision</b>, or no answer).</li>
+    </ul>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: query the Lab 01 index and your pipeline</h4>
+    <p class="section-lede">An <code>AND</code> query against two indexes of <code>sci.crypt</code>: the <b>Lab 01 index</b> (Tweet, lower-case, no punctuation) and the one from the pipeline <a href="#exercise">above</a>. Each scenario sets the pipeline and a query; then change either.</p>
+    <div class="playground">
+      <div class="pg-controls"><div class="strategy-pick" id="qq-pre"></div></div>
+      <input id="qq-in" class="ii-input" spellcheck="false" autocomplete="off" aria-label="Query">
+      <p class="qq-cfg">Your pipeline: <span id="qq-cfg"></span></p>
+      <p class="ib-cap" id="qq-why"></p>
+      <div id="qq-out"></div>
+    </div>
+    <p class="caption-note">💡 Green documents are found only by your pipeline, red ones only by the Lab 01 index. Whether a gain is good depends on the user: <i>keys</i> → <i>key</i> helps, <i>data</i> → every <i>Date:</i> header does not.</p>
+  </section>
+
+  <!-- ===== SUMMARY ===== -->
+  <section class="block" id="summary">
+    <h2 class="section-title">Summary: key takeaways</h2>
+    <ol class="concept-list">
+      <li><b>Pipeline</b>: documents → tokenizer → linguistic modules → indexer. Documents and queries must go through the same steps.</li>
+      <li><b>Sentences</b>: Punkt needs a trained model (<code>sent_tokenize</code>) to know abbreviations such as <i>Mr.</i> and <i>U.S.</i></li>
+      <li><b>Tokenizers</b>: Whitespace, WordPunct, Treebank and Tweet disagree on URLs, e-mails, numbers, contractions and emoji; pick one for your data and queries.</li>
+      <li><b>Normalization</b>: remove irrelevant parts, numbers and token types; lower-case; equivalence classes; stopwords. Each step also has cases where it hurts.</li>
+      <li><b>Stemming</b>: rule-based suffix removal (Porter, Snowball, Lancaster). It is cheap and raises recall, but over-stems (<i>university</i> = <i>universe</i>) and under-stems (<i>children</i> ≠ <i>child</i>).</li>
+      <li><b>Lemmatization</b>: dictionary forms via WordNet; needs the part of speech.</li>
+      <li><b>On sci.crypt</b>: stopwords and Porter take the dictionary from 5,769 to 4,592 terms; header noise (<code>sci.crypt</code>, host names) needs corpus-specific cleaning.</li>
+    </ol>
+  </section>
+
+</div>
+
+<footer>Class notes by Elitsa Yotkova · Lab 02</footer>
+</main>
+</div>
+
+<script src="code-cards.js"></script>
+<script src="lab02-scicrypt.js"></script>
+<script src="lab02-lemmas.js"></script>
+<script src="lab02.js"></script>
+</body>
+</html>
