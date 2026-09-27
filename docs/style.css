@@ -1783,7 +1783,7 @@ svg [fill="#b8394f"] { fill: var(--red-ink); } svg [stroke="#b8394f"] { stroke: 
 .ii-step-l { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); padding-top: 0.35rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: none; }
 .ii-steps .note, #ib-out .note { font-size: 0.82rem; color: var(--ink-soft); margin: 0.2rem 0 0.4rem; }
 .tk-raw { margin: 0 0 0.2rem; padding: 0.3rem 0.6rem; font-size: 0.9rem; background: color-mix(in srgb, var(--ids) 8%, var(--surface)); border-radius: 6px; overflow-wrap: anywhere; }
-.chip.tk-chip { font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; }
+.chip.tk-chip { font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; background: var(--surface); border: 1.5px solid var(--line); color: var(--ink); padding: 0.25rem 0.6rem; border-radius: 8px; }
 .chip.tk-chip.punct { border-color: #d9546e; color: var(--red-ink); background: color-mix(in srgb, #d9546e 8%, var(--surface)); }
 .ii-th-sub { font-weight: 500; font-size: 0.75rem; opacity: 0.85; }
 /* bit vectors + incidence table */
@@ -1869,3 +1869,20 @@ svg [fill="#b8394f"] { fill: var(--red-ink); } svg [stroke="#b8394f"] { stroke: 
 @media (max-width: 760px) { .ib-docs, .mg-inputs { grid-template-columns: minmax(0, 1fr); } .ii-step { grid-template-columns: minmax(0, 1fr); gap: 0.2rem; } }
 .lab-main :not(pre) > code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.86em; font-weight: 600; padding: 0.08em 0.4em; border-radius: 6px; color: var(--ink); background: color-mix(in srgb, var(--indigo) 11%, var(--surface)); border: 1px solid color-mix(in srgb, var(--indigo) 24%, var(--surface)); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 table.summary thead code { background: rgba(255, 255, 255, 0.18); border-color: rgba(255, 255, 255, 0.35); color: #fff; }
+/* Lab 01: pipeline cards, normalization widget, tokenizer table, positional entry */
+.pipe { display: flex; align-items: stretch; gap: 0.4rem; }
+.pipe-card { flex: 1 1 0; min-width: 0; padding: 0.7rem 0.75rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow-sm); }
+.pipe-card.stage { border-top: 4px solid var(--dfs); background: color-mix(in srgb, var(--dfs) 6%, var(--surface)); }
+.pipe-l { display: block; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink); margin-bottom: 0.35rem; }
+.pipe-ex { margin: 0 0 0.45rem; font-size: 0.86rem; line-height: 1.7; }
+.pipe-lab { margin: 0; font-size: 0.76rem; color: var(--ink-soft); line-height: 1.45; }
+.pipe-arrow { align-self: center; font-weight: 800; color: var(--ink-soft); }
+@media (max-width: 760px) { .pipe { flex-direction: column; } .pipe-arrow { transform: rotate(90deg); } }
+.nm-opts { gap: 0.4rem 1.1rem; }
+.chip.tk-chip.nm-chg { border-color: var(--ucs); background: color-mix(in srgb, var(--ucs) 22%, var(--surface)); }
+.chip.tk-chip small { font-weight: 500; color: var(--ink-soft); }
+.chip.tk-chip.nm-gone { text-decoration: line-through; color: var(--ink-soft); opacity: 0.7; border-style: dashed; }
+.nm-dict { max-height: 16rem; overflow-y: auto; }
+.tz-table td { vertical-align: top; }
+.ph-pre { margin: 0 0 1rem; padding: 0.8rem 1rem; font-size: 0.86rem; line-height: 1.55; background: color-mix(in srgb, var(--ucs) 8%, var(--surface)); border-left: 4px solid var(--ucs); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; overflow-x: auto; }
+.pipe-post span { display: block; white-space: nowrap; font-size: 0.8rem; }

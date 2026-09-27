@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lab 01 — Inverted Index and Boolean Queries | Class Notes</title>
-<meta name="description" content="Interactive notes on the inverted index: tokenization, term-document incidence matrices, dictionary and postings, index construction, and Boolean AND / OR / NOT queries.">
+<meta name="description" content="Interactive notes on the inverted index: the indexing pipeline, tokenization and normalization, incidence matrices, dictionary and postings, index construction, Boolean queries, skip pointers, and phrase queries.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
@@ -40,6 +40,7 @@
       <span class="badge bfs">Inverted index</span>
       <span class="badge dfs">Index construction</span>
       <span class="badge ucs">Boolean queries</span>
+      <span class="badge dls">Phrase queries</span>
     </div>
   </div>
 </section>
@@ -49,21 +50,57 @@
   <!-- ===== OVERVIEW ===== -->
   <section class="block" id="overview">
     <h2 class="section-title">Overview of the lab</h2>
+    <p class="section-lede"><b>Goal</b>: build an inverted index for a collection of documents and answer Boolean queries with it. The lab goes with the lectures on Boolean retrieval and on the dictionary and postings (IIR, chapters 1–2).</p>
     <ol class="concept-list">
-      <li><a href="#incidence">Incidence matrices</a></li>
-      <li><a href="#inverted-index">The inverted index</a></li>
-      <li><a href="#dataset">Dataset and the dictionary part (term and #docs)</a></li>
-      <li><a href="#construction">Building the full index: pairs, sort, merge, split</a></li>
-      <li><a href="#boolean">Boolean queries in the index</a></li>
-      <li><a href="#advanced">Advanced query features</a></li>
+      <li><a href="#task">The task: Boolean retrieval</a>: what we build, why, and the indexing pipeline.</li>
+      <li><a href="#incidence">Incidence matrices</a>: the simplest index, on 14 news headlines.</li>
+      <li><a href="#inverted-index">The inverted index</a>: keep only the non-zero entries, as a dictionary and postings.</li>
+      <li><a href="#text">From text to terms</a>: tokenization, normalization, stop words, stemming.</li>
+      <li><a href="#dataset">Dataset and the dictionary part</a>: newsgroup posts, <code>preprocess_document</code>, document frequency.</li>
+      <li><a href="#construction">Building the full index</a>: pairs, sort, merge, split.</li>
+      <li><a href="#boolean">Boolean queries in the index</a>: answering queries by merging postings lists.</li>
+      <li><a href="#faster">Faster query processing</a>: term order by frequency, skip pointers.</li>
+      <li><a href="#phrase">Phrase and proximity queries</a>: biword and positional indexes.</li>
     </ol>
+  </section>
+
+  <!-- ===== THE TASK ===== -->
+  <section class="block" id="task">
+    <h2 class="section-title">The task: Boolean retrieval</h2>
+    <p class="section-lede">Given a large <b>collection</b> of documents and a query such as <code>wedding AND kills</code>, return every document that satisfies the query.</p>
+    <ul class="concept-list">
+      <li><b>Document</b>: the unit we index and return. In this lab, first one news headline, later one newsgroup post. What counts as a document (a file? an e-mail? an e-mail with its 5 attachments?) is a design decision.</li>
+      <li><b>Collection</b> (corpus): all the documents we search.</li>
+      <li><b>Boolean query</b>: terms combined with <code>AND</code>, <code>OR</code> and <code>NOT</code>. The answer is a <b>set</b> of documents: each document matches or it does not, there is no ranking.</li>
+      <li><b>Why not just scan the text?</b> Searching every document for every query (like <code>grep</code>) costs time proportional to the whole collection, again for each query. Instead we build an <b>index</b> once, in advance; a query then reads only the small part of the index about its own terms.</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">The indexing pipeline</h3>
+    <p class="section-lede">Every index in this lab is built by the same stages (lecture: <i>basic indexing pipeline</i>). Each card says where the lab builds that stage.</p>
+    <div class="pipe">
+      <div class="pipe-card"><span class="pipe-l">Documents</span><p class="pipe-ex">Friends, Romans, countrymen.</p><p class="pipe-lab">14 BBC headlines, then 20 Newsgroups posts</p></div>
+      <span class="pipe-arrow" aria-hidden="true">→</span>
+      <div class="pipe-card stage"><span class="pipe-l">Tokenizer</span><p class="pipe-ex"><code>Friends</code> <code>Romans</code> <code>countrymen</code></p><p class="pipe-lab">NLTK's <code>TweetTokenizer</code>: <a href="#incidence">Incidence matrices</a></p></div>
+      <span class="pipe-arrow" aria-hidden="true">→</span>
+      <div class="pipe-card stage"><span class="pipe-l">Linguistic modules</span><p class="pipe-ex"><code>friend</code> <code>roman</code> <code>countryman</code></p><p class="pipe-lab">lower-casing, dropping punctuation: <a href="#text">From text to terms</a></p></div>
+      <span class="pipe-arrow" aria-hidden="true">→</span>
+      <div class="pipe-card stage"><span class="pipe-l">Indexer</span><p class="pipe-ex">pairs → sort → merge → split</p><p class="pipe-lab"><a href="#construction">Building the full index</a></p></div>
+      <span class="pipe-arrow" aria-hidden="true">→</span>
+      <div class="pipe-card"><span class="pipe-l">Inverted index</span><p class="pipe-ex pipe-post"><span><code>friend</code> 2 → 4</span><span><code>roman</code> 1 → 2</span><span><code>countryman</code> 13 → 16</span></p><p class="pipe-lab">queried in <a href="#boolean">Boolean queries</a> and after</p></div>
+    </div>
+
+    <div class="definition-box" style="margin-top:1.4rem;">
+      <div class="dbox-label">📐 Token and term</div>
+      <p>A <b>token</b> is one occurrence of a character sequence in a document (<code>Friends</code>). A <b>term</b> is the normalized form stored in the dictionary (<code>friend</code>). Every token is a candidate for an index entry, after the linguistic modules have processed it.</p>
+    </div>
+    <p class="section-lede" style="margin-top:1.2rem;">The lab builds the pipeline twice: first a toy version on 14 news headlines, to see the idea (incidence matrix, then inverted index); then a real one on newsgroup posts (dictionary, postings, queries).</p>
   </section>
 
   <!-- ===== INCIDENCE MATRICES ===== -->
   <section class="block algo-section ids" id="incidence">
     <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Foundation</span>
     <h2 class="section-title">Incidence matrices</h2>
-    <p class="section-lede">Our collection: <b>14 BBC News headlines</b>, one document each. Before we can index them, every headline is turned into a list of <b>tokens</b>.</p>
+    <p class="section-lede">The simplest possible index: for every term and every document, record whether the term occurs in the document. Our toy collection is <b>14 BBC News headlines</b>, one document each. Four steps turn them into this table, an <b>incidence matrix</b>: the tokenizer and one linguistic module (lower-casing) of the pipeline, then counting.</p>
 
     <ol class="concept-list">
       <li><b>Tokenize</b>: split each sentence with NLTK's <code>TweetTokenizer</code>. Punctuation marks become tokens of their own: <code>Istanbul.</code> → <code>Istanbul</code> <code>.</code></li>
@@ -158,7 +195,7 @@ print(incidence_matrix.shape)   # (83, 14)</code></pre>
   <section class="block algo-section bfs" id="inverted-index">
     <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Data structure</span>
     <h2 class="section-title">The inverted index</h2>
-    <p class="section-lede">For every term, keep only the documents it occurs in. The index has two parts.</p>
+    <p class="section-lede">For every term, keep only the documents it occurs in: only the non-zero cells of its row. The index is called <b>inverted</b> because it turns the natural view around: a document is a list of terms; the index stores, for each term, the list of documents. It has two parts.</p>
     <ul class="concept-list">
       <li><b>Dictionary</b>: the vocabulary of terms, each with its <b>document frequency</b> \(df_t\), the number of documents that contain \(t\).</li>
       <li><b>Postings</b>: for each term, the list of document ids that contain it (optionally with the term frequency in each). One entry is a <b>posting</b>.</li>
@@ -176,13 +213,80 @@ print(incidence_matrix.shape)   # (83, 14)</code></pre>
       <div class="fig-scroll"><svg id="pl-svg" class="ml-plot" viewBox="0 0 760 250" aria-label="Incidence row and postings list of the selected term"></svg></div>
       <div class="al-out" id="pl-out" style="margin-top:0.6rem;"></div>
     </div>
+    <p class="section-lede" style="margin-top:1.4rem;">Before we build a real index, we have to decide which tokens become terms: the next section.</p>
+  </section>
+
+  <!-- ===== FROM TEXT TO TERMS ===== -->
+  <section class="block algo-section dfs" id="text">
+    <span class="badge dfs" style="margin-bottom:0.6rem; display:inline-block;">Lecture</span>
+    <h2 class="section-title">From text to terms: tokenization and normalization</h2>
+    <p class="section-lede">These are the tokenizer and linguistic-module stages of the pipeline: they decide <b>which terms end up in the dictionary</b>. The headlines used two choices (<code>TweetTokenizer</code> and lower-casing); here are the options the lecture discusses.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Tokenization</h3>
+    <p class="section-lede">Splitting at spaces and punctuation is a start, but many cases are unclear. The last column is what the notebook's <code>TweetTokenizer</code> does with the lecture's examples.</p>
+    <div class="table-wrap">
+      <table class="summary tz-table">
+        <thead><tr><th>Text</th><th>Question</th><th><code>TweetTokenizer</code></th></tr></thead>
+        <tbody>
+          <tr data-s="dfs"><td>Finland's capital</td><td>Finland? Finlands? Finland's?</td><td><code>Finland's</code> <code>capital</code></td></tr>
+          <tr data-s="dfs"><td>Hewlett-Packard, co-education</td><td>split at the hyphen?</td><td><code>Hewlett-Packard</code>, <code>co-education</code>: one token each</td></tr>
+          <tr data-s="dfs"><td>San Francisco</td><td>one token or two?</td><td><code>San</code> <code>Francisco</code>: two</td></tr>
+          <tr data-s="dfs"><td>L'ensemble</td><td>L? L'? Le? Should it match <i>un ensemble</i>?</td><td><code>L'ensemble</code>: one token</td></tr>
+          <tr data-s="ucs"><td>3/12/91, Mar. 12, 1991</td><td>dates in several formats</td><td><code>3/12</code> <code>/</code> <code>91</code>: the date is broken up</td></tr>
+          <tr data-s="ucs"><td>B-52, 55 B.C.</td><td>codes, abbreviations</td><td><code>B</code> <code>-</code> <code>52</code>; <code>B</code> <code>.</code> <code>C</code> <code>.</code></td></tr>
+          <tr data-s="ucs"><td>100.2.86.144</td><td>an IP address</td><td><code>100.2</code> <code>.</code> <code>86.144</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul class="concept-list" style="margin-top:1rem;">
+      <li><b>Numbers and codes</b> are often not indexed as text, but they can be very useful (think of looking up an error code). Meta-data such as creation date and format is often indexed separately.</li>
+      <li><b>Language</b>: tokenization is language-specific. German noun compounds are not segmented (<i>Lebens&shy;versicherungs&shy;gesellschafts&shy;angestellter</i>, 'life insurance company employee'); Chinese and Japanese have no spaces between words; Arabic and Hebrew are written right to left, with numbers left to right.</li>
+      <li><b>Parsing comes first</b>: the format (pdf, Word, html), language and character set of each document must be detected, and one document can mix several (a French e-mail with a German pdf attachment).</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Normalization</h3>
+    <p class="section-lede">Terms in the documents and terms in the query must be put into the same form, so that <code>U.S.A.</code> matches <code>USA</code>.</p>
+    <ul class="concept-list">
+      <li><b>Equivalence classes</b>: the usual, implicit way, e.g. delete periods, so <code>U.S.A.</code> and <code>USA</code> become one term.</li>
+      <li><b>Asymmetric expansion</b>: expand the query instead. Query <code>window</code> → search <code>window</code>, <code>windows</code>; <code>windows</code> → <code>Windows</code>, <code>windows</code>; <code>Windows</code> → <code>Windows</code>. More powerful, but less efficient.</li>
+      <li><b>Accents</b>: <code>résumé</code> vs <code>resume</code>, <code>Tuebingen</code> vs <code>Tübingen</code>. What matters is how users type their queries, and they often leave accents out.</li>
+      <li><b>Case folding</b>: lower-case everything. There are exceptions (<i>General Motors</i>, <code>Fed</code> vs <code>fed</code>, <code>SAIL</code> vs <code>sail</code>), but lower-casing everything is often best, since users type lower case anyway. In our headlines it turns the country <code>US</code> into <code>us</code>.</li>
+      <li><b>Thesauri and soundex</b>: hand-built equivalence classes (<code>car</code> = <code>automobile</code>, <code>color</code> = <code>colour</code>), applied when indexing or by expanding the query; soundex expands names into phonetic variants (<code>chebyshev</code> → <code>tchebycheff</code>).</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Stop words</h3>
+    <p class="section-lede">A <b>stop list</b> removes the most common words from the dictionary entirely.</p>
+    <ul class="concept-list">
+      <li><b>For</b>: they carry little meaning (<code>the</code>, <code>a</code>, <code>and</code>, <code>to</code>, <code>be</code>) and take a lot of space: about 30% of the postings belong to the 30 most common words. In <code>sci.crypt</code> <code>the</code> occurs in 97 of the 100 posts, <code>of</code> and <code>to</code> in 92.</li>
+      <li><b>Against</b>: some queries need them: phrases (<i>"King of Denmark"</i>), titles (<i>"Let it be"</i>, <i>"To be or not to be"</i>), relations (<i>flights to London</i>). With good compression and query optimization, keeping them costs little.</li>
+      <li>The trend is away from stop lists: from 200–300 words, to 7–12, to none. Web search engines generally do not use them.</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Lemmatization and stemming</h3>
+    <ul class="concept-list">
+      <li><b>Lemmatization</b>: reduce inflected forms to the dictionary headword: <code>am</code>, <code>are</code>, <code>is</code> → <code>be</code>; <code>car</code>, <code>cars</code>, <code>car's</code>, <code>cars'</code> → <code>car</code>.</li>
+      <li><b>Stemming</b>: crude chopping of affixes, language dependent. The lecture's example of the idea: <i>automate(s), automatic, automation</i> → <i>automat</i>.</li>
+      <li><b>Porter's algorithm</b>: the commonest stemmer for English. Five phases applied one after the other; within a phase, the rule with the <b>longest matching suffix</b> is applied. Typical rules: <code>sses&nbsp;→&nbsp;ss</code>, <code>ies&nbsp;→&nbsp;i</code>, <code>ational&nbsp;→&nbsp;ate</code>, <code>tional&nbsp;→&nbsp;tion</code>. Some rules check the stem's length (its measure \(m\)): <code>(m&gt;1)&nbsp;ement&nbsp;→</code> turns <code>replacement</code> into <code>replac</code> but leaves <code>cement</code> alone.</li>
+      <li><b>Does it help?</b> Results are mixed: stemming and other normalizations help recall for some queries and hurt precision for others.</li>
+    </ul>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: which terms end up in the dictionary?</h4>
+    <p class="section-lede">Switch the linguistic modules on and off. Each line is one document. Highlighted terms merge several tokens; struck-out tokens are removed. The stop list is IIR's 25-word example list; the stemmer is Porter's original algorithm.</p>
+    <div class="playground">
+      <div class="pg-controls"><div class="strategy-pick" id="nm-src"></div></div>
+      <textarea id="nm-text" class="ii-text" rows="4" spellcheck="false" aria-label="Documents, one per line"></textarea>
+      <div class="pg-controls nm-opts" id="nm-opts" style="margin-top:0.8rem;"></div>
+      <div class="stat-strip" id="nm-stats" style="margin-top:0.4rem;"></div>
+      <div id="nm-out" class="ii-steps"></div>
+    </div>
+    <p class="caption-note">💡 The notebook's <code>preprocess_document</code> uses the first two modules: case folding and dropping punctuation, with no stop list and no stemming. Porter's stems need not be words (<code>wedding</code> → <code>wed</code>, <code>bus</code> → <code>bu</code>, <code>monkey</code> → <code>monkei</code>); they only need to be equal for words that should match. On the lecture's <i>automate</i> example Porter gives <code>autom</code>, <code>autom</code>, <code>automat</code>, <code>autom</code> (try <b>More examples</b>).</p>
   </section>
 
   <!-- ===== DATASET + DICTIONARY ===== -->
-  <section class="block algo-section dfs" id="dataset">
-    <span class="badge dfs" style="margin-bottom:0.6rem; display:inline-block;">Dictionary</span>
+  <section class="block algo-section ucs" id="dataset">
+    <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Dictionary</span>
     <h2 class="section-title">Dataset and the dictionary part (term and #docs)</h2>
-    <p class="section-lede">From here on the documents are Usenet posts from the <a href="https://archive.ics.uci.edu/dataset/113/twenty+newsgroups" target="_blank" rel="noopener">Twenty Newsgroups</a> dataset.</p>
+    <p class="section-lede">Now the real collection: Usenet posts from the <a href="https://archive.ics.uci.edu/dataset/113/twenty+newsgroups" target="_blank" rel="noopener">Twenty Newsgroups</a> dataset. We build the index in two passes: first only the <b>dictionary</b>, each term with the number of documents that contain it; then, in the next section, the postings.</p>
     <ul class="concept-list">
       <li><b>20 Newsgroups</b>: 20,000 messages from 20 newsgroups (UCI, donated in 1999 by Tom Mitchell).</li>
       <li><b>mini_newsgroups</b>: the smaller version we use, one folder per newsgroup with <b>100</b> messages each (e.g. <code>sci.crypt</code>, <code>sci.electronics</code>, <code>rec.autos</code>).</li>
@@ -190,10 +294,10 @@ print(incidence_matrix.shape)   # (83, 14)</code></pre>
     </ul>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Preprocessing a document</h3>
-    <p class="section-lede"><code>preprocess_document</code> returns the lower-cased tokens of a document, without punctuation: split into sentences (<code>sent_tokenize</code>), tokenize each sentence, drop punctuation, lower-case.</p>
+    <p class="section-lede"><code>preprocess_document</code> is our tokenizer and linguistic modules in one function. It returns the lower-cased tokens of a document, without punctuation: split into sentences (<code>sent_tokenize</code>), tokenize each sentence, drop punctuation, lower-case.</p>
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: preprocess_document</h4>
-    <p class="section-lede">The default text is the notebook's example; the output matches its 12 tokens. Edit it, or load the start of a newsgroup post.</p>
+    <p class="section-lede">The default text is the notebook's example; the output matches its 12 tokens. Edit it, or load the start of a newsgroup post or the lecture's tokenization examples.</p>
     <div class="playground">
       <div class="pg-controls">
         <div class="strategy-pick" id="pp-presets"></div>
@@ -205,6 +309,9 @@ print(incidence_matrix.shape)   # (83, 14)</code></pre>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Document frequency</h3>
     <p class="section-lede"><code>prepare_dataset</code> preprocesses every file in a folder. <code>document_frequency</code> counts, for each token, the number of documents containing it: iterate over <code>set(document)</code>, so a token counts once per document.</p>
+    <ul class="concept-list">
+      <li><b>Why document frequency?</b> It is stored in the dictionary next to each term, and it equals the length of the term's postings list. Queries use it to decide in which order to process terms (<a href="#faster">Faster query processing</a>); ranked retrieval later uses it to give rare terms more weight.</li>
+    </ul>
 
     <details class="code-card">
       <summary>
@@ -284,16 +391,18 @@ print(Counter(df).most_common(10))
   </section>
 
   <!-- ===== CONSTRUCTION ===== -->
-  <section class="block algo-section ucs" id="construction">
-    <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Index construction</span>
+  <section class="block algo-section ids" id="construction">
+    <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Index construction</span>
     <h2 class="section-title">Building the full index: pairs, sort, merge, split</h2>
-    <p class="section-lede">Now the postings too. Four steps turn a folder of documents into a dictionary and postings lists.</p>
+    <p class="section-lede">Now the postings too. The key step of index construction is <b>sorting</b>: it brings all occurrences of a term together, so that its postings list can be written out in one go. Four steps turn a folder of documents into a dictionary and postings lists (the indexer stage of the pipeline).</p>
     <ol class="concept-list">
       <li><b>Extract pairs of <code>(token, document_id)</code></b>: walk through every document and emit one pair per token. Also keep a map <code>doc_id → file name</code>.</li>
       <li><b>Sort by token</b>: <code>sorted(token_docid, key=itemgetter(0))</code>. Python's sort is <b>stable</b>, and the pairs were produced in document order, so within each token the document ids stay ascending.</li>
       <li><b>Merge token occurrences in a single document</b>: equal neighbours <code>(token, doc_id)</code> collapse into <code>(token, doc_id, term_freq)</code>.</li>
-      <li><b>Split into dictionary and postings</b>: dictionary <code>term → (doc_freq, total_freq)</code>, postings <code>term → [(doc_id, term_freq), …]</code>.</li>
+      <li><b>Split into dictionary and postings</b>: dictionary <code>term → (doc_freq, total_freq)</code>, postings <code>term → [(doc_id, term_freq), …]</code>. <code>total_freq</code> is how often the term occurs in the whole collection; the term frequency in each document is kept because ranked retrieval will need it.</li>
     </ol>
+
+    <p class="caption-note">💡 This sorts everything in memory. For collections that do not fit in memory, the same sort is done block by block on disk (IIR, chapter 4).</p>
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: build an index step by step</h4>
     <p class="section-lede">Four short documents: three BBC headlines and one we made up (doc 3) so that a term repeats inside a document. Edit any document and the index is rebuilt. Click a term to follow it through the steps.</p>
@@ -389,9 +498,10 @@ print(postings['zip'], postings['zaphod.mps.ohio-state.edu'][:3])   # [(49, 2)] 
   </section>
 
   <!-- ===== BOOLEAN QUERIES ===== -->
-  <section class="block algo-section ids" id="boolean">
-    <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Querying</span>
+  <section class="block algo-section bfs" id="boolean">
+    <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Querying</span>
     <h2 class="section-title">Boolean queries in the index</h2>
+    <p class="section-lede">With the index built, a query never reads the documents. It fetches the postings list of each query term from the dictionary and combines the lists: <code>AND</code> intersects them, <code>OR</code> unites them, <code>AND NOT</code> subtracts one from the other.</p>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1rem;">AND query: documents that contain both <i>living</i> and <i>dead</i></h3>
     <p class="section-lede">We use a <b>merging</b> algorithm for conjunctive queries, which traverses the postings of the two words simultaneously.</p>
@@ -407,14 +517,13 @@ print(postings['zip'], postings['zaphod.mps.ohio-state.edu'][:3])   # [(49, 2)] 
     </div>
 
     <h4 style="margin:1.4rem 0 0.4rem;" id="merge-widget">Try it: merge two postings lists</h4>
-    <p class="section-lede">Step through the merge. Switch the operator to see how <code>OR</code> and <code>AND NOT</code> change it, and turn on <b>skip pointers</b> (see <a href="#advanced">Advanced query features</a>) on the long-list example. The lists are editable.</p>
+    <p class="section-lede">Step through the merge. Switch the operator to see how <code>OR</code> and <code>AND NOT</code> change it. The lists are editable.</p>
     <div class="playground">
       <div class="pg-controls">
         <div class="strategy-pick" id="mg-preset"></div>
       </div>
       <div class="pg-controls">
         <div class="strategy-pick" id="mg-op"></div>
-        <label class="ii-check"><input type="checkbox" id="mg-skip"> skip pointers</label>
         <div class="play-btns">
           <button class="icon-btn" id="mg-prev" title="Step back">⏮</button>
           <button class="icon-btn" id="mg-play" title="Play / pause">▶</button>
@@ -498,18 +607,14 @@ print(and_query(postings, 'living', 'dead'))   # [36]</code></pre>
     </div>
   </section>
 
-  <!-- ===== ADVANCED ===== -->
-  <section class="block algo-section bfs" id="advanced">
-    <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Beyond AND</span>
-    <h2 class="section-title">Advanced query features</h2>
-    <ul class="concept-list">
-      <li><b>Optimization, processing in order of increasing frequency</b>: for a conjunction of many terms, start from the term with the smallest \(df\).</li>
-      <li><b>Optimization, skip pointers</b>: extra pointers in a postings list that jump about \(\sqrt{L}\) entries ahead (\(L\) = list length). When the other list's current id is larger than the skip target, jump over the whole block instead of stepping through it.</li>
-      <li><b>Proximity</b>: the query terms must occur within \(k\) words of each other (e.g. <code>the /2 dead</code>).</li>
-      <li><b>Zones</b>: restrict a term to one part of the document, e.g. the <i>Subject</i> or <i>From</i> header of a post, the title or the author.</li>
-      <li><b>Phrase queries</b>: the words must appear next to each other and in order, e.g. <i>"the dead"</i>. Two ways to support them: a <b>bi-word index</b> (index every pair of consecutive words as one term) or a <b>positional index</b> (store the positions of the term in each document).</li>
-    </ul>
+  <!-- ===== FASTER QUERY PROCESSING ===== -->
+  <section class="block algo-section dfs" id="faster">
+    <span class="badge dfs" style="margin-bottom:0.6rem; display:inline-block;">Optimization</span>
+    <h2 class="section-title">Faster query processing</h2>
+    <p class="section-lede">A merge is linear in the lengths of the postings lists. Two ways to do less work: process the terms in a good order, and skip over parts of long lists.</p>
 
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Process terms in order of increasing frequency</h3>
+    <p class="section-lede">For an <code>AND</code> of many terms, first merge the two terms with the smallest \(df\), then merge the result with the next rarest term, and so on. The intermediate result is never longer than the shortest list, so every later merge is cheaper.</p>
     <h4 style="margin:1.4rem 0 0.4rem;" id="planner">Try it: query planner for sci.crypt</h4>
     <p class="section-lede">Type an <code>AND</code> query. With the real \(df\) values of <code>sci.crypt</code>, compare the maximum size of the intermediate result when the terms are processed as typed and in order of increasing frequency.</p>
     <div class="playground">
@@ -523,10 +628,73 @@ print(and_query(postings, 'living', 'dead'))   # [36]</code></pre>
       </div>
     </div>
 
-    <p class="caption-note">💡 Skip pointers: open the <a href="#merge-widget">merge widget</a>, choose <b>Long list</b> and switch <b>skip pointers</b> on. The \(\sqrt{L}\) rule balances the two costs: more skips give shorter jumps and more comparisons, fewer skips give long jumps that are rarely taken.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Skip pointers</h3>
+    <p class="section-lede">Can we merge faster than \(O(x + y)\)? Yes, if the index is not changing too fast: add <b>skip pointers</b> to the postings lists at indexing time. They are shortcuts over postings that cannot be in the result.</p>
+    <ul class="concept-list">
+      <li><b>How they are used</b>: when the current id on one list is the smaller one, check its skip pointer. If the skip target is still ≤ the other list's current id, jump there, over everything in between; otherwise advance one posting as usual.</li>
+      <li><b>Where to place them</b>: a tradeoff. More skips give shorter spans, so skips are taken more often, but cost more comparisons (and space). Fewer skips give fewer comparisons, but long spans that are rarely usable.</li>
+      <li><b>Heuristic</b>: for a list of length \(L\), use \(\sqrt{L}\) evenly spaced skip pointers. It ignores how query terms are distributed, and it is easy only if the index is fairly static; updates keep changing \(L\).</li>
+      <li><b>Only for <code>AND</code></b>: an <code>OR</code> has to visit every posting anyway. Skips exist only on the stored lists, not on intermediate results.</li>
+      <li>❗ With modern hardware they may not help: loading a bigger postings list can cost more than the faster in-memory merge saves (the lecture cites Bahle et al., 2002).</li>
+    </ul>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: intersect with skip pointers</h4>
+    <p class="section-lede">Arcs above a list are its skip pointers; a thick arc is a skip being taken. Compare the steps with and without skips on the three examples.</p>
+    <div class="playground">
+      <div class="pg-controls">
+        <div class="strategy-pick" id="sk-preset"></div>
+      </div>
+      <div class="pg-controls">
+        <label class="ii-check"><input type="checkbox" id="sk-skip" checked> skip pointers</label>
+        <div class="play-btns">
+          <button class="icon-btn" id="sk-prev" title="Step back">⏮</button>
+          <button class="icon-btn" id="sk-play" title="Play / pause">▶</button>
+          <button class="icon-btn" id="sk-next" title="Step forward">⏭</button>
+          <button class="icon-btn" id="sk-reset" title="Reset">↺</button>
+        </div>
+      </div>
+      <div class="mg-inputs">
+        <label><span id="sk-na">Brutus</span><input id="sk-a" class="ii-input" spellcheck="false"></label>
+        <label><span id="sk-nb">Caesar</span><input id="sk-b" class="ii-input" spellcheck="false"></label>
+      </div>
+      <div class="fig-scroll"><svg id="sk-svg" class="ml-plot" viewBox="0 0 760 250" aria-label="Two postings lists with skip pointers being intersected"></svg></div>
+      <div class="pg-grid" style="margin-top:0.6rem;">
+        <div class="frontier-box"><h5>Merge log</h5><div class="log-box" id="sk-log"></div></div>
+        <div class="al-out" id="sk-out"></div>
+      </div>
+    </div>
+    <p class="caption-note">💡 On the <b>lecture slide</b>'s lists this algorithm never takes a skip. The slide says the skip from 8 to 31 on the lower list lets us jump past 17 and 21; but after both lists match 8, both pointers move on (to 16 and 17), past the start of that skip. The slide reasons with a look-ahead to 32, the successor of 16; IIR notes that several variants exist, depending on when the skip pointer is checked. The book's version of the figure (<b>IIR Fig. 2.9</b>) shows a skip this algorithm does take: at 16 vs 41 it jumps to 28, avoiding 19 and 23.</p>
+  </section>
+
+  <!-- ===== PHRASE AND PROXIMITY QUERIES ===== -->
+  <section class="block algo-section ucs" id="phrase">
+    <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Phrases</span>
+    <h2 class="section-title">Phrase and proximity queries</h2>
+    <p class="section-lede">We want to answer <code>"stanford university"</code> as a phrase, so that "I went to university at Stanford" is not a match. Users understand phrase queries easily; as many as 10% of web queries are phrase queries. For them, storing only <code>term&nbsp;→&nbsp;documents</code> is no longer enough.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">A first attempt: biword indexes</h3>
+    <ul class="concept-list">
+      <li><b>Biwords</b>: index every pair of consecutive terms as one dictionary term. "Friends, Romans, Countrymen" gives <code>friends romans</code> and <code>romans countrymen</code>. Two-word phrase queries are then immediate.</li>
+      <li><b>Longer phrases</b>: <code>stanford university palo alto</code> becomes <code>"stanford university" AND "university palo" AND "palo alto"</code>. Without looking at the documents we cannot check that the whole phrase occurs: there can be <b>false positives</b>.</li>
+      <li><b>Extended biwords</b>: tag the text with parts of speech, group terms into nouns (N) and articles/prepositions (X), and index every sequence of the form N X* N as one term: <i>catcher in the rye</i> is N X X N.</li>
+      <li><b>Issues</b>: false positives, and a much bigger dictionary. Biword indexes are not the standard solution.</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Solution 2: positional indexes</h3>
+    <p class="section-lede">In the postings, store for each document the <b>positions</b> at which the term occurs:</p>
+    <pre class="ph-pre">&lt;be: 993427;
+  1: 7, 18, 33, 72, 86, 231;
+  2: 3, 149;
+  4: 17, 191, 291, 430, 434;
+  5: 363, 367, …&gt;</pre>
+    <ul class="concept-list">
+      <li><b>Phrase queries</b>: fetch the entries of each distinct term (for <i>"to be or not to be"</i>: <code>to</code>, <code>be</code>, <code>or</code>, <code>not</code>), start from the rarest, and merge their doc:position lists. Now a document must not only contain both terms: <code>be</code> must occur at a position one higher than <code>to</code>, and so on.</li>
+      <li><b>Proximity queries</b>: <code>LIMIT! /3 STATUTE /3 FEDERAL /2 TORT</code>, where <code>/k</code> means "within \(k\) words of" (on either side). The same merge works with a positional index; a biword index cannot answer these.</li>
+    </ul>
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: phrase and proximity queries</h4>
-    <p class="section-lede">The four documents from the <a href="#construction">index builder</a> (edit them there). The positional index stores, for each term and document, the positions (from 0) where the term occurs.</p>
+    <p class="section-lede">The four documents from the <a href="#construction">index builder</a> (edit them there). Compare what each kind of index returns for the same query; positions start at 0.</p>
     <div class="playground">
       <div class="pg-controls">
         <input id="ph-q" class="ii-input" style="max-width:16rem;" spellcheck="false" autocomplete="off" aria-label="Query">
@@ -538,19 +706,63 @@ print(and_query(postings, 'living', 'dead'))   # [36]</code></pre>
         <div class="al-out" id="ph-out"></div>
       </div>
     </div>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Positional index size</h3>
+    <p class="section-lede">A positional index needs an entry for every <b>occurrence</b>, not one per document, so its size depends on document length. An average web page has fewer than 1,000 terms; SEC filings, books and even some epic poems easily reach 100,000. For a term with frequency 0.1%:</p>
+    <div class="table-wrap" style="max-width:34rem;">
+      <table class="summary">
+        <thead><tr><th>Document size</th><th>Postings</th><th>Positional postings</th></tr></thead>
+        <tbody>
+          <tr data-s="ucs"><td>1,000</td><td>1</td><td>1</td></tr>
+          <tr data-s="ucs"><td>100,000</td><td>1</td><td>100</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul class="concept-list" style="margin-top:1rem;">
+      <li><b>Rules of thumb</b> (English-like languages): a positional index is 2–4 times as large as a non-positional one; compressed, it takes about 35–50% of the volume of the original text.</li>
+      <li>It is still the standard, because phrase and proximity queries are so useful, whether users type them or a ranking system uses them implicitly.</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Combination schemes</h3>
+    <ul class="concept-list">
+      <li>For frequent phrases such as <i>"Michael Jackson"</i> or <i>"Britney Spears"</i>, merging positional lists again and again is wasteful; even more so for <i>"The Who"</i>, whose words are very common while the phrase is rare. Keep such phrases in a biword (phrase) index and use the positional index for the rest.</li>
+      <li>Williams et al. (2004) also add a next-word index: a typical mixture of web phrase queries ran in <b>¼ of the time</b> of a positional index alone, using <b>26% more space</b>.</li>
+      <li><b>Zones</b> (from the notebook): restrict a term to one part of the document, e.g. the <i>Subject</i> or <i>From</i> header of a post, the title or the author.</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Exercises from the lecture</h3>
+    <div class="dt-ex-list">
+      <details class="dt-ex">
+        <summary><span class="dt-ex-no">4</span><span class="dt-ex-q">With the positional entry for <code>be</code> above, which of the documents 1, 2, 4, 5 could contain <i>"to be or not to be"</i>?</span></summary>
+        <div class="dt-ex-sol">
+          <p>In the phrase, <code>be</code> is at positions \(p+1\) and \(p+5\), so a document needs two positions of <code>be</code> exactly 4 apart.</p>
+          <p>Doc 1 (7, 18, 33, 72, 86, 231): no pair 4 apart. Doc 2 (3, 149): no. <b>Doc 4</b>: 430 and 434. <b>Doc 5</b>: 363 and 367. So only docs 4 and 5 can contain it.</p>
+          <p>To be sure, check the other terms too. The lecture's entry for <code>to</code> has <code>4: 8, 16, 190, 429, 433</code>: <code>to</code> at 429 and 433, <code>be</code> at 430 and 434, so doc 4 is a candidate at positions 429–434 (still to check: <code>or</code> at 431, <code>not</code> at 432).</p>
+        </div>
+      </details>
+      <details class="dt-ex">
+        <summary><span class="dt-ex-no">5</span><span class="dt-ex-q">Adapt the linear merge of postings to handle proximity queries. Can you make it work for any value of \(k\)?</span></summary>
+        <div class="dt-ex-sol">
+          <p>Merge the two postings lists by document id as before. For a document in both lists, walk its two position lists with two pointers, like a second merge: for each position \(p_1\) of the first term, keep a window of the positions \(p_2\) of the second term with \(|p_1 - p_2| \le k\), dropping positions that fall behind and adding those that come into range. Every pair in the window is a match.</p>
+          <p>Each position enters and leaves the window once, so the work is linear in the number of positions plus the number of matches, for any \(k\) (IIR, Figure 2.12).</p>
+        </div>
+      </details>
+    </div>
   </section>
 
   <!-- ===== SUMMARY ===== -->
   <section class="block" id="summary">
     <h2 class="section-title">Summary: key takeaways</h2>
     <ol class="concept-list">
-      <li><b>Preprocessing</b>: tokenize, drop punctuation, lower-case; the resulting tokens are the index terms.</li>
-      <li><b>Incidence matrix</b>: terms × documents; Boolean queries become bitwise operations on rows, but the matrix is almost all zeros.</li>
+      <li><b>Boolean retrieval</b>: the answer is the set of documents that satisfy the query; an index built once, in advance, replaces scanning the text for every query.</li>
+      <li><b>Pipeline</b>: documents → tokenizer → linguistic modules → indexer → inverted index.</li>
+      <li><b>Incidence matrix</b>: terms × documents; queries become bitwise operations on rows, but the matrix is almost all zeros.</li>
       <li><b>Inverted index</b>: a dictionary of terms with their \(df\), each pointing to a postings list of document ids sorted by id.</li>
+      <li><b>Tokens to terms</b>: tokenization, normalization, case folding, stop words, stemming or lemmatization; each choice trades recall against precision. Our <code>preprocess_document</code>: tokenize, drop punctuation, lower-case.</li>
       <li><b>Construction</b>: collect <code>(token, doc_id)</code> pairs → sort by token → merge into <code>(token, doc_id, tf)</code> → split into dictionary and postings.</li>
-      <li><b>AND query</b>: merge the two sorted postings lists in \(O(x + y)\); <code>OR</code> and <code>AND NOT</code> are merges too, a lone <code>NOT</code> costs \(O(N)\).</li>
-      <li><b>Optimizations</b>: process terms by increasing \(df\); skip pointers jump over parts of long lists.</li>
-      <li><b>Richer queries</b>: proximity, zones, and phrases via bi-word or positional indexes.</li>
+      <li><b>Queries</b>: <code>AND</code>, <code>OR</code>, <code>AND NOT</code> are linear merges of sorted postings lists, \(O(x + y)\); a lone <code>NOT</code> costs \(O(N)\).</li>
+      <li><b>Faster merges</b>: process terms by increasing \(df\); skip pointers (\(\sqrt{L}\) per list, <code>AND</code> only) jump over parts of long lists.</li>
+      <li><b>Phrases</b>: biword indexes are fast for two words but give false positives; positional indexes answer phrase and proximity queries, at 2–4 times the size.</li>
     </ol>
   </section>
 

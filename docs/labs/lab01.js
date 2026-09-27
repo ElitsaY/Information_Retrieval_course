@@ -90,6 +90,50 @@ function preprocess(content) {
   return sentTokenize(content).flatMap(s => tweetTokenize(s).filter(t => !isPunct(t)).map(t => t.toLowerCase()));
 }
 
+/* ---------- linguistic modules: IIR's example stop list (Fig. 2.5) and Porter's stemmer ---------- */
+const STOP_IIR = new Set('a an and are as at be by for from has he in is it its of on that the to was were will with'.split(' '));
+// Porter (1980) stemmer, original algorithm; words of 1–2 letters are left alone, as in Porter's reference code;
+// checked against NLTK PorterStemmer(mode=ORIGINAL_ALGORITHM) on 4,342 words
+function porterStem(w) {
+  if (w.length <= 2 || !/^[a-z]+$/.test(w)) return w;
+  const cons = (s, i) => { const c = s[i]; if ('aeiou'.includes(c)) return false; if (c === 'y') return i === 0 || !cons(s, i - 1); return true; };
+  const m = (s) => { let n = 0, i = 0; const L = s.length; while (i < L && cons(s, i)) i++; while (i < L) { while (i < L && !cons(s, i)) i++; if (i >= L) break; n++; while (i < L && cons(s, i)) i++; } return n; };
+  const hasV = (s) => [...s].some((_, i) => !cons(s, i));
+  const dbl = (s) => s.length >= 2 && s[s.length - 1] === s[s.length - 2] && cons(s, s.length - 1);
+  const cvc = (s) => { const L = s.length; return L >= 3 && cons(s, L - 3) && !cons(s, L - 2) && cons(s, L - 1) && !'wxy'.includes(s[L - 1]); };
+  // apply the rule with the longest matching suffix; stop there even if its condition fails
+  const step = (s, rules, cond) => {
+    let best = null;
+    for (const [suf, rep] of rules) if (s.endsWith(suf) && (!best || suf.length > best[0].length)) best = [suf, rep];
+    if (!best) return s;
+    const stem = s.slice(0, -best[0].length);
+    return cond(stem, best[0]) ? stem + best[1] : s;
+  };
+  // step 1a
+  if (w.endsWith('sses')) w = w.slice(0, -2); else if (w.endsWith('ies')) w = w.slice(0, -2); else if (w.endsWith('ss')) {} else if (w.endsWith('s')) w = w.slice(0, -1);
+  // step 1b
+  let extra = false;
+  if (w.endsWith('eed')) { if (m(w.slice(0, -3)) > 0) w = w.slice(0, -1); }
+  else if (w.endsWith('ed') && hasV(w.slice(0, -2))) { w = w.slice(0, -2); extra = true; }
+  else if (w.endsWith('ing') && hasV(w.slice(0, -3))) { w = w.slice(0, -3); extra = true; }
+  if (extra) {
+    if (w.endsWith('at') || w.endsWith('bl') || w.endsWith('iz')) w += 'e';
+    else if (dbl(w) && !'lsz'.includes(w[w.length - 1])) w = w.slice(0, -1);
+    else if (m(w) === 1 && cvc(w)) w += 'e';
+  }
+  // step 1c
+  if (w.endsWith('y') && hasV(w.slice(0, -1))) w = w.slice(0, -1) + 'i';
+  // steps 2–4
+  w = step(w, [['ational', 'ate'], ['tional', 'tion'], ['enci', 'ence'], ['anci', 'ance'], ['izer', 'ize'], ['abli', 'able'], ['alli', 'al'], ['entli', 'ent'], ['eli', 'e'], ['ousli', 'ous'], ['ization', 'ize'], ['ation', 'ate'], ['ator', 'ate'], ['alism', 'al'], ['iveness', 'ive'], ['fulness', 'ful'], ['ousness', 'ous'], ['aliti', 'al'], ['iviti', 'ive'], ['biliti', 'ble']], s => m(s) > 0);
+  w = step(w, [['icate', 'ic'], ['ative', ''], ['alize', 'al'], ['iciti', 'ic'], ['ical', 'ic'], ['ful', ''], ['ness', '']], s => m(s) > 0);
+  w = step(w, ['al', 'ance', 'ence', 'er', 'ic', 'able', 'ible', 'ant', 'ement', 'ment', 'ent', 'ion', 'ou', 'ism', 'ate', 'iti', 'ous', 'ive', 'ize'].map(x => [x, '']),
+    (s, suf) => m(s) > 1 && (suf !== 'ion' || /[st]$/.test(s)));
+  // step 5
+  if (w.endsWith('e')) { const s = w.slice(0, -1); if (m(s) > 1 || (m(s) === 1 && !cvc(s))) w = s; }
+  if (m(w) > 1 && dbl(w) && w.endsWith('l')) w = w.slice(0, -1);
+  return w;
+}
+
 /* ---------- maths rendering ---------- */
 function initMath() {
   if (!window.renderMathInElement) return;
@@ -230,10 +274,11 @@ const PP_PRESETS = {
   nb: 'US wedding limousine crash kills 20. Kanye West, deletes social media profiles!',
   post: 'Newsgroups: sci.electronics\nPath: cantaloupe.srv.cs.cmu.edu!crabapple.srv.cs.cmu.edu!fs7.ece.cmu.edu\nFrom: et@teal.csn.org (Eric H. Taylor)\nSubject: Re: electronic tesla coils',
   quirk: 'Wait... what?! (really) Tesla coils -- 23:12 (EST) ()',
+  lecture: "Finland's capital is not in San Francisco. Hewlett-Packard, co-education and B-52. Dates: 3/12/91 or Mar. 12, 1991. IP 100.2.86.144. U.S.A. and USA.",
 };
 function initPreprocess() {
   const inp = document.getElementById('pp-in'), out = document.getElementById('pp-out');
-  pills(document.getElementById('pp-presets'), [['nb', 'Notebook example'], ['post', 'Newsgroup header'], ['quirk', 'Punctuation quirks']], 'nb', k => { inp.value = PP_PRESETS[k]; render(); });
+  pills(document.getElementById('pp-presets'), [['nb', 'Notebook example'], ['post', 'Newsgroup header'], ['lecture', 'Lecture examples'], ['quirk', 'Punctuation quirks']], 'nb', k => { inp.value = PP_PRESETS[k]; render(); });
   inp.value = PP_PRESETS.nb;
   function render() {
     const sents = sentTokenize(inp.value);
@@ -378,20 +423,24 @@ function initBuilder() {
 
 /* ---------- merging two postings lists (AND / OR / AND NOT, skip pointers) ---------- */
 const MG_PRESETS = {
-  slide: { label: 'Slide example', na: 'living', nb: 'dead', a: [1, 2, 5, 17, 30, 31, 44, 45, 47], b: [5, 17, 44] },
+  lab: { label: 'Lab example', na: 'living', nb: 'dead', a: [1, 2, 5, 17, 30, 31, 44, 45, 47], b: [5, 17, 44] },
   autos: { label: 'rec.autos output', na: 'living', nb: 'dead', a: [30, 36, 78], b: [29, 36, 65] },
+  // lecture slide "Augment postings with skip pointers": skips 2→16→128 and 1→8→31
+  slide: { label: 'Lecture slide', na: 'Brutus', nb: 'Caesar', a: [2, 4, 8, 16, 32, 64, 128], b: [1, 2, 3, 5, 8, 17, 21, 31], skA: { 0: 3, 3: 6 }, skB: { 0: 4, 4: 7 } },
+  // IIR Figure 2.9 (its skips 28→72 and 51→98 point past the part of the lists shown)
+  iir: { label: 'IIR Fig. 2.9', na: 'Brutus', nb: 'Caesar', a: [2, 4, 8, 16, 19, 23, 28, 43], b: [1, 2, 3, 5, 8, 41, 51, 60, 71], skA: { 0: 3, 3: 6 }, skB: { 0: 3, 3: 6 } },
   long: { label: 'Long list', na: 'term A', nb: 'term B', a: [2, 3, 5, 8, 9, 12, 14, 17, 19, 21, 24, 26, 29, 31, 33, 36, 39, 41, 43, 46], b: [30, 36, 44] },
 };
+// √L evenly spaced skip pointers: {from index: to index}
 function skipTable(L) {
   const s = Math.round(Math.sqrt(L.length)), sk = {};
   if (s < 2) return sk;
   for (let k = 0; k + s < L.length; k += s) sk[k] = k + s;
   return sk;
 }
-function mergeFrames(A, B, op, useSkips, na, nb) {
+function mergeFrames(A, B, op, skA, skB, na, nb) {
   const F = [], res = [];
   let i = 0, j = 0;
-  const skA = useSkips ? skipTable(A) : {}, skB = useSkips ? skipTable(B) : {};
   const push = (msg, ci, cj, extra = {}) => F.push({ i, j, res: res.slice(), msg, ci, cj, ...extra });
   push('Start: one pointer at the head of each list.', -1, -1);
   if (op === 'AND') {
@@ -426,34 +475,40 @@ function mergeFrames(A, B, op, useSkips, na, nb) {
   }
   return F;
 }
-function initMerge() {
-  const svg = document.getElementById('mg-svg'), log = document.getElementById('mg-log'), out = document.getElementById('mg-out');
-  const inA = document.getElementById('mg-a'), inB = document.getElementById('mg-b'), skipCb = document.getElementById('mg-skip');
-  const playBtn = document.getElementById('mg-play');
-  let preset = 'slide', op = 'AND', na = 'living', nb = 'dead', A = [], B = [], F = [], k = 0, timer = null;
+// one widget per call: cfg = { p: id prefix, presets: [keys], ops: show AND/OR/AND NOT, skips: show the skip-pointer switch }
+function initMerge(cfg) {
+  const $ = (id) => document.getElementById(`${cfg.p}-${id}`);
+  const svg = $('svg'), log = $('log'), out = $('out'), inA = $('a'), inB = $('b'), skipCb = $('skip'), playBtn = $('play');
+  let preset = cfg.presets[0], op = 'AND', na = '', nb = '', A = [], B = [], F = [], k = 0, timer = null, skA = {}, skB = {};
 
-  pills(document.getElementById('mg-preset'), Object.entries(MG_PRESETS).map(([key, p]) => [key, p.label]), preset, key => loadPreset(key));
-  pills(document.getElementById('mg-op'), [['AND', 'AND'], ['OR', 'OR'], ['AND NOT', 'AND NOT']], op, o => { op = o; recompute(); });
+  pills($('preset'), cfg.presets.map(key => [key, MG_PRESETS[key].label]), preset, key => loadPreset(key));
+  if (cfg.ops) pills($('op'), [['AND', 'AND'], ['OR', 'OR'], ['AND NOT', 'AND NOT']], op, o => { op = o; recompute(); });
   const parse = (s) => [...new Set(s.split(/[^0-9]+/).filter(Boolean).map(Number))].sort((x, y) => x - y).slice(0, 30);
 
   function loadPreset(key) {
     const p = MG_PRESETS[key]; preset = key; na = p.na; nb = p.nb;
     inA.value = p.a.join(', '); inB.value = p.b.join(', ');
-    document.getElementById('mg-na').textContent = na; document.getElementById('mg-nb').textContent = nb;
+    $('na').textContent = na; $('nb').textContent = nb;
     recompute();
+  }
+  const skipsOn = () => cfg.skips && skipCb.checked && op === 'AND';
+  // the preset's own skip pointers while its lists are unchanged, otherwise √L evenly spaced
+  function skipTables() {
+    const p = MG_PRESETS[preset], same = (x, y) => x.join() === y.join();
+    return [p.skA && same(A, p.a) ? p.skA : skipTable(A), p.skB && same(B, p.b) ? p.skB : skipTable(B)];
   }
   function recompute() {
     stop();
     A = parse(inA.value); B = parse(inB.value);
-    skipCb.disabled = op !== 'AND';
-    F = mergeFrames(A, B, op, skipCb.checked && op === 'AND', na, nb);
+    [skA, skB] = skipsOn() ? skipTables() : [{}, {}];
+    F = mergeFrames(A, B, op, skA, skB, na, nb);
     k = 0; render();
   }
   function stop() { if (timer) { clearInterval(timer); timer = null; } playBtn.textContent = '▶'; }
   function go(n) { k = Math.max(0, Math.min(F.length - 1, n)); render(); }
-  document.getElementById('mg-prev').addEventListener('click', () => { stop(); go(k - 1); });
-  document.getElementById('mg-next').addEventListener('click', () => { stop(); go(k + 1); });
-  document.getElementById('mg-reset').addEventListener('click', () => { stop(); go(0); });
+  $('prev').addEventListener('click', () => { stop(); go(k - 1); });
+  $('next').addEventListener('click', () => { stop(); go(k + 1); });
+  $('reset').addEventListener('click', () => { stop(); go(0); });
   playBtn.addEventListener('click', () => {
     if (timer) { stop(); return; }
     if (k >= F.length - 1) k = 0;
@@ -461,7 +516,7 @@ function initMerge() {
     timer = setInterval(() => { if (k >= F.length - 1) stop(); else go(k + 1); }, 750);
   });
   [inA, inB].forEach(x => x.addEventListener('change', recompute));
-  skipCb.addEventListener('change', recompute);
+  if (cfg.skips) skipCb.addEventListener('change', recompute);
 
   function drawList(L, yRow, name, ptr, cmpIdx, sk, fr, side) {
     const x0 = 104, pw = 46;
@@ -487,9 +542,8 @@ function initMerge() {
     const W = Math.max(620, 124 + n * 46);
     svg.setAttribute('viewBox', `0 0 ${W} 250`);
     svg.innerHTML = '';
-    const useSk = skipCb.checked && op === 'AND';
-    drawList(A, 34, na, fr.i, fr.ci, useSk ? skipTable(A) : {}, fr, 'a');
-    drawList(B, 118, nb, fr.j, fr.cj, useSk ? skipTable(B) : {}, fr, 'b');
+    drawList(A, 34, na, fr.i, fr.ci, skA, fr, 'a');
+    drawList(B, 118, nb, fr.j, fr.cj, skB, fr, 'b');
     txt(svg, 10, 222, 'result', 'lbl');
     fr.res.forEach((v, m) => {
       el('rect', { x: 104 + m * 46, y: 198, width: 40, height: 32, rx: 7, class: 'mg-cell res' }, svg);
@@ -498,16 +552,74 @@ function initMerge() {
     log.innerHTML = F.slice(1, k + 1).map((f, m) => `<p class="${m === k - 1 ? 'current' : ''}${f.end ? ' win' : ''}">${m + 1}. ${esc(f.msg)}</p>`).join('') || '<p>Press ⏭ or ▶ to start.</p>';
     log.scrollTop = log.scrollHeight;
     const steps = F.length - 2, done = Math.min(k, steps);
-    const skips = F.filter(f => f.skip).length;
-    out.innerHTML = `<p class="big"><b>${esc(na)} ${op} ${esc(nb)}</b> = [${fr.res.join(', ')}]${fr.end ? '' : ' …'}</p>` +
-      `<p>Comparison steps: <b>${done}</b> of ${steps}` + (useSk ? ` (${skips} skip${skips === 1 ? '' : 's'})` : '') + `</p>` +
-      `<p class="note">Lengths x = ${A.length}, y = ${B.length}, so at most x + y = ${A.length + B.length} steps.` +
-      (useSk ? ` Skip span \\(\\sqrt{L}\\): ${Math.round(Math.sqrt(A.length))} on ${esc(na)}, ${Math.round(Math.sqrt(B.length)) >= 2 ? Math.round(Math.sqrt(B.length)) : 'none'} on ${esc(nb)}.` : '') + '</p>';
-    if (window.renderMathInElement) renderMathInElement(out, { delimiters: [{ left: '\\(', right: '\\)', display: false }], throwOnError: false });
-    document.getElementById('mg-prev').disabled = k === 0;
-    document.getElementById('mg-next').disabled = k === F.length - 1;
+    let html = `<p class="big"><b>${esc(na)} ${op} ${esc(nb)}</b> = [${fr.res.join(', ')}]${fr.end ? '' : ' …'}</p>` +
+      `<p>Comparison steps: <b>${done}</b> of ${steps}</p>`;
+    if (cfg.skips) {
+      const plain = mergeFrames(A, B, 'AND', {}, {}, na, nb).length - 2;
+      const withSk = mergeFrames(A, B, 'AND', ...skipTables(), na, nb);
+      const taken = withSk.filter(f => f.skip).length;
+      html += `<p>Without skips: <b>${plain}</b> steps · with skips: <b>${withSk.length - 2}</b> (${taken} skip${taken === 1 ? '' : 's'} taken)</p>`;
+    }
+    html += `<p class="note">Lengths x = ${A.length}, y = ${B.length}, so at most x + y = ${A.length + B.length} steps.</p>`;
+    out.innerHTML = html;
+    $('prev').disabled = k === 0;
+    $('next').disabled = k === F.length - 1;
   }
-  loadPreset('slide');
+  loadPreset(preset);
+}
+
+/* ---------- normalization choices: which terms end up in the dictionary ---------- */
+const NM_PRESETS = {
+  bbc: HEADLINES.join('\n'),
+  porter: 'for example compressed and compression are both accepted as equivalent to compress',
+  lemma: 'automate automates automatic automation\nThe boy\'s cars are different colors\nrelational conditional replacement cement\nU.S.A. and USA are not the same term',
+};
+function initNormalize() {
+  const ta = document.getElementById('nm-text'), stats = document.getElementById('nm-stats'), out = document.getElementById('nm-out');
+  const OPTS = [['fold', 'Case folding', true], ['punct', 'Drop punctuation', false], ['stop', 'Stop list', false], ['stem', 'Porter stemmer', false]];
+  const on = {};
+  const box = document.getElementById('nm-opts');
+  box.innerHTML = OPTS.map(([k, l, d]) => `<label class="ii-check nm-opt"><input type="checkbox" data-k="${k}"${d ? ' checked' : ''}> ${l}</label>`).join('');
+  box.querySelectorAll('input').forEach(cb => { on[cb.dataset.k] = cb.checked; cb.addEventListener('change', () => { on[cb.dataset.k] = cb.checked; render(); }); });
+  pills(document.getElementById('nm-src'), [['bbc', 'BBC headlines'], ['porter', 'Lecture: Porter example'], ['lemma', 'More examples']], 'bbc', k => { ta.value = NM_PRESETS[k]; render(); });
+  ta.value = NM_PRESETS.bbc;
+
+  function pipeline(tok) {   // returns the term for a token, or null if the token is removed
+    let t = tok;
+    if (on.punct && isPunct(t)) return null;
+    if (on.fold) t = t.toLowerCase();
+    if (on.stop && STOP_IIR.has(t)) return null;
+    if (on.stem) t = porterStem(t);
+    return t;
+  }
+  function render() {
+    const docs = ta.value.split('\n').filter(l => l.trim());
+    const raw = docs.map(d => tweetTokenize(d));
+    const forms = new Map(), removed = new Set(), postings = new Set();
+    let nTok = 0;
+    raw.forEach((ts, d) => ts.forEach(tok => {
+      nTok++;
+      const t = pipeline(tok);
+      if (t === null) { removed.add(tok); return; }
+      if (!forms.has(t)) forms.set(t, new Set());
+      forms.get(t).add(tok); postings.add(t + '\u0000' + d);
+    }));
+    const base = new Set(raw.flat()).size;
+    stats.innerHTML = [[docs.length, docs.length === 1 ? 'document' : 'documents'], [nTok, 'tokens'], [`${base} → ${forms.size}`, 'dictionary terms'], [postings.size, 'postings']]
+      .map(([n, l]) => `<div class="stat"><span class="n">${n}</span><span class="l">${l}</span></div>`).join('');
+    const terms = [...forms.keys()].sort(cmp);
+    const merged = terms.filter(t => forms.get(t).size > 1);   // terms that merge two or more different tokens
+    let html = '';
+    if (docs.length <= 4) {
+      html += docs.map((d, i) => `<div class="ii-step"><span class="ii-step-l">${docs.length > 1 ? 'doc ' + i : 'output'}</span><div class="chip-row">${raw[i].map(tok => { const t = pipeline(tok); return t === null ? `<span class="chip tk-chip nm-gone">${esc(tok)}</span>` : `<span class="chip tk-chip${t !== tok ? ' nm-chg' : ''}" title="${esc(tok)}">${esc(t)}</span>`; }).join('')}</div></div>`).join('');
+    }
+    html += `<div class="ii-step"><span class="ii-step-l">dictionary</span><div class="chip-row nm-dict">${terms.map(t => merged.includes(t) ? `<span class="chip tk-chip nm-chg">${esc(t)} <small>← ${[...forms.get(t)].map(esc).join(', ')}</small></span>` : `<span class="chip tk-chip">${esc(t)}</span>`).join('')}</div></div>`;
+    if (merged.length) html = `<p class="note"><b>${merged.length}</b> term${merged.length > 1 ? 's merge' : ' merges'} several tokens: ${merged.map(t => `<code>${esc(t)}</code>`).join(', ')}</p>` + html;
+    if (removed.size) html += `<div class="ii-step"><span class="ii-step-l">removed</span><div class="chip-row">${[...removed].sort(cmp).map(t => `<span class="chip tk-chip nm-gone">${esc(t)}</span>`).join('')}</div></div>`;
+    out.innerHTML = html;
+  }
+  ta.addEventListener('input', render);
+  render();
 }
 
 /* ---------- query planner: order by increasing df ---------- */
@@ -605,10 +717,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initTokenize();
   initIncidence();
   initPostingsFig();
+  initNormalize();
   initPreprocess();
   initDf();
   initBuilder();
-  initMerge();
+  initMerge({ p: 'mg', presets: ['lab', 'autos'], ops: true });
   initPlanner();
+  initMerge({ p: 'sk', presets: ['slide', 'iir', 'long'], skips: true });
   initPhrase();
 });
