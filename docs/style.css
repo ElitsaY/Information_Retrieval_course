@@ -668,6 +668,7 @@ table.proscons td { width: 50%; vertical-align: top; }
 .tok-num { color: #f78c6c; }
 .tok-fn { color: #82aaff; }
 .tok-bi { color: #ffcb6b; }
+.tok-doc { color: #ff7b72; }
 .caption-note code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 
 .rw-stage { position: relative; max-width: 320px; width: 100%; margin: 0 auto; aspect-ratio: 1; }

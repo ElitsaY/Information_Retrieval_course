@@ -26,7 +26,18 @@ function initCodeCards() {
   document.querySelectorAll('.code-card').forEach(card => {
     const code = card.querySelector('code');
     const source = code.textContent;
-    code.innerHTML = source.split('\n').map(l => `<span class="ln">${highlightPython(l) || ' '}</span>`).join('');
+    let inDoc = null;   // the quote (""" or ''') of an open docstring
+    code.innerHTML = source.split('\n').map(l => {
+      let html;
+      const open = l.trim().match(/^(?:[rRuU]?)("""|''')/);
+      if (inDoc || open) {
+        const q = inDoc || open[1];
+        const rest = inDoc ? l : l.slice(l.indexOf(q) + 3);
+        inDoc = rest.includes(q) ? null : q;
+        html = `<span class="tok-doc">${escapeHtml(l)}</span>`;
+      } else html = highlightPython(l);
+      return `<span class="ln">${html || ' '}</span>`;
+    }).join('');
     const btn = card.querySelector('.code-copy');
     btn.addEventListener('click', async (e) => {
       e.preventDefault(); // keep the <details> open
