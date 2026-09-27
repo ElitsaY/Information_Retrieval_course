@@ -68,8 +68,8 @@
     <ol class="concept-list">
       <li><b>Tokenize</b>: split each sentence with NLTK's <code>TweetTokenizer</code>. Punctuation marks become tokens of their own: <code>.</code> and <code>,</code></li>
       <li><b>Lower-case</b>: <code>The</code> (doc 11) and <code>the</code> (docs 1, 13) become the same term <code>the</code>.</li>
-      <li><b>Unique tokens</b>: flatten the lists with <code>sum(…, [])</code> and put them in a <code>set</code> → <mark class="ii-hl">83 terms</mark></li>
-      <li><b>Incidence matrix</b>: one row per term, one column per document → shape <mark class="ii-hl">(83, 14)</mark></li>
+      <li><b>Unique tokens</b>: flatten the lists with <code>sum(…, [])</code> and put them in a <code>set</code>: <b>83</b> terms.</li>
+      <li><b>Incidence matrix</b>: one row per term, one column per document → shape <b>(83, 14)</b>.</li>
     </ol>
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: tokenize a headline</h4>
