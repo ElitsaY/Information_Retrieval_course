@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab 03 — Tolerant Retrieval and Spelling Correction | Class Notes</title>
+<meta name="description" content="Interactive notes on tolerant retrieval: wild-card queries with B-trees, permuterm and k-gram indexes, edit distance, n-gram overlap and the Jaccard coefficient, tries, context-sensitive correction, and Soundex.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../style.css">
+<script src="../theme.js"></script>
+</head>
+<body>
+
+<header class="site-nav">
+  <button class="side-toggle" type="button" aria-controls="lab-menu" aria-expanded="false" aria-label="Labs menu"><span></span></button>
+  <a class="brand" href="../index.html"><span class="dot"></span> Class Notes</a>
+  <nav><a href="../index.html">Home</a></nav>
+  <button class="theme-toggle" type="button" aria-label="Switch colour theme"><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+</header>
+
+<div class="lab-layout">
+  <aside class="lab-menu" id="lab-menu" aria-label="Labs">
+    <p class="lm-h">Labs</p>
+    <ol>
+      <li><a href="lab01-inverted-index.html"><span class="lm-n">01</span>Inverted Index and Boolean Queries</a></li>
+      <li><a href="lab02-text-preprocessing.html"><span class="lm-n">02</span>Text Preprocessing</a></li>
+      <li><a href="lab03-spelling-correction.html" aria-current="page"><span class="lm-n">03</span>Tolerant Retrieval and Spelling Correction</a></li>
+    </ol>
+  </aside>
+  <script>(function(){var b=document.body,t=document.querySelector(".side-toggle"),m=document.getElementById("lab-menu"),c=m.querySelector("[aria-current]");if(c&&m.scrollHeight>m.clientHeight)m.scrollTop=c.offsetTop-m.clientHeight/2;function s(o){b.classList.toggle("menu-open",o);t.setAttribute("aria-expanded",o)}t.addEventListener("click",function(e){e.stopPropagation();s(!b.classList.contains("menu-open"))});document.addEventListener("click",function(e){if(b.classList.contains("menu-open")&&!m.contains(e.target))s(false)});document.addEventListener("keydown",function(e){if(e.key==="Escape")s(false)})})();</script>
+<main class="lab-main">
+
+<section class="hero art-hero art-sc">
+  <svg id="sc-hero-bg" class="hero-art" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+  <div class="wrap">
+    <p class="eyebrow">Lab 03</p>
+    <h1>Tolerant Retrieval and Spelling Correction</h1>
+    <div class="badges">
+      <span class="badge ids">Wild-cards</span>
+      <span class="badge bfs">Edit distance</span>
+      <span class="badge dfs">n-gram overlap</span>
+      <span class="badge ucs">Soundex</span>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+
+  <!-- ===== OVERVIEW ===== -->
+  <section class="block" id="overview">
+    <h2 class="section-title">Overview of the lab</h2>
+    <p class="section-lede"><b>Goal</b>: find documents even when the query does not match the dictionary exactly: the user types part of a word, misspells it, or spells a name as it sounds. The lab goes with the lecture on tolerant retrieval (IIR, chapter 3).</p>
+    <ol class="concept-list">
+      <li><a href="#task">Tolerant retrieval</a>: the problem, and what we need before we start (a list of correct words).</li>
+      <li><a href="#wildcard">Wild-card queries</a>: B-trees, the permuterm index, k-gram indexes.</li>
+      <li><a href="#edit">Edit distance</a>: how far apart two words are, computed by dynamic programming.</li>
+      <li><a href="#ngram">Finding candidates fast</a>: n-gram overlap, the Jaccard coefficient, tries.</li>
+      <li><a href="#context">Context and choosing a suggestion</a>: <i>flew form Heathrow</i>, "Did you mean", thesauri.</li>
+      <li><a href="#soundex">Soundex</a>: matching names by how they sound.</li>
+      <li><a href="#engine">Putting it together</a>: which queries the engine can now answer.</li>
+    </ol>
+  </section>
+
+  <!-- ===== THE TASK ===== -->
+  <section class="block" id="task">
+    <h2 class="section-title">Tolerant retrieval</h2>
+    <p class="section-lede">So far a query term had to match a dictionary term exactly. Real queries are messier: <code>mon*</code> (any word starting with <i>mon</i>), <code>Alanis Morisett</code> (misspelled), <code>chaikofski</code> (a name spelled as it sounds). Tolerant retrieval maps such query terms to the dictionary terms the user probably meant, and then runs the usual Boolean query on the inverted index.</p>
+    <ul class="concept-list">
+      <li><b>Wild-card queries</b>: the user gives part of a term; we enumerate every dictionary term that fits.</li>
+      <li><b>Spelling correction</b>: the user's term is not what they meant; we find the closest correct terms.</li>
+      <li><b>Soundex</b>: the user wrote a name as it sounds; we match terms that sound alike.</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Spelling correction: uses and flavors</h3>
+    <ul class="concept-list">
+      <li><b>Two uses</b>: correcting the <b>documents</b> being indexed (mainly OCR'ed text: the goal is a dictionary with fewer OCR-induced misspellings), and correcting the <b>query</b>, our main focus. For a query we can either retrieve documents indexed by the correct spelling, or suggest alternative queries: <i>Did you mean …?</i></li>
+      <li><b>Isolated-word correction</b>: check each word on its own. It cannot catch typos that are real words: <i>from → form</i>.</li>
+      <li><b>Context-sensitive correction</b>: look at the surrounding words: <i>I flew <u>form</u> Heathrow to Narita.</i></li>
+      <li><b>Domain knowledge helps</b>: OCR confuses <code>O</code> and <code>D</code> more often than <code>O</code> and <code>I</code>, which are the likely pair when typing (adjacent on the QWERTY keyboard).</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Prerequisite: a list of words at hand</h3>
+    <p class="section-lede">Isolated-word correction rests on one premise: there is a <b>lexicon</b> the correct spellings come from. Given the lexicon and a character sequence \(q\), return the lexicon words closest to \(q\).</p>
+    <ul class="concept-list">
+      <li><b>A public list of all words in a language</b>: e.g. <a href="http://storage.googleapis.com/books/ngrams/books/datasetsv2.html" target="_blank" rel="noopener">Google Books Ngrams</a>, <a href="https://www.gutenberg.org/catalog/" target="_blank" rel="noopener">Project Gutenberg</a>, a standard dictionary, or a hand-maintained industry-specific lexicon.</li>
+      <li><b>The words in the indexed documents</b>: this covers names, acronyms and domain terms, but it also contains the misspellings. You can add domain-specific words by hand.</li>
+    </ul>
+    <p class="caption-note">💡 In this lab the lexicon is the dictionary of the 100 <code>sci.crypt</code> posts from Lab 01: 4,389 words made of letters only, each with its document frequency. It shows the downside of a corpus lexicon: <code>goverment</code> (2 posts), <code>govenment</code> and <code>geovernment</code> are in it, next to <code>government</code> (31 posts).</p>
+  </section>
+
+  <!-- ===== WILD-CARDS ===== -->
+  <section class="block algo-section ids" id="wildcard">
+    <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Lecture</span>
+    <h2 class="section-title">Wild-card queries</h2>
+    <p class="section-lede">A <code>*</code> stands for any sequence of characters: <code>mon*</code> asks for all documents containing a word that begins with <i>mon</i>. First enumerate the dictionary terms that match the pattern, then look up the postings of each and combine them with <code>OR</code>.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">A <code>*</code> at the end or at the start: B-trees</h3>
+    <ul class="concept-list">
+      <li><b>Trailing wild-card</b> <code>mon*</code>: easy if the dictionary is a search tree (a B-tree, or a trie): retrieve all words in the range <code>mon</code> ≤ w &lt; <code>moo</code>.</li>
+      <li><b>Leading wild-card</b> <code>*mon</code>: harder. Keep a second B-tree of the terms written <b>backwards</b> and retrieve the range <code>nom</code> ≤ w &lt; <code>non</code>.</li>
+      <li><b>One <code>*</code> in the middle</b> <code>pro*cent</code>: take the terms starting with <i>pro</i> from the first tree, those ending in <i>cent</i> from the reverse tree, and intersect the two sets.</li>
+      <li><b>Cost</b>: every enumerated term becomes its own lookup in the inverted index, so <code>se*ate AND fil*er</code> can turn into many Boolean <code>AND</code> queries.</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Any <code>*</code>: the permuterm index</h3>
+    <p class="section-lede">Idea: rotate every wild-card query so that the <code>*</code> ends up at the end, then use a B-tree prefix lookup as before. Add an end symbol <code>$</code> to each term and index <b>every rotation</b> of <code>term$</code>, each pointing back to the term.</p>
+    <div class="table-wrap" style="max-width:40rem;">
+      <table class="summary sc-small">
+        <thead><tr><th>Query</th><th>Look up</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr data-s="ids"><td><code>X</code></td><td><code>X$</code></td><td><code>hello</code> → <code>hello$</code></td></tr>
+          <tr data-s="ids"><td><code>X*</code></td><td><code>$X*</code></td><td><code>hel*</code> → <code>$hel*</code></td></tr>
+          <tr data-s="ids"><td><code>*X</code></td><td><code>X$*</code></td><td><code>*llo</code> → <code>llo$*</code></td></tr>
+          <tr data-s="ids"><td><code>*X*</code></td><td><code>X*</code></td><td><code>*ll*</code> → <code>ll*</code></td></tr>
+          <tr data-s="ids"><td><code>X*Y</code></td><td><code>Y$X*</code></td><td><code>hel*o</code> → <code>o$hel*</code></td></tr>
+          <tr data-s="ids"><td><code>X*Y*Z</code></td><td><code>Z$X*</code>, then keep terms with <code>Y</code> in between</td><td><code>fi*mo*er</code> → <code>er$fi*</code>: <i>fishmonger</i> stays, <i>filibuster</i> is filtered out</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="caption-note">💡 The slide lists five rotations of <code>hello$</code> and writes the rule for <code>X*</code> as <code>X*$</code>. There are six rotations (<code>$hello</code> is missing), and <code>X*</code> is looked up as <code>$X*</code>, which needs exactly that rotation. The price: every term is stored once per rotation. The lecture calls it about four times the lexicon; IIR says almost ten-fold for a dictionary of English terms.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Any <code>*</code>: k-gram indexes</h3>
+    <ul class="concept-list">
+      <li><b>k-grams</b>: all sequences of \(k\) characters in a term, with <code>$</code> marking its start and end. The 2-grams (bigrams) of <i>month</i>: <code>$m</code> <code>mo</code> <code>on</code> <code>nt</code> <code>th</code> <code>h$</code>.</li>
+      <li><b>A second inverted index</b>: from each k-gram to the dictionary terms that contain it (<code>$m</code> → <i>mace, madden, …</i>; <code>mo</code> → <i>among, amortize, …</i>).</li>
+      <li><b>Querying</b>: <code>mon*</code> becomes <code>$m AND mo AND on</code>. Fast and space efficient.</li>
+      <li>❗ <b>Post-filter</b>: the <code>AND</code> also returns terms that contain all the k-grams but do not fit the pattern (the lecture's <i>moon</i>; in sci.crypt <i>morons</i> and <i>motivation</i>). Check every enumerated term against the query before looking it up in the inverted index.</li>
+    </ul>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: one wild-card query, three indexes</h4>
+    <p class="section-lede">A query with <code>*</code> on the sci.crypt lexicon. Each method must find the same terms; compare how. Struck-out terms are the bigram index's false matches, removed by post-filtering.</p>
+    <div class="playground">
+      <div class="pg-controls">
+        <input id="wc-q" class="ii-input" style="max-width:14rem;" spellcheck="false" autocomplete="off" aria-label="Wild-card query">
+        <div class="strategy-pick" id="wc-presets"></div>
+      </div>
+      <div class="wc-grid" id="wc-out"></div>
+    </div>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: the permuterm vocabulary of a term</h4>
+    <div class="playground">
+      <div class="pg-controls">
+        <input id="pm-term" class="ii-input" style="max-width:12rem;" spellcheck="false" autocomplete="off" aria-label="Term">
+        <input id="pm-q" class="ii-input" style="max-width:12rem;" spellcheck="false" autocomplete="off" aria-label="Wild-card query">
+      </div>
+      <div id="pm-out"></div>
+    </div>
+
+    <p class="caption-note">💡 Wild-cards can make queries expensive: one special-index lookup, then filtering, then one inverted-index lookup per enumerated term. That is one reason to keep them behind an "Advanced search" button: it avoids clutter and deters users from typing a prefix and a <code>*</code> when they do not need to.</p>
+  </section>
+
+  <!-- ===== EDIT DISTANCE ===== -->
+  <section class="block algo-section bfs" id="edit">
+    <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Notebook</span>
+    <h2 class="section-title">Finding the correct word: edit distance</h2>
+    <p class="section-lede">To pick the lexicon words "closest" to a misspelled query we need a distance between strings. The standard one counts single-character edits.</p>
+    <div class="definition-box">
+      <div class="dbox-label">📐 Edit (Levenshtein) distance</div>
+      <p>The minimum number of single-character edits that turn \(s_1\) into \(s_2\). The edits are <b>insert</b>, <b>delete</b> and <b>replace</b> a character. E.g. the edit distance from <i>cat</i> to <i>dog</i> is 3. It is solved with <b>dynamic programming</b> in \(O(|s_1| \cdot |s_2|)\) time.</p>
+    </div>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Edit distance algorithm</h3>
+    <p class="section-lede">Cell \(m[i, j]\) holds the edit distance between the first \(i\) letters of \(s_1\) and the first \(j\) letters of \(s_2\).</p>
+    <ol class="concept-list">
+      <li>Initialize the matrix with zeros; it has \(|s_1|+1\) rows and \(|s_2|+1\) columns.</li>
+      <li>Initialize the first row and column with the numbers from 0 to \(|s_2|\) and from 0 to \(|s_1|\): the cost of building a prefix by inserting letters, starting from the empty string.</li>
+      <li>Every other cell is the cheapest of three moves:</li>
+    </ol>
+    <div class="math-block">\[ m[i,j] = \min\begin{cases} m[i-1,j] + 1 & \text{delete } s_1[i] \\ m[i,j-1] + 1 & \text{insert } s_2[j] \\ m[i-1,j-1] + \begin{cases}0 & s_1[i] = s_2[j]\\ 1 & \text{otherwise}\end{cases} & \text{replace (or keep)} \end{cases} \]</div>
+    <ol class="concept-list" start="4">
+      <li>The minimum edit distance is in the last cell, \(m[|s_1|, |s_2|]\).</li>
+    </ol>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: fill the table</h4>
+    <p class="section-lede">The default is the notebook's <b>SUNDAY</b> vs <b>SATURDAY</b> table (distance 3). Step through the cells, or click any cell to see which of its three neighbours it came from. The highlighted path is one cheapest sequence of edits (the <i>backtrace</i>).</p>
+    <div class="playground">
+      <div class="pg-controls">
+        <input id="ed-a" class="ii-input" style="max-width:10rem;" spellcheck="false" autocomplete="off" aria-label="First word">
+        <input id="ed-b" class="ii-input" style="max-width:10rem;" spellcheck="false" autocomplete="off" aria-label="Second word">
+        <div class="strategy-pick" id="ed-presets"></div>
+      </div>
+      <div class="pg-controls">
+        <label class="ii-check"><input type="checkbox" id="ed-dam"> transpositions (Damerau)</label>
+        <label class="ii-check"><input type="checkbox" id="ed-kb"> keyboard-weighted replace</label>
+        <div class="play-btns">
+          <button class="icon-btn" id="ed-prev" title="Start again (empty table)">↺</button>
+          <button class="icon-btn" id="ed-play" title="Play / pause">▶</button>
+          <button class="icon-btn" id="ed-next" title="Next cell">⏭</button>
+          <button class="icon-btn" id="ed-end" title="Fill all cells">⏩</button>
+        </div>
+      </div>
+      <div class="pg-grid ed-grid">
+        <div class="ed-scroll"><table class="ed-table" id="ed-table"></table></div>
+        <div class="al-out" id="ed-out"></div>
+      </div>
+      <div id="ed-align" class="ed-align"></div>
+    </div>
+    <p class="caption-note">💡 The keyboard weights are made up for illustration: replacing a letter by one of its QWERTY neighbours costs 0.5 (<i>m → n</i>), any other replacement costs 1 (<i>m → q</i>). Real systems learn such weights from data.</p>
+
+    <div class="dt-ex-list" style="margin-top:1.4rem;">
+      <details class="dt-ex">
+        <summary><span class="dt-ex-no">1</span><span class="dt-ex-q">Compute the edit distance between the words <i>elephant</i> and <i>relevant</i>.</span></summary>
+        <div class="dt-ex-sol">
+          <p><b>3</b>: insert <i>r</i> at the start, replace <i>p</i> by <i>v</i>, delete <i>h</i> (r·ele<u>p</u><u>h</u>ant → relevant). Load <b>elephant / relevant</b> in the widget to see the table and the path. The distance is symmetric: <code>edit_distance('relevant', 'elephant')</code> is also 3.</p>
+        </div>
+      </details>
+    </div>
+
+    <p class="section-lede" style="margin-top:1.4rem;"><b>Exercise 2</b>: implement the minimum edit distance algorithm. The notebook's version returns the distance and the whole matrix:</p>
+    <details class="code-card">
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">edit_distance.py (a solution)</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py">import numpy as np
+
+def edit_distance(s1, s2):
+    """
+    Return the minimum edit distance between the two words
+    """
+    m = np.zeros((len(s1) + 1, len(s2) + 1), dtype=int)
+    m[:, 0] = range(len(s1) + 1)     # delete every letter of s1
+    m[0, :] = range(len(s2) + 1)     # insert every letter of s2
+    for i in range(1, len(s1) + 1):
+        for j in range(1, len(s2) + 1):
+            m[i, j] = min(m[i - 1, j] + 1,                            # delete s1[i-1]
+                          m[i, j - 1] + 1,                            # insert s2[j-1]
+                          m[i - 1, j - 1] + (s1[i - 1] != s2[j - 1]))  # replace or keep
+    return m[-1, -1], m
+
+print(edit_distance('sunday', 'saturday')[0])     # 3
+print(edit_distance('elephant', 'relevant')[0])   # 3
+print(edit_distance('lullaby', 'lollipop')[0])    # 5</code></pre>
+    </details>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Variants</h3>
+    <ul class="concept-list">
+      <li><b>Weighted edit distance</b>: the cost of an operation depends on the characters involved, to capture keyboard errors (m is more likely mistyped as n than as q) or OCR errors (different weights). It needs a weight matrix as input; some literature treats the weight as the probability of the error.</li>
+      <li><b>Keeping a backtrack</b> of the symbol alignments: store which neighbour each cell came from, then follow the arrows back from the last cell (the highlighted path above).</li>
+      <li><b>Only two rows</b>: if no backtrack is needed, each row only depends on the previous one, so memory drops from \(O(nm)\) to \(O(2m)\).</li>
+      <li><b>Damerau–Levenshtein</b>: also allow swapping two adjacent letters as one edit. <i>smtih → smith</i> costs 1 instead of 2 (try it with <b>transpositions</b> on).</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Some implementations</h3>
+    <ul class="concept-list">
+      <li><a href="https://github.com/gfairchild/pyxDamerauLevenshtein" target="_blank" rel="noopener"><b>pyxDamerauLevenshtein</b></a>: Damerau–Levenshtein distance in Cython, for speed.</li>
+      <li><a href="http://norvig.com/spell-correct.html" target="_blank" rel="noopener"><b>Peter Norvig's spelling corrector</b></a>: generate every string at edit distance 1 and 2 from the word, keep those that are real words, and pick the most probable one (a language model, with priority to fewer edits). It can include an error model, e.g. from lists of common errors (<a href="http://aspell.net/test/" target="_blank" rel="noopener">aspell test data</a>).</li>
+      <li><a href="https://github.com/sloria/TextBlob/blob/14f22102251ce1f02e8bcb3e74f86c037e3df822/textblob/_text.py#L1322" target="_blank" rel="noopener"><b>TextBlob</b></a>: contains a spellchecker trained on text (from Project Gutenberg), based on Norvig's idea. In the notebook: <code>TextBlob("I havv goood speling!").correct()</code> gives <i>I have good spelling!</i></li>
+      <li>Corpora of real misspellings, for testing: <a href="https://www.dcs.bbk.ac.uk/~ROGER/corpora.html" target="_blank" rel="noopener">Roger Mitton's collection</a>.</li>
+    </ul>
+    <details class="code-card">
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">libraries.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py"># pip install textblob pyxDamerauLevenshtein
+from textblob import TextBlob
+blob = TextBlob("I havv goood speling!")
+print(blob.correct())   # I have good spelling!   (the notebook's output)
+
+from pyxdameraulevenshtein import damerau_levenshtein_distance, normalized_damerau_levenshtein_distance
+print(damerau_levenshtein_distance('smtih', 'smith'))              # one transposition: 1
+print(normalized_damerau_levenshtein_distance('smtih', 'smith'))   # the distance scaled to [0, 1]
+
+import nltk
+print(nltk.jaccard_distance(set('mapping'), set('mappings')))      # 0.14285714285714285</code></pre>
+    </details>
+  </section>
+
+  <!-- ===== N-GRAM OVERLAP ===== -->
+  <section class="block algo-section dfs" id="ngram">
+    <span class="badge dfs" style="margin-bottom:0.6rem; display:inline-block;">Notebook + lecture</span>
+    <h2 class="section-title">Finding candidates fast: n-gram overlap and tries</h2>
+    <p class="section-lede">A problem with the edit distance approach: do we compute the edit distance from the query to <b>every</b> dictionary term? That is slow. We first cut the dictionary down to a few plausible candidates, and compute edit distances only for those.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Solution 1: a character n-gram index</h3>
+    <ul class="concept-list">
+      <li><b>Build a character n-gram index</b>: n-gram → the words containing it (<code>av</code> → <i>avocado, pavement, …</i>), the same k-gram index as for wild-cards.</li>
+      <li><b>Retrieve</b> the postings of every n-gram of the query and <b>merge</b> them, counting how many n-grams each word shares with the query.</li>
+      <li><b>Normalize</b>: a raw count favours long words (<i>car</i> shares all its bigrams with <i>carbon</i>). Use the <b>Jaccard coefficient</b> of the two n-gram sets and declare a match above a threshold.</li>
+      <li><b>Then rank</b> the candidates by edit distance (and, among equals, by how common the word is).</li>
+    </ul>
+    <div class="definition-box">
+      <div class="dbox-label">📐 Jaccard coefficient</div>
+      <p>For two sets \(X\) and \(Y\) (here: the n-grams of two words). It is 1 when the sets are equal and 0 when they are disjoint; the sets need not have the same size.</p>
+      <div class="math-block">\[ J(X, Y) = \frac{|X \cap Y|}{|X \cup Y|} \]</div>
+      <p>Lecture example with trigrams: <i>november</i> (nov, ove, vem, emb, mbe, ber) and <i>december</i> (dec, ece, cem, emb, mbe, ber) share 3 of 6 trigrams each, so \(J = 3 / 9 \approx 0.33\).</p>
+    </div>
+    <p class="caption-note">💡 The postings scan only needs each term's number of n-grams, not the term itself: when scanning for <i>bord</i> reaches <i>boardroom</i> with 2 matching bigrams, and <i>boardroom</i> has 8 bigrams, \(J = 2 / (8 + 3 - 2)\) (IIR 3.3.4). The lecture's example slide is titled "trigrams" but uses the bigrams of <i>lord</i> (lo, or, rd).</p>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: an n-gram spell-checker on the sci.crypt lexicon</h4>
+    <p class="section-lede">The notebook's example <i>enginering</i> is the default. The table lists every word that shares at least one n-gram; words above the Jaccard threshold (0.7 in the notebook) are the candidates, ranked by edit distance, then by document frequency. For comparison, Norvig's method generates all strings one or two edits away.</p>
+    <div class="playground">
+      <div class="pg-controls">
+        <input id="sp-q" class="ii-input" style="max-width:12rem;" spellcheck="false" autocomplete="off" aria-label="Misspelled word">
+        <div class="strategy-pick" id="sp-presets"></div>
+      </div>
+      <div class="pg-controls">
+        <div class="strategy-pick" id="sp-n"></div>
+        <div class="beam-control show" style="margin:0;"><label for="sp-th">Jaccard ≥</label><input type="range" id="sp-th" min="0.3" max="0.95" value="0.7" step="0.05"><span class="val" id="sp-th-val">0.70</span></div>
+      </div>
+      <div id="sp-grams" class="sp-grams"></div>
+      <div class="pg-grid" style="margin-top:0.8rem;">
+        <div class="sp-tw"><table class="summary sp-table" id="sp-table"></table></div>
+        <div class="al-out" id="sp-out"></div>
+      </div>
+    </div>
+
+    <p class="section-lede" style="margin-top:1.4rem;"><b>Exercise 3</b>: implement the n-gram overlap spell-checker and find the best Jaccard threshold for your dataset. A solution with the notebook's function names:</p>
+    <details class="code-card">
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">ngram_spellcheck.py (a solution)</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py">from collections import defaultdict, Counter
+
+def get_word_ngrams(word, n):
+    return [word[i:i+n] for i in range(len(word)-n+1)]
+
+def build_ngram_postings(n, tokenized_documents):
+    """
+    Create postings from the tokenized documents -
+    For each n-gram we want to have the list of words, containing that n-gram. (E.g. av: [avocado, pavement, ...])
+    """
+    vocabulary = sorted({token for doc in tokenized_documents for token in doc})
+    postings = defaultdict(list)
+    for word in vocabulary:                        # each word once per n-gram
+        for gram in set(get_word_ngrams(word, n)):
+            postings[gram].append(word)
+    return postings
+
+def ngram_spellcheck(word, postings, n, jaccard_threshold=0.7):
+    """Return the words from the postings structure, which are closest to the input word."""
+    query = set(get_word_ngrams(word, n))
+    shared = Counter()                             # merge the postings: word -> number of shared n-grams
+    for gram in query:
+        shared.update(postings.get(gram, []))
+    scored = []
+    for candidate, common in shared.items():
+        size = len(set(get_word_ngrams(candidate, n)))
+        jaccard = common / (len(query) + size - common)
+        if jaccard >= jaccard_threshold:
+            scored.append((candidate, jaccard))
+    return sorted(scored, key=lambda x: -x[1])
+
+# on the sci.crypt vocabulary (the lexicon of the widget above):
+# ngram_spellcheck('enginering', postings, 2)  ->  [('engineering', 0.875), ('engineer', 0.75)]</code></pre>
+    </details>
+    <p class="caption-note">💡 The notebook's output on <i>rec.autos</i> is <code>[('engineering', 0.7647…), ('enginerring', 0.7647…)]</code>. These scores are not the Jaccard coefficient of the two bigram sets (that is 0.875 for <i>engineering</i>), and its <code>postings['ar']</code> lists <i>das-news.harvard.edu</i> twice, once per occurrence; the notebook's own solution counted differently. Note also that <i>enginerring</i>, itself a typo, is in the <i>rec.autos</i> lexicon.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Jaccard vs overlap coefficient</h3>
+    <p class="section-lede"><b>Exercise 5</b>: we have two sets \(A\) and \(B\) with 50 words in common, and the combined set has 100 words. What is the Jaccard coefficient? Does it change if we remove 10 words from \(A\) and add 10 to \(B\), keeping the 50 shared words? Compare with the <b>overlap coefficient</b>, \(|A \cap B| / \min(|A|, |B|)\).</p>
+    <div class="playground">
+      <div class="beam-control show" style="margin:0 0 0.8rem;"><label for="jc-a">\(|A|\)</label><input type="range" id="jc-a" min="50" max="100" value="75" step="5"><span class="val" id="jc-a-val">75</span></div>
+      <div class="pg-grid">
+        <svg id="jc-svg" class="ml-plot" viewBox="0 0 460 170" aria-label="Sets A and B"></svg>
+        <div class="al-out" id="jc-out"></div>
+      </div>
+    </div>
+    <div class="dt-ex-list" style="margin-top:1rem;">
+      <details class="dt-ex">
+        <summary><span class="dt-ex-no">5</span><span class="dt-ex-q">Answer to Exercise 5.</span></summary>
+        <div class="dt-ex-sol">
+          <p><b>Jaccard</b>: \(50 / 100 = 0.5\), and it does not change: moving 10 words from \(A\) to \(B\) keeps the intersection (50) and the union (100).</p>
+          <p><b>Overlap coefficient</b>: \(|A| + |B| = 100 + 50 = 150\). With \(|A| = |B| = 75\) it is \(50 / 75 \approx 0.67\); with \(|A| = 65, |B| = 85\) it is \(50 / 65 \approx 0.77\). It grows as the smaller set shrinks and reaches 1 when one set is contained in the other, however large the other is. Jaccard only looks at intersection and union, so it does not care how the rest is split.</p>
+        </div>
+      </details>
+    </div>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Solution 2: tries</h3>
+    <p class="section-lede">To correct <i>lates</i> we might compute the edit distance to <i>late</i>, <i>latest</i> and <i>latte</i>, and every time we recompute the rows for the common prefix <i>lat</i>. Store the whole vocabulary in a <b>trie</b>, where each node is one letter and its branches are the letters that can follow; then each prefix's row of the edit-distance table is computed <b>once</b>, and branches whose row is already above the limit are cut off (<a href="http://stevehanov.ca/blog/index.php?id=114" target="_blank" rel="noopener">Steve Hanov's post</a>).</p>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: edit distance on a trie</h4>
+    <p class="section-lede">The lecture's five words. Each node shows the edit distance between its prefix and the query; a word ending is a double circle. Nodes whose whole row is above the limit are pruned (grey), with their subtrees.</p>
+    <div class="playground">
+      <div class="pg-controls">
+        <input id="tr-words" class="ii-input" style="max-width:22rem;" spellcheck="false" autocomplete="off" aria-label="Vocabulary">
+        <input id="tr-q" class="ii-input" style="max-width:9rem;" spellcheck="false" autocomplete="off" aria-label="Query">
+        <div class="beam-control show" style="margin:0;"><label for="tr-max">limit</label><input type="range" id="tr-max" min="1" max="4" value="2" step="1"><span class="val" id="tr-max-val">2</span></div>
+      </div>
+      <div class="fig-scroll"><svg id="tr-svg" class="ml-plot" viewBox="0 0 700 330" aria-label="Trie of the vocabulary"></svg></div>
+      <div class="al-out" id="tr-out" style="margin-top:0.6rem;"></div>
+    </div>
+
+    <p class="caption-note" style="margin-top:1.4rem;"><b>Exercise 4</b>: if you already know your project, build and tune your own spellchecker, maybe even one for Bulgarian. Choose an implementation and a list of words (TextBlob's spellchecker is trained on Gutenberg's data), run your corpus through it, find words that were "corrected" although they were spelled correctly, and add them to your word list. 💡 A Grammarly-like spelling and grammar corrector for Bulgarian can be a good course project; if you are interested, we can discuss how to collect data and approach the task.</p>
+  </section>
+
+  <!-- ===== CONTEXT ===== -->
+  <section class="block algo-section ucs" id="context">
+    <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Lecture</span>
+    <h2 class="section-title">Context and choosing a suggestion</h2>
+    <p class="section-lede">Isolated-word correction cannot fix <i>flew <u>form</u> Heathrow</i>: every word is spelled correctly. If the phrase query matches no documents, we would like to answer <i>Did you mean "flew from Heathrow"?</i></p>
+    <ul class="concept-list">
+      <li><b>First idea</b>: for each query word, retrieve the dictionary terms close to it in (weighted) edit distance, then try the phrases with <b>one word replaced at a time</b> (<i>flew from heathrow</i>, <i>fled form heathrow</i>, <i>flea form heathrow</i>, …) and suggest the one with many hits. With 7 alternatives for <i>flew</i>, 19 for <i>form</i> and 3 for <i>heathrow</i> that is 7 + 19 + 3 = 29 phrases; trying every combination would be far more (8 · 20 · 4 = 640, counting each original word as an option).</li>
+      <li><b>Another approach</b>: break the phrase into a conjunction of biwords (Lab 01), look for biwords that need only one term corrected, and keep only frequent ones (<i>flew from</i> rather than <i>fled fore</i>) before extending them to the next word.</li>
+      <li><b>Which suggestion to show?</b> Many alternatives are enumerated for "Did you mean"; show one or a few. Heuristics: the alternative that hits the most documents, and query-log analysis for especially popular, topical queries.</li>
+      <li><b>Cost</b>: spelling correction is computationally expensive. Run it only on queries that matched few documents, not routinely on every query.</li>
+      <li><b>Caveat</b>: everything depends on what the index token is. In Chinese and Japanese, spelling correction and wild-cards are poorly defined.</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Thesauri and query expansion</h3>
+    <ul class="concept-list">
+      <li><b>Thesaurus</b>: a language-specific list of synonyms for terms likely to be queried (<i>car → automobile</i>); a hand-made alternative to edit distance. Machine learning can help build it.</li>
+      <li><b>Query expansion, not index expansion</b>: rewrite the query rather than the index. No index blow-up, but query processing slows down. It may retrieve more junk: <i>puma → jaguar</i> retrieves documents about cars instead of sneakers.</li>
+    </ul>
+  </section>
+
+  <!-- ===== SOUNDEX ===== -->
+  <section class="block algo-section ids" id="soundex">
+    <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Lecture</span>
+    <h2 class="section-title">Soundex</h2>
+    <p class="section-lede">Some misspellings come from typing a word as it sounds, mostly names: <i>chebyshev</i> vs <i>tchebycheff</i>. Soundex heuristics give every term a <b>phonetic hash</b> so that similar-sounding terms get the same code. Language specific, mainly for names.</p>
+    <ul class="concept-list">
+      <li><b>Index</b>: turn every token into a 4-character code and build an index from codes to terms; do the same with query terms, and search this index when the query asks for a Soundex match.</li>
+      <li><b>Why it works</b>: vowels are treated as interchangeable when transcribing names, and consonants with similar sounds (like D and T) share a digit.</li>
+    </ul>
+    <div class="definition-box">
+      <div class="dbox-label">📐 Soundex, the typical algorithm</div>
+      <ol class="concept-list" style="margin:0.3rem 0 0;">
+        <li>Keep the first letter of the word.</li>
+        <li>Change A, E, I, O, U, H, W, Y to <code>0</code>.</li>
+        <li>Change letters to digits: B F P V → 1; C G J K Q S X Z → 2; D T → 3; L → 4; M N → 5; R → 6.</li>
+        <li>Repeatedly remove one out of each pair of consecutive identical digits.</li>
+        <li>Remove all zeros.</li>
+        <li>Pad with trailing zeros and return the first four positions: a letter and three digits. <i>Herman</i> becomes <code>H655</code>.</li>
+      </ol>
+    </div>
+    <p class="caption-note">💡 Step 4 on the slide reads "remove all pairs of consecutive digits". It should be one of each pair of <b>identical</b> consecutive digits (IIR): <i>Hermann</i> → H 0 6 5 0 5 5 → H 0 6 5 0 5 → H655, the same code as <i>Herman</i>.</p>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: Soundex codes</h4>
+    <p class="section-lede">Type names separated by commas; each row shows the steps. Names with the same code are grouped.</p>
+    <div class="playground">
+      <input id="sx-in" class="ii-input" spellcheck="false" autocomplete="off" aria-label="Names">
+      <div class="table-wrap" style="margin-top:0.9rem;"><table class="summary sc-small sx-table" id="sx-table"></table></div>
+      <div class="al-out" id="sx-out" style="margin-top:0.8rem;"></div>
+    </div>
+    <p class="caption-note">💡 Soundex keeps the first letter, so the lecture's own example does not match: <i>chebyshev</i> is <code>C121</code> and <i>tchebycheff</i> is <code>T212</code>. Such rules depend on the writing system; for Chinese names in Wade-Giles vs Pinyin, Soundex maps both <i>hs</i> and <i>x</i> to 2 but maps <i>j</i> and <i>r</i> differently.</p>
+  </section>
+
+  <!-- ===== ENGINE ===== -->
+  <section class="block algo-section bfs" id="engine">
+    <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Big picture</span>
+    <h2 class="section-title">Putting it together</h2>
+    <p class="section-lede">We now have a basic inverted index with skip pointers, a wild-card index, spelling correction and Soundex. Together they can answer queries such as</p>
+    <div class="math-block"><code class="sc-query">(SPELL(moriset) /3 toron*to) OR SOUNDEX(chaikofski)</code></div>
+    <ul class="concept-list">
+      <li><b>Language detection</b>: many of these components need to know the language. For documents and paragraphs there is enough text for machine learning; for queries it is much harder, so add other cues (client settings, the domain the query comes from).</li>
+      <li><b>Results caching</b>: if 25% of your users search for <i>britney AND spears</i>, you probably need spelling correction, but you do not need to keep intersecting those two postings lists. The web query distribution is extremely skewed, so caching results for common queries pays off.</li>
+      <li><b>Design choices</b>: does stemming happen before the Soundex index? What about n-grams? How is a query parsed and dispatched to the different indexes?</li>
+    </ul>
+  </section>
+
+  <!-- ===== SUMMARY ===== -->
+  <section class="block" id="summary">
+    <h2 class="section-title">Summary: key takeaways</h2>
+    <ol class="concept-list">
+      <li><b>Tolerant retrieval</b>: map a query term to the dictionary terms the user meant, then run the normal query; correction needs a lexicon of correct words.</li>
+      <li><b>Wild-cards</b>: B-trees for <code>X*</code> (and a reverse B-tree for <code>*X</code>); a permuterm index rotates any query so the <code>*</code> is at the end; a k-gram index answers with an <code>AND</code> of k-grams plus a post-filter.</li>
+      <li><b>Edit distance</b>: insert, delete, replace; a dynamic-programming table in \(O(|s_1| \cdot |s_2|)\); weighted, transposition and two-row variants.</li>
+      <li><b>Candidates</b>: never compare the query with every term. Use an n-gram index and the Jaccard coefficient to shortlist, then rank by edit distance; a trie shares the work for common prefixes.</li>
+      <li><b>Context</b>: fix one word at a time or use biwords, choose the suggestion with the most hits, and run correction only when a query finds little.</li>
+      <li><b>Soundex</b>: a 4-character phonetic code (letter + 3 digits) for matching names that sound alike.</li>
+    </ol>
+  </section>
+
+</div>
+
+<footer>Class notes by Elitsa Yotkova · Lab 03</footer>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="code-cards.js"></script>
+<script src="lab01-df-scicrypt.js"></script>
+<script src="lab03.js"></script>
+</body>
+</html>

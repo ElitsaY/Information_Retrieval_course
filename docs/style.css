@@ -1975,3 +1975,62 @@ table.summary thead code { background: rgba(255, 255, 255, 0.18); border-color: 
 .qq-docs li.plus { border-left-color: var(--bfs); background: color-mix(in srgb, var(--bfs) 10%, var(--surface)); }
 .qq-docs li.minus { border-left-color: #d9546e; background: color-mix(in srgb, #d9546e 9%, var(--surface)); }
 @media (max-width: 760px) { .qq-cols { grid-template-columns: minmax(0, 1fr); } .pp-row > .ii-lbl { flex-basis: 100%; } .pp-row > .pp-n { display: none; } .tz-pre { flex-wrap: wrap; } }
+
+/* ---- Lab 03 (IR): tolerant retrieval and spelling correction ---- */
+.art-sc .hero-art .cell { fill: none; stroke: var(--indigo); stroke-width: 1.2; opacity: 0.22; }
+.art-sc .hero-art .cell.diag { fill: color-mix(in srgb, var(--bfs) 30%, transparent); stroke: var(--bfs); opacity: 0.35; }
+.art-sc .hero-art .dig { font-size: 11px; font-weight: 700; fill: var(--ink-soft); opacity: 0.35; font-family: 'Poppins', sans-serif; }
+table.summary.sc-small th, table.summary.sc-small td { padding: 0.45rem 0.7rem; font-size: 0.86rem; }
+.chip.sc-chip { font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; padding: 0.2rem 0.5rem; }
+.chip.sc-chip small { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--indigo); margin-left: 0.15rem; }
+.chip.sc-chip.gone { text-decoration: line-through; color: var(--red-ink); border-style: dashed; border-color: #d9546e; }
+.chip.sc-chip.hit { background: var(--bfs); border-color: var(--bfs); color: #fff; }
+.sc-list { max-height: 12rem; overflow-y: auto; margin-top: 0.4rem; }
+.wc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8rem; }
+.wc-card { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.8rem 0.9rem; background: var(--surface); }
+.wc-card h5 { margin: 0 0 0.4rem; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink); }
+.wc-how p { margin: 0 0 0.3rem; font-size: 0.84rem; color: var(--ink-soft); overflow-wrap: anywhere; }
+.wc-note { grid-column: 1 / -1; margin: 0; font-size: 0.82rem; color: var(--ink-soft); }
+@media (max-width: 760px) { .wc-grid { grid-template-columns: minmax(0, 1fr); } }
+.ed-grid { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: start; }
+.ed-scroll { overflow-x: auto; }
+.ed-table { border-collapse: separate; border-spacing: 3px; font-variant-numeric: tabular-nums; margin: 0 auto; }
+.ed-table th { font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 0.85rem; color: var(--ink-soft); width: 2.1rem; text-align: center; }
+.ed-table td { width: 2.1rem; height: 2.1rem; text-align: center; font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 0.9rem; border-radius: 6px; background: color-mix(in srgb, var(--ink) 4%, var(--surface)); border: 1.5px solid transparent; cursor: pointer; }
+.ed-table td.empty { background: transparent; border: 1.5px dashed var(--line); }
+.ed-table td.path { background: color-mix(in srgb, var(--bfs) 26%, var(--surface)); }
+.ed-table td.nb { border-color: var(--ucs); }
+.ed-table td.focus { background: var(--ucs); color: #fff; }
+.ed-table td.final { background: var(--bfs); color: #fff; }
+.ed-opt { margin: 0.15rem 0 !important; padding: 0.2rem 0.5rem; border-radius: 6px; }
+.ed-opt.win { background: color-mix(in srgb, var(--ucs) 22%, var(--surface)); font-weight: 700; }
+.ed-res { font-family: 'Poppins', sans-serif; color: var(--indigo); }
+.ed-align { margin-top: 0.9rem; }
+.ed-al { display: flex; flex-wrap: wrap; gap: 4px; }
+.ed-col { display: inline-flex; flex-direction: column; align-items: center; min-width: 2.1rem; padding: 0.2rem 0.3rem; border-radius: 6px; border: 1.5px solid var(--line); font-family: 'Poppins', sans-serif; line-height: 1.35; }
+.ed-col small { font-family: 'Inter', sans-serif; font-size: 0.62rem; color: var(--ink-soft); min-height: 0.8rem; }
+.ed-col.s { border-color: var(--ucs); background: color-mix(in srgb, var(--ucs) 14%, var(--surface)); }
+.ed-col.d, .ed-col.i { border-color: #d9546e; background: color-mix(in srgb, #d9546e 9%, var(--surface)); }
+.ed-col.w { border-color: var(--ids); background: color-mix(in srgb, var(--ids) 14%, var(--surface)); }
+.sp-grams .ii-step-l { display: block; margin-bottom: 0.3rem; }
+.sp-tw { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+table.summary.sp-table th, table.summary.sp-table td { padding: 0.35rem 0.55rem; font-size: 0.8rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+table.summary.sp-table td:first-child { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; }
+table.summary.sp-table tr:not(.in) td { color: var(--ink-soft); }
+table.summary.sp-table tr.in td { background: color-mix(in srgb, var(--bfs) 10%, var(--surface)); }
+table.summary.sp-table tr.best td:first-child { box-shadow: inset 4px 0 0 var(--bfs); }
+.sp-best { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--indigo); }
+.ml-plot .jc-a { fill: color-mix(in srgb, var(--indigo) 30%, var(--surface)); stroke: var(--indigo); stroke-width: 1.5; }
+.ml-plot .jc-b { fill: color-mix(in srgb, #d9546e 24%, var(--surface)); stroke: #d9546e; stroke-width: 1.5; }
+.ml-plot .jc-i { fill: none; stroke: var(--ink); stroke-width: 2; stroke-dasharray: 6 4; }
+.ml-plot .jc-u { stroke: var(--ink-soft); stroke-width: 1.2; }
+.ml-plot .tr-edge { stroke: var(--ink-soft); stroke-width: 1.6; } .ml-plot .tr-edge.off { opacity: 0.25; stroke-dasharray: 4 4; }
+.ml-plot .tr-node circle { fill: var(--surface); stroke: var(--indigo); stroke-width: 2; }
+.ml-plot .tr-node circle.in { fill: none; stroke-width: 1.4; }
+.ml-plot .tr-node.hit circle:first-child { fill: color-mix(in srgb, var(--bfs) 35%, var(--surface)); stroke: var(--bfs); stroke-width: 2.5; }
+.ml-plot .tr-node.pruned circle { stroke: var(--ink-soft); fill: color-mix(in srgb, var(--ink-soft) 16%, var(--surface)); }
+.ml-plot .tr-node.off { opacity: 0.35; } .ml-plot .tr-node.off circle { stroke: var(--ink-soft); stroke-dasharray: 3 3; }
+.ml-plot .tr-ch { font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 800; fill: var(--ink); }
+.ml-plot .tr-v { font-family: 'Poppins', sans-serif; font-size: 11px; font-weight: 800; fill: var(--indigo); }
+.sx-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--indigo); font-size: 1rem; }
+.sc-query { font-size: 0.95rem; padding: 0.4rem 0.7rem !important; }
