@@ -2034,3 +2034,63 @@ table.summary.sp-table tr.best td:first-child { box-shadow: inset 4px 0 0 var(--
 .ml-plot .tr-v { font-family: 'Poppins', sans-serif; font-size: 11px; font-weight: 800; fill: var(--indigo); }
 .sx-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--indigo); font-size: 1rem; }
 .sc-query { font-size: 0.95rem; padding: 0.4rem 0.7rem !important; }
+
+/* ---- Lab 04 (IR): ranked retrieval, TF-IDF, cosine, BM25 ---- */
+.art-rr .hero-art .bar { opacity: 0.22; } .art-rr .hero-art .bar.b0 { fill: var(--indigo); } .art-rr .hero-art .bar.b1 { fill: var(--bfs); } .art-rr .hero-art .bar.b2 { fill: var(--ucs); }
+.art-rr .hero-art .sat { fill: none; stroke: var(--dfs); stroke-width: 3; opacity: 0.3; }
+table.summary.rr-docs td { padding: 0.5rem 0.8rem; font-size: 0.9rem; }
+table.summary.rr-num th, table.summary.rr-num td { font-variant-numeric: tabular-nums; }
+table.summary.rr-num td.hit { background: color-mix(in srgb, var(--ids) 18%, var(--surface)); font-weight: 800; }
+table.summary.rr-num tr[data-w] { cursor: pointer; } table.summary.rr-num tr.sel td { box-shadow: inset 0 -2px 0 var(--ucs); }
+table.summary.rr-num td.hl { background: color-mix(in srgb, var(--ucs) 16%, var(--surface)); font-weight: 700; }
+.rr-hl { margin-top: 0.8rem; font-size: 0.9rem; } .rr-hl p { margin: 0.2rem 0; }
+.rr-hl mark { background: color-mix(in srgb, var(--ucs) 40%, var(--surface)); color: var(--ink); border-radius: 3px; padding: 0 2px; }
+.rr-scroll { max-height: 26rem; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.rr-mat { border-collapse: collapse; width: 100%; font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.rr-mat th, .rr-mat td { padding: 0.2rem 0.45rem; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.rr-mat thead th { position: sticky; top: 0; z-index: 2; background: color-mix(in srgb, var(--dfs) 16%, var(--surface)); text-align: center; }
+.rr-mat tbody th { text-align: left; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; position: sticky; left: 0; background: var(--surface); }
+.rr-mat td { color: color-mix(in srgb, var(--ink-soft) 70%, var(--surface)); }
+.rr-mat td.nz { color: var(--ink); font-weight: 700; background: color-mix(in srgb, var(--dfs) 12%, var(--surface)); }
+.rr-mat .q { border-left: 2px solid var(--ucs); } .rr-mat td.q.nz { background: color-mix(in srgb, var(--ucs) 22%, var(--surface)); }
+.rr-mat tr.qt th { color: var(--indigo); } .rr-mat tr.qt th::before { content: '▸ '; }
+.rr-mat tr.nr td, .rr-mat tr.nr th { border-top: 2px solid var(--line); color: var(--ink); font-weight: 800; }
+.rr-note { font-size: 0.82rem; color: var(--ink-soft); margin: 0.6rem 0 0; }
+.ml-plot .idf-ln { fill: none; stroke: var(--indigo); stroke-width: 2.6; }
+.ml-plot .idf-sk { fill: none; stroke: #d9546e; stroke-width: 2.2; stroke-dasharray: 6 4; }
+.ml-plot .idf-bm { fill: none; stroke: var(--ucs); stroke-width: 2.2; }
+.ml-plot .idf-dot { fill: var(--indigo); stroke: var(--surface); stroke-width: 2; }
+.ml-plot .cs-track { fill: color-mix(in srgb, var(--ink) 5%, var(--surface)); }
+.ml-plot .cs-bar { fill: color-mix(in srgb, var(--ucs) 70%, var(--surface)); } .ml-plot .cs-bar.top { fill: var(--bfs); }
+.ml-plot .cs-v { font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 800; fill: var(--ink); font-variant-numeric: tabular-nums; }
+.ml-plot .len-bar { fill: color-mix(in srgb, var(--ids) 70%, var(--surface)); }
+.ml-plot .len-avg { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.rr-qs { margin: 0.3rem 0 0; padding-left: 0; list-style: none; font-size: 0.84rem; }
+.rr-qs li { margin: 0.25rem 0; } .rr-qs b { color: var(--indigo); margin-right: 0.3rem; }
+.rr-g { display: inline-grid; place-items: center; min-width: 1.5rem; height: 1.5rem; padding: 0 0.3rem; border-radius: 6px; font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 0.78rem; color: #fff; background: var(--ink-soft); }
+.rr-g.none { background: none; color: var(--ink-soft); border: 1.5px dashed var(--line); }
+.rr-g.g4 { background: #2f7a5f; } .rr-g.g3 { background: var(--bfs); } .rr-g.g2 { background: var(--ids); } .rr-g.g1 { background: var(--ucs); } .rr-g.gn { background: #d9546e; }
+.rr-list { display: grid; gap: 0.35rem; }
+.rr-res { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+.rr-res summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 1.6rem auto auto minmax(0, 1fr) auto; gap: 0.55rem; align-items: center; padding: 0.45rem 0.7rem; font-size: 0.88rem; }
+.rr-res summary::-webkit-details-marker { display: none; }
+.rr-rank { font-family: 'Poppins', sans-serif; font-weight: 800; color: var(--ink-soft); text-align: right; }
+.rr-doc { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; color: var(--ink-soft); white-space: nowrap; }
+.rr-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rr-res[open] .rr-title { white-space: normal; }
+.rr-score { font-family: 'Poppins', sans-serif; font-weight: 800; color: var(--indigo); font-variant-numeric: tabular-nums; }
+.rr-snip { margin: 0 0.8rem 0.6rem 2.4rem; font-size: 0.84rem; color: var(--ink-soft); }
+@media (max-width: 520px) { .rr-res summary { grid-template-columns: 1.4rem auto minmax(0, 1fr) auto; } .rr-doc { display: none; } }
+.ml-plot.cm-svg { min-width: 640px; }
+.ml-plot .cm-link { fill: none; stroke: var(--ids); stroke-width: 1.8; opacity: 0.55; } .ml-plot .cm-link.same { stroke: var(--bfs); opacity: 0.85; }
+.ml-plot .cm-t { font-size: 12.5px; fill: var(--ink); } .ml-plot .cm-id { font-weight: 800; font-family: 'Poppins', sans-serif; }
+.ml-plot .cm-g { font-weight: 800; font-family: 'Poppins', sans-serif; } .ml-plot .cm-g.g4 { fill: #2f7a5f; } .ml-plot .cm-g.g3 { fill: var(--bfs); } .ml-plot .cm-g.g2 { fill: var(--ids); } .ml-plot .cm-g.g1 { fill: var(--ucs); } .ml-plot .cm-g.gn { fill: var(--red-ink); } .ml-plot .cm-g.gx { fill: var(--ink-soft); }
+.ml-plot .sat-bm { fill: none; stroke: var(--indigo); stroke-width: 3; }
+.ml-plot .sat-raw { fill: none; stroke: var(--ink-soft); stroke-width: 2; stroke-dasharray: 6 4; }
+.ml-plot .sat-cap { stroke: var(--ucs); stroke-width: 2; stroke-dasharray: 3 3; }
+.ml-plot .sat-dot { fill: var(--indigo); } .ml-plot .sat-dot.hl { fill: var(--ucs); stroke: var(--ink); stroke-width: 1.5; }
+.rr-run { max-height: 18rem; overflow: auto; font-size: 0.8rem !important; white-space: pre; }
+.rr-check li::before { content: ''; width: 11px; height: 11px; border-radius: 3px; background: none; border: 2px solid var(--indigo); top: 0.4em; }
+.rr-pipe { padding: 0.8rem 1rem; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--ids) 9%, var(--surface)); border-left: 4px solid var(--ids); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.86rem; overflow-wrap: anywhere; }
+.rr-tw { overflow-x: auto; max-width: 100%; border-radius: var(--radius-sm); }
+.rr-tw table.summary { width: 100%; }
