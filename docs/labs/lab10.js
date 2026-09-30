@@ -139,6 +139,49 @@ function initRrfExample() {
   render();
 }
 
+/* ---------- Part V: who can attend to whom (bi-encoder vs cross-encoder) ---------- */
+function initCrossMask() {
+  const A = CEATT, svg = document.getElementById('cx-svg'), out = document.getElementById('cx-out'), L = document.getElementById('cx-l');
+  const t = A.tok, n = t.length, seg = A.seg;
+  let mode = 'ce', sel = 1;
+  const btns = document.querySelectorAll('#cx-mode .strat-btn');
+  btns.forEach(b => b.addEventListener('click', () => { mode = b.dataset.m; btns.forEach(x => x.classList.toggle('active', x === b)); render(); }));
+  L.addEventListener('input', render);
+  function render() {
+    document.getElementById('cx-l-val').textContent = L.value;
+    L.disabled = mode === 'bi';
+    const W = A.w[+L.value - 1], x0 = 82, y0 = 82, c = 22;
+    svg.innerHTML = '';
+    t.forEach((w, j) => txt(svg, x0 + j * c + c / 2 + 3, y0 - 6, w, 'hm-l cx-l' + (seg[j] ? ' d' : ''), 'start', { transform: `rotate(-60 ${x0 + j * c + c / 2 + 3} ${y0 - 6})` }));
+    t.forEach((w, i) => {
+      const lab = txt(svg, x0 - 5, y0 + i * c + c / 2 + 4, w, 'hm-l cx-l' + (seg[i] ? ' d' : '') + (i === sel ? ' cur' : ''), 'end');
+      lab.addEventListener('click', () => { sel = i; render(); });
+      t.forEach((_, j) => {
+        const cross = seg[i] !== seg[j], ok = mode === 'ce' || !cross, g = el('g', { class: 'hm-cell' }, svg);
+        const op = mode === 'ce' ? 0.06 + 0.94 * Math.min(1, W[i][j] / 250) : 0.45;
+        el('rect', { x: x0 + j * c + 1, y: y0 + i * c + 1, width: c - 2, height: c - 2, rx: 3, class: ok ? 'hm-w' + (cross ? ' cx-x' : '') : 'hm-masked', 'fill-opacity': ok ? op.toFixed(3) : 1 }, g);
+        if (!ok) txt(g, x0 + j * c + c / 2, y0 + i * c + c / 2 + 4, '✕', 'hm-v small', 'middle');
+        g.addEventListener('click', () => { sel = i; render(); });
+      });
+    });
+    const q1 = seg.indexOf(1);
+    el('line', { x1: x0, x2: x0 + n * c, y1: y0 + q1 * c, y2: y0 + q1 * c, class: 'cx-split' }, svg);
+    el('line', { x1: x0 + q1 * c, x2: x0 + q1 * c, y1: y0, y2: y0 + n * c, class: 'cx-split' }, svg);
+    el('rect', { x: x0 - 1, y: y0 + sel * c, width: n * c + 2, height: c, rx: 4, class: 'hm-sel' }, svg);
+    const other = seg[sel] ? 'query' : 'document', mine = seg[sel] ? 'document' : 'query';
+    if (mode === 'bi') {
+      out.innerHTML = `<p class="big">Bi-encoder: <b>${esc(t[sel])}</b> (${mine}) sees only the ${mine}</p><p class="note">The ${other} tokens are not in its input at all: each text is encoded on its own, pooled into one vector, and the two vectors meet only in the final dot product.</p>`;
+      return;
+    }
+    const row = W[sel].map(x => x / 1000), share = row.reduce((s, v, j) => s + (seg[j] !== seg[sel] && t[j] !== '[SEP]' && t[j] !== '[CLS]' ? v : 0), 0);
+    const top = row.map((v, j) => [v, j]).filter(([, j]) => seg[j] !== seg[sel] && t[j] !== '[SEP]').sort((a, b) => b[0] - a[0]).slice(0, 3);
+    out.innerHTML = `<p class="big">Cross-encoder, layer ${L.value}: <b>${esc(t[sel])}</b> (${mine}) gives <b>${share.toFixed(2)}</b> of its attention to the ${other}'s words</p>` +
+      top.map(([v, j]) => `<div class="cm-bar aw-bar"><span>${esc(t[j])}</span><div><i style="width:${Math.min(100, v / 0.25 * 100).toFixed(1)}%"></i></div><b>${v.toFixed(2)}</b></div>`).join('') +
+      `<p class="note">Top ${other} tokens for this row. The model's relevance score for the pair: ${A.logit} (a logit; only the order of such scores matters).</p>`;
+  }
+  render();
+}
+
 /* ---------- Cranfield helpers ---------- */
 const GRADE_DEF = { 4: 'complete answer', 3: 'high relevance', 2: 'useful', 1: 'minimum interest', '-1': 'no interest' };
 const gradeBadge = (g) => `<span class="rr-g ${g === null || g === undefined ? 'none' : 'g' + (g < 0 ? 'n' : g)}" title="${g === null || g === undefined ? 'not judged' : 'grade ' + g + ': ' + GRADE_DEF[g]}">${g === null || g === undefined ? '–' : g}</span>`;
@@ -223,6 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!H) return;
   initAlpha();
   initRrfExample();
+  if (typeof CEATT !== 'undefined') initCrossMask();
   if (C) { initComplement(); initHybrid(); initRerank(); initAblation(); }
 });
 

@@ -554,6 +554,41 @@ That leads to cross-encoder reranking.
 
 # Part V — Cross-encoder reranking
 
+## Connect back to Lab 08
+
+Students now know that a Transformer can produce contextual token representations.
+
+A **bi-encoder** uses that machinery separately:
+
+```text
+query
+  ↓
+Transformer encoder
+  ↓
+query vector
+
+document
+  ↓
+Transformer encoder
+  ↓
+document vector
+
+vector similarity
+```
+
+The crucial constraint is:
+
+```text
+query and document do not directly interact
+before each is compressed into a vector
+```
+
+A **cross-encoder** changes that.
+
+It places the query and document into the same Transformer input so that token-level interactions can be modeled before producing a relevance score.
+
+
+
 ## 45–58 min
 
 Recall the bi-encoder from Lab 08:

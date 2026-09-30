@@ -233,6 +233,8 @@ for doc_id, score in reciprocal_rank_fusion([bm25_results, dense_results], k=60)
   <section class="block algo-section ids" id="ce">
     <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part V</span>
     <h2 class="section-title">Cross-encoder reranking</h2>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1rem;">Connect back to Lab 08</h3>
+    <p class="section-lede">A Transformer produces <a href="lab08-dense-retrieval.html#attention">contextual token representations</a>. A <a href="lab08-dense-retrieval.html#biencoder">bi-encoder</a> uses that machinery <b>separately</b>: query → Transformer encoder → query vector; document → Transformer encoder → document vector; then a vector similarity. ❗ The crucial constraint: <b>the query and the document do not directly interact before each is compressed into a vector</b>. A <b>cross-encoder</b> changes that: it places the query and the document into the <b>same Transformer input</b> (<code>[CLS] query [SEP] document [SEP]</code>), so token-level interactions can be modeled before a relevance score is produced.</p>
     <div class="be-fig ce-fig" aria-label="Bi-encoder and cross-encoder">
       <div class="be-col"><span class="be-note">bi-encoder (Lab 08)</span><span class="be-box be-in">query</span><span class="be-ar">↓</span><span class="be-box be-enc">encoder</span><span class="be-ar">↓</span><span class="be-box be-vec">query vector</span><span class="be-box be-sim">similarity</span><span class="be-box be-vec">document vector</span><span class="be-ar">↑</span><span class="be-box be-enc">encoder</span><span class="be-ar">↑</span><span class="be-box be-in">document</span></div>
       <div class="be-col"><span class="be-note">cross-encoder</span><span class="be-box be-in">[query] + [document]</span><span class="be-ar">↓</span><span class="be-box be-enc">one transformer over both texts</span><span class="be-ar">↓</span><span class="be-box be-sim">relevance score</span></div>
@@ -242,6 +244,20 @@ for doc_id, score in reciprocal_rank_fusion([bm25_results, dense_results], k=60)
       <li><b>Cross-encoder</b>: processes query + document <b>jointly</b>, so it can model interactions between the words of the query and of the document directly, instead of compressing each text into one vector first. For "treatment for myocardial infarction" and "therapy after a heart attack", the model sees both texts simultaneously.</li>
       <li><b>Why it is expensive</b>: for every query–document pair the transformer runs again, and no document score can be precomputed independently of the query. 1 query × 1,000,000 documents is too expensive; 1 query × 100 candidates is practical. This is why reranking is a <b>second-stage</b> operation.</li>
     </ul>
+    <h4 style="margin:1.4rem 0 0.4rem;">See it: who can attend to whom</h4>
+    <p class="section-lede">The 16 input tokens of the pair <i>treatment for myocardial infarction</i> / <i>therapy after a heart attack</i>. In a bi-encoder, query tokens can only use query tokens and document tokens only document tokens (in fact two separate inputs). In the cross-encoder <code>cross-encoder/ms-marco-MiniLM-L-6-v2</code> every token attends to every token; the shading is its real attention (average of the 12 heads). <b>Click a row</b>.</p>
+    <div class="playground">
+      <div class="pg-controls">
+        <div class="strategy-pick" id="cx-mode"><button type="button" class="strat-btn" data-m="bi">Bi-encoder</button><button type="button" class="strat-btn active" data-m="ce">Cross-encoder</button></div>
+        <div class="beam-control show" style="margin:0;"><label for="cx-l">layer</label><input type="range" id="cx-l" min="1" max="6" value="5" step="1"><span class="val" id="cx-l-val">5</span></div>
+      </div>
+      <div class="pg-grid">
+        <svg id="cx-svg" class="ml-plot cm-click" viewBox="0 0 440 440" aria-label="Attention between query and document tokens"></svg>
+        <div id="cx-out" class="tf-out"></div>
+      </div>
+      <p class="bt-legend" style="margin:0.4rem 0 0;"><span class="k" style="background:var(--indigo);"></span> within the same text &nbsp; <span class="k" style="background:var(--bfs);"></span> across query and document &nbsp; ✕ impossible in a bi-encoder</p>
+    </div>
+    <p class="caption-note">💡 In layer 5, <b>treatment</b> attends most to <b>therapy</b> among the document tokens (0.14), the pieces of <b>myocardial</b> to <b>heart</b>, and <b>##ction</b> to <b>attack</b>. The weights are small and spread out (much goes to [CLS] and [SEP]); attention shows where information <i>can</i> flow, not a proof of what the model understood. A bi-encoder has none of these cross cells: the only contact between the two texts is one dot product at the end.</p>
     <div class="table-wrap">
       <table class="summary sc-small">
         <thead><tr><th>Property</th><th>Bi-encoder</th><th>Cross-encoder</th></tr></thead>
