@@ -2418,6 +2418,22 @@ table.summary td.mm-big { background: color-mix(in srgb, var(--ucs) 18%, var(--s
 .vd-doc { color: var(--ink-soft); font-size: 0.72rem; }
 .vd-tag { display: inline-block; margin: 0 0.2rem 0.2rem 0; padding: 0 0.4rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700; background: color-mix(in srgb, var(--ink) 6%, var(--surface)); white-space: nowrap; }
 .vd-s { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: var(--ink-soft); white-space: nowrap; } .vd-s.ret { color: color-mix(in srgb, var(--bfs) 70%, var(--ink)); } .vd-s.off { color: var(--red-ink); }
+.vd-in-fig { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.5rem; padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.vd-in-fig { flex-wrap: nowrap; } .vd-in-fig .be-box { font-size: 0.8rem; min-width: 0; } .vd-in-fig .be-ar { flex: none; }
+.vd-in-fig .vd-src { display: flex; flex-direction: column; gap: 0.35rem; flex: 0 1 11rem; min-width: 0; } .vd-in-fig small { font-weight: 500; color: var(--ink-soft); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+@media (max-width: 760px) { .vd-in-fig { flex-direction: column; } .vd-in-fig .vd-src { flex-basis: auto; max-width: 16rem; } .vd-in-fig .be-ar { transform: rotate(90deg); } }
+.wf-nav { align-items: center; } .wf-steps { display: flex; flex-wrap: wrap; gap: 0.3rem; flex: 1 1 20rem; }
+.wf-step { font: inherit; font-size: 0.78rem; font-weight: 700; color: var(--ink-soft); padding: 0.25rem 0.6rem; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface); cursor: pointer; }
+.wf-step b { display: inline-grid; place-items: center; width: 1.2rem; height: 1.2rem; margin-right: 0.2rem; border-radius: 50%; background: color-mix(in srgb, var(--ink) 8%, var(--surface)); font-size: 0.7rem; }
+.wf-step.done { color: var(--ink); } .wf-step.done b { background: color-mix(in srgb, var(--bfs) 35%, var(--surface)); }
+.wf-step.on { color: var(--ink); border-color: var(--indigo); background: color-mix(in srgb, var(--indigo) 10%, var(--surface)); } .wf-step.on b { background: var(--indigo); color: #fff; }
+.wf-out { margin-top: 0.8rem; font-size: 0.88rem; } .wf-out .big { font-size: 0.98rem; margin: 0.2rem 0 0.5rem; } .wf-out .note { color: var(--ink-soft); font-size: 0.8rem; }
+.wf-row { padding: 0.25rem 0; border-bottom: 1px dashed var(--line); font-size: 0.84rem; overflow-wrap: anywhere; } .wf-row code { font-size: 0.78rem; }
+.wf-row.wf-sc { display: flex; flex-wrap: wrap; align-items: center; gap: 0.2rem 0.5rem; } .wf-row.wf-sc.top { background: color-mix(in srgb, var(--bfs) 11%, var(--surface)); }
+.wf-num { font-family: 'Poppins', sans-serif; font-weight: 800; color: var(--indigo); font-variant-numeric: tabular-nums; }
+pre.wf-json { margin: 0; padding: 0.7rem 0.9rem; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--ink) 4%, var(--surface)); color: var(--ink); font-size: 0.78rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.wf-res { display: flex; gap: 0.7rem; padding: 0.55rem 0.7rem; margin-bottom: 0.4rem; border: 1px solid var(--line); border-left: 4px solid var(--bfs); border-radius: var(--radius-sm); } .wf-res p { margin: 0; }
+.wf-rank { display: inline-grid; place-items: center; flex: none; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--bfs); color: #fff; font-weight: 800; font-family: 'Poppins', sans-serif; }
 
 /* ---- Lab 05 (IR): precision and recall widgets ---- */
 .pc-list { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; }

@@ -266,6 +266,17 @@ for qi in range(len(queries)):                  # a document scores as its best 
       <div class="math-block">\[ \cos(q, d) = \frac{q \cdot d}{\|q\|\,\|d\|} \qquad score(q, d) = q^\top d \qquad \|q - d\|_2 \ \text{(smaller = closer)} \]</div>
       <p>If the vectors are <b>unit-normalized</b>, \(q^\top d = \cos(q, d)\) (and \(\|q - d\|^2 = 2 - 2\cos(q, d)\)): all three give the same ranking. This lets us use <b>fast inner-product search while preserving the cosine ranking</b>.</p>
     </div>
+    <div class="table-wrap" style="margin-top:1rem;">
+      <table class="summary sc-small">
+        <thead><tr><th>Measure</th><th>Formula</th><th>Range</th><th>More similar when</th></tr></thead>
+        <tbody>
+          <tr data-s="ucs"><td><b>Cosine similarity</b></td><td>\(q \cdot d \,/\, (\|q\|\,\|d\|)\)</td><td>\([-1, 1]\)</td><td>higher: the angle between the vectors is smaller</td></tr>
+          <tr data-s="ucs"><td><b>Dot product</b></td><td>\(\sum_{i=1}^{n} q_i d_i\)</td><td>\((-\infty, \infty)\)</td><td>higher, generally; it grows with vector length too, so it is meaningful when the model gives length a meaning</td></tr>
+          <tr data-s="ucs"><td><b>Euclidean distance</b></td><td>\(\sqrt{\sum_{i=1}^{n} (q_i - d_i)^2}\)</td><td>\([0, \infty)\)</td><td><b>lower</b>: it is a distance, not a similarity</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="section-lede" style="margin-top:1rem;">For unit vectors the ranges shrink: the dot product equals the cosine, in \([-1, 1]\), and the distance lies in \([0, 2]\).</p>
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: when the three disagree</h4>
     <p class="section-lede">A query \(q\) and three documents in 2-D (invented). Stretch document A without turning it: its cosine does not change, but its dot product grows and its distance changes. Tick "normalize" to put every vector on the unit circle.</p>
     <div class="playground">
@@ -371,6 +382,10 @@ top = scores.argsort()[::-1][:10]</code></pre>
       </div>
     </div>
     <p class="caption-note">💡 With few edges, greedy search can stop at a <b>local minimum</b>: a point none of whose neighbors is closer, though it is not the nearest one. HNSW (Hierarchical Navigable Small World, Malkov &amp; Yashunin) is a well-known graph-based approach: it avoids this with long-range links on sparse upper layers for quick navigation, and by keeping a list of several candidates (<code>efSearch</code>) instead of only the best one. More edges: better search, more memory.</p>
+    <ul class="concept-list">
+      <li><b>Product quantization (PQ)</b> (Jégou, Douze &amp; Schmid, 2011) is a <b>compression</b> technique rather than a search strategy: each vector is cut into sub-vectors and each sub-vector is replaced by the ID of its nearest centroid, so a 384-dimensional float32 vector (1,536 bytes) can be stored in a few dozen bytes and distances are estimated from the codes. It is usually combined with a partition index (FAISS <code>IndexIVFPQ</code>).</li>
+      <li><b>ScaNN</b> (Google; Guo et al., ICML 2020) combines partitioning with a quantization tuned for inner-product search, then rescores the best candidates exactly.</li>
+    </ul>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Do not confuse two kinds of recall</h3>
     <div class="vs-two">
@@ -450,6 +465,17 @@ scores, ids = ivf.search(query_vector, 10)</code></pre>
       <div class="vs-card"><p class="al-h">Vector index</p><p>Primarily a <b>data structure</b> for efficient similarity search. It answers: given this query vector, which stored vectors are nearest?</p><p class="rr-note">Index ideas: flat exact search, IVF, HNSW, product quantization. FAISS provides vector-indexing and similarity-search algorithms.</p></div>
       <div class="vs-card"><p class="al-h">Vector database</p><p>Wraps vector search inside a broader <b>data-management system</b>. It stores, per record: an ID, the embedding vector, metadata, the original text or a pointer to it.</p><p class="rr-note">Supports similarity search, metadata filtering, persistence, updates, deletion, index management, distributed storage.</p></div>
     </div>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">What goes into a vector database</h3>
+    <div class="vd-in-fig" aria-label="From data to a vector database">
+      <div class="vd-src"><span class="be-box be-in">text: "The master's thesis is worth 30 ECTS credits."</span><span class="be-box be-in">an image</span></div>
+      <span class="be-ar">→</span>
+      <span class="be-box be-enc">embedding model</span>
+      <span class="be-ar">→</span>
+      <span class="be-box be-vec">vector<br><small>[−0.079, 0.008, 0.002, …]<br>\(n\) numbers (here 384)</small></span>
+      <span class="be-ar">→</span>
+      <span class="be-box be-sim">vector database<br><small>+ ID, text, metadata</small></span>
+    </div>
+    <p class="section-lede" style="margin-top:1rem;">The vector database stores and searches these vectors; it does not care what they came from. But the <b>embedding model</b> must suit the data: <code>all-MiniLM-L6-v2</code> reads text only; images need a multimodal model such as CLIP (Radford et al., 2021), which maps images and texts into one shared space, so that a text query can find a picture. Typical dimensions: 384, 768, 1,536.</p>
     <details class="code-card" open style="margin-top:1rem;">
       <summary>
         <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -470,6 +496,18 @@ scores, ids = ivf.search(query_vector, 10)</code></pre>
 }</code></pre>
     </details>
 
+    <h4 style="margin:1.4rem 0 0.4rem;">See it: the vector database workflow, step by step</h4>
+    <p class="section-lede">The twelve chunks of the widget below (invented texts and metadata, real <code>all-MiniLM-L6-v2</code> vectors) going through the six steps of a vector database. Pick a query, then step through.</p>
+    <div class="playground">
+      <div class="pg-controls"><div class="strategy-pick" id="wf-q"></div></div>
+      <div class="pg-controls wf-nav">
+        <button type="button" class="strat-btn" id="wf-prev" aria-label="Previous step">◀</button>
+        <div class="wf-steps" id="wf-steps"></div>
+        <button type="button" class="strat-btn" id="wf-next" aria-label="Next step">▶</button>
+      </div>
+      <div id="wf-out" class="wf-out"></div>
+    </div>
+
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Why metadata matters</h3>
     <p class="section-lede">The query <i>What is the vacation policy?</i> against a collection that mixes HR documents, engineering manuals, legal contracts and student regulations. We may want <b>semantic similarity + a metadata filter</b> such as <code>department = "HR"</code>, <code>year = 2026</code>, <code>document_type = "policy"</code>:</p>
     <div class="math-block">\[ \text{similarity}(q, d) \quad \text{subject to metadata constraints} \]</div>
@@ -488,18 +526,24 @@ scores, ids = ivf.search(query_vector, 10)</code></pre>
     </div>
     <p class="caption-note">💡 For <i>How many vacation days do employees get?</i> the outdated 2024 handbook scores 0.803 and the current one 0.804: the embedding cannot tell which year you need, a metadata filter can. With <b>search, then filter</b> (take the top 3, then drop what fails the filter), <i>What is the vacation policy?</i> filtered to the Student office returns <b>nothing</b>, although a matching chunk exists: the filter must be applied <b>during</b> the search, which is what vector databases do.</p>
 
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Vector database vs relational database, vs FAISS</h3>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Vector database vs traditional database</h3>
     <div class="table-wrap">
       <table class="summary sc-small">
-        <thead><tr><th></th><th>Designed around</th></tr></thead>
+        <thead><tr><th>Aspect</th><th>Vector database</th><th>Traditional (relational) database</th></tr></thead>
         <tbody>
-          <tr data-s="ucs"><td><b>Relational database</b></td><td>exact equality, ranges, joins, structured fields</td></tr>
-          <tr data-s="ucs"><td><b>Vector database</b></td><td>adds nearest-neighbor search in high-dimensional space; does not necessarily replace relational storage (many real systems use both)</td></tr>
-          <tr data-s="ucs"><td><b>FAISS</b></td><td>a similarity-search library / vector-index toolkit</td></tr>
-          <tr data-s="ucs"><td><b>Vector database</b></td><td>a persistent data system that may use ANN indexes internally, and adds storage, metadata, filtering, APIs, index lifecycle, replication / sharding</td></tr>
+          <tr data-s="ucs"><td><b>Data</b></td><td>embedding vectors, plus metadata and text</td><td>structured data: tables, rows, columns</td></tr>
+          <tr data-s="ucs"><td><b>Query</b></td><td>similarity search: the nearest neighbors of a query vector</td><td>exact equality, ranges, joins (SQL)</td></tr>
+          <tr data-s="ucs"><td><b>Main use</b></td><td>semantic search over unstructured content (text, images, audio)</td><td>structured records: accounts, orders, applications</td></tr>
+          <tr data-s="ucs"><td><b>Retrieval</b></td><td>usually approximate (ANN indexes)</td><td>exact lookups through B-tree and hash indexes</td></tr>
+          <tr data-s="ucs"><td><b>Transactions</b></td><td>support varies; often not the focus</td><td>strong ACID guarantees</td></tr>
+          <tr data-s="ucs"><td><b>Examples</b></td><td>Pinecone, Milvus, Weaviate, Qdrant, Chroma</td><td>PostgreSQL, MySQL, SQLite, SQL Server</td></tr>
         </tbody>
       </table>
     </div>
+    <ul class="concept-list" style="margin-top:1rem;">
+      <li><b>The line is blurring</b>: many real-world systems combine both (a vector database for semantic search, a relational database for structured data and transactions), and relational systems add vector search themselves (PostgreSQL's <code>pgvector</code> extension). A vector database does not necessarily replace relational storage.</li>
+      <li><b>Vector database vs FAISS</b>: FAISS is a similarity-search <b>library</b>, a vector-index toolkit; a vector database is a <b>persistent data system</b> that may use ANN indexes internally, and adds storage, metadata, filtering, APIs, index lifecycle, replication / sharding.</li>
+    </ul>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Semantic search with a vector database</h3>
     <div class="rr-pipe">documents → encoder → embeddings → vector database &nbsp;|&nbsp; query → encoder → query embedding (+ metadata conditions) → filtered similarity search → nearest chunks</div>

@@ -290,6 +290,41 @@ function initGraphToy() {
   render();
 }
 
+/* ---------- Part VII: vector database workflow, step by step ---------- */
+function initWorkflow() {
+  const steps = ['Ingest data', 'Generate embeddings', 'Store vectors + metadata', 'Embed the query', 'Similarity search', 'Return top-k'];
+  const box = document.getElementById('wf-steps'), out = document.getElementById('wf-out');
+  let st = 0, q = 0;
+  const vec = (v) => `[${v.map(x => (x < 0 ? '−' : '') + Math.abs(x).toFixed(3)).join(', ')}, …]`;
+  const meta = (c) => `<span class="vd-tag">${esc(c.department)}</span><span class="vd-tag">${c.year}</span><span class="vd-tag">${esc(c.type)}</span>`;
+  pills(document.getElementById('wf-q'), V.queries.map((x, i) => [i, x]), 0, (i) => { q = +i; render(); });
+  box.innerHTML = steps.map((t, i) => `<button type="button" class="wf-step" data-i="${i}"><b>${i + 1}</b> ${t}</button>`).join('');
+  box.querySelectorAll('.wf-step').forEach(b => b.addEventListener('click', () => { st = +b.dataset.i; render(); }));
+  document.getElementById('wf-prev').addEventListener('click', () => { st = Math.max(0, st - 1); render(); });
+  document.getElementById('wf-next').addEventListener('click', () => { st = Math.min(steps.length - 1, st + 1); render(); });
+  function render() {
+    box.querySelectorAll('.wf-step').forEach((b, i) => { b.classList.toggle('on', i === st); b.classList.toggle('done', i < st); });
+    const C = V.chunks, sc = V.scores[q], order = sc.map((s, i) => [s, i]).sort((a, b) => b[0] - a[0]), top = order.slice(0, 3);
+    const docs = [...new Set(C.map(c => c.document))];
+    const body = [
+      () => `<p class="big">Offline. Collect the documents, split them into chunks, keep the metadata.</p><p class="note">${C.length} chunks from ${docs.length} documents: ${docs.map(esc).join(', ')}.</p>` +
+        C.slice(0, 4).map(c => `<div class="wf-row"><b>${c.id}</b> ${esc(c.text)} ${meta(c)}</div>`).join('') + `<p class="note">… and ${C.length - 4} more.</p>`,
+      () => `<p class="big">Offline. The embedding model turns every chunk into 384 numbers (first four shown).</p>` +
+        C.map((c, i) => `<div class="wf-row"><b>${c.id}</b> <code>${vec(V.cv[i])}</code> <span class="note">${esc(c.text.slice(0, 48))}…</span></div>`).join(''),
+      () => `<p class="big">Offline. Each record keeps the vector next to its text and metadata, and the index is built.</p><pre class="wf-json">${esc(JSON.stringify({ id: C[10].id, vector: '[' + V.cv[10].join(', ') + ', …]', text: C[10].text, metadata: { document: C[10].document, page: C[10].page, section: C[10].section, department: C[10].department, year: C[10].year, type: C[10].type } }, null, 2).replace(/"(\[[^"]*…\])"/, '$1'))}</pre>`,
+      () => `<p class="big">Online. The query goes through the <b>same</b> embedding model.</p><div class="wf-row"><b>query</b> ${esc(V.queries[q])}</div><div class="wf-row"><b>vector</b> <code>${vec(V.qv[q])}</code> (384 numbers)</div><p class="note">A different model would put it in a different space: the stored vectors and the query vector must come from one model.</p>`,
+      () => `<p class="big">Online. Compare the query vector with the stored vectors (unit vectors: inner product = cosine).</p>` +
+        order.map(([s, i], r) => `<div class="wf-row wf-sc${r < 3 ? ' top' : ''}"><b>${C[i].id}</b><span class="fl-bar"><span style="width:${Math.max(0, s) * 100}%"></span></span><span class="wf-num">${f3(s)}</span> <span class="note">${esc(C[i].text.slice(0, 56))}…</span></div>`).join('') +
+        `<p class="note">An index (Part V) would avoid scoring every vector; with twelve chunks, exact search is instant.</p>`,
+      () => `<p class="big">Online. Return the top \\(k = 3\\), with content and metadata, ready for display or for a RAG prompt.</p>` +
+        top.map(([s, i], r) => `<div class="wf-res"><span class="wf-rank">${r + 1}</span><div><p>${esc(C[i].text)}</p><p class="note">score ${f3(s)} · ${esc(C[i].document)}, p. ${C[i].page} · ${meta(C[i])}</p></div></div>`).join(''),
+    ][st]();
+    out.innerHTML = `<p class="al-h">Step ${st + 1} of 6: ${steps[st]}</p>` + body;
+    mathIn(out);
+  }
+  render();
+}
+
 /* ---------- Part VII: filtered semantic search ---------- */
 function initVdb() {
   const out = document.getElementById('vd-out'), sels = { department: 'vd-dep', year: 'vd-year', type: 'vd-type' };
@@ -380,7 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initMemory();
   initIvfToy();
   initGraphToy();
-  if (V) initVdb();
+  if (V) { initWorkflow(); initVdb(); }
   if (A && C) { initNprobeMap(); initNprobe(); }
 });
 
