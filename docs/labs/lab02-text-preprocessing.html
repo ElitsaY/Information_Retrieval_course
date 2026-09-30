@@ -20,8 +20,12 @@
 </header>
 
 <div class="lab-layout">
-  <aside class="lab-menu" id="lab-menu" aria-label="Labs">
-    <p class="lm-h"><span>Labs</span><span>Quiz</span></p>
+  <aside class="lab-menu" id="lab-menu" aria-label="Contents">
+    <div class="lm-tabs" role="tablist" aria-label="Menus">
+      <button class="lm-tab" type="button" role="tab" id="lm-t-notes" aria-controls="lm-notes" aria-selected="true">Class notes</button>
+      <button class="lm-tab" type="button" role="tab" id="lm-t-quiz" aria-controls="lm-quiz" aria-selected="false">Quizzes</button>
+    </div>
+    <div class="lm-panel" id="lm-notes" role="tabpanel" aria-labelledby="lm-t-notes">
     <ol>
       <li><a href="lab01-inverted-index.html"><span class="lm-n">01</span>Inverted Index and Boolean Queries</a></li>
       <li><a href="lab02-text-preprocessing.html" aria-current="page"><span class="lm-n">02</span>Text Preprocessing</a></li>
@@ -29,8 +33,15 @@
       <li><a href="lab04-ranked-retrieval.html"><span class="lm-n">04</span>Ranked Retrieval: TF-IDF and BM25</a></li>
       <li><a href="lab05-evaluation.html"><span class="lm-n">05</span>Evaluating IR Systems</a></li>
     </ol>
+    </div>
+    <div class="lm-panel" id="lm-quiz" role="tabpanel" aria-labelledby="lm-t-quiz" hidden>
+    <ol>
+
+    </ol>
+    <p class="lm-note">A quiz follows each lab; more are on the way.</p>
+    </div>
   </aside>
-  <script>(function(){var b=document.body,t=document.querySelector(".side-toggle"),m=document.getElementById("lab-menu"),c=m.querySelector("[aria-current]");if(c&&m.scrollHeight>m.clientHeight)m.scrollTop=c.offsetTop-m.clientHeight/2;function s(o){b.classList.toggle("menu-open",o);t.setAttribute("aria-expanded",o)}t.addEventListener("click",function(e){e.stopPropagation();s(!b.classList.contains("menu-open"))});document.addEventListener("click",function(e){if(b.classList.contains("menu-open")&&!m.contains(e.target))s(false)});document.addEventListener("keydown",function(e){if(e.key==="Escape")s(false)})})();</script>
+  <script>(function(){var b=document.body,t=document.querySelector(".side-toggle"),m=document.getElementById("lab-menu"),c=m.querySelector("[aria-current]");if(c&&m.scrollHeight>m.clientHeight)m.scrollTop=c.offsetTop-m.clientHeight/2;var ts=m.querySelectorAll(".lm-tab");ts.forEach(function(x){x.addEventListener("click",function(){ts.forEach(function(y){var o=y===x;y.setAttribute("aria-selected",o);document.getElementById(y.getAttribute("aria-controls")).hidden=!o})})});function s(o){b.classList.toggle("menu-open",o);t.setAttribute("aria-expanded",o)}t.addEventListener("click",function(e){e.stopPropagation();s(!b.classList.contains("menu-open"))});document.addEventListener("click",function(e){if(b.classList.contains("menu-open")&&!m.contains(e.target))s(false)});document.addEventListener("keydown",function(e){if(e.key==="Escape")s(false)})})();</script>
 <main class="lab-main">
 
 <section class="hero art-hero art-tp">
@@ -48,6 +59,9 @@
 </section>
 
 <div class="wrap">
+
+  <!-- work-in-progress notice: remove from a lab once it is finished -->
+  <div class="wip-note" role="note"><span class="wip-tag">Work in progress</span> These notes are still being written and reviewed: content may change, and some parts may still contain mistakes.</div>
 
   <!-- ===== OVERVIEW ===== -->
   <section class="block" id="overview">

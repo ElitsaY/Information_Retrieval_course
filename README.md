@@ -8,13 +8,13 @@ The lab exercises (Jupyter notebooks, datasets and setup instructions) are in th
 
 Served from `docs/` on GitHub Pages: **[elitsay.github.io/Information_Retrieval_course](https://elitsay.github.io/Information_Retrieval_course/docs/index.html)**
 
-| Lab | Topic | Covers |
-| :--- | :--- | :--- |
-| 01 | [Inverted Index and Boolean Queries](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab01-inverted-index.html) | Incidence matrices, dictionary and postings, index construction, Boolean queries, skip pointers, phrase queries |
-| 02 | [Text Preprocessing](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab02-text-preprocessing.html) | Tokenizers, normalization, stop words, stemming and lemmatization, a preprocessing pipeline |
-| 03 | [Tolerant Retrieval and Spelling Correction](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab03-spelling-correction.html) | Wild-card queries, edit distance, n-gram overlap, context-sensitive correction, Soundex |
-| 04 | [Ranked Retrieval: TF-IDF and BM25](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab04-ranked-retrieval.html) | TF, DF and IDF, TF-IDF vectors, cosine similarity, BM25, the Cranfield collection |
-| 05 | [Evaluating IR Systems](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab05-evaluation.html) | Precision and recall, MRR, MAP, nDCG, per-query analysis, Recall@k for RAG |
+| Lab | Class notes | Quiz | Covers |
+| :--- | :--- | :--- | :--- |
+| 01 | [Inverted Index and Boolean Queries](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab01-inverted-index.html) | coming soon | Incidence matrices, dictionary and postings, index construction, Boolean queries, skip pointers, phrase queries |
+| 02 | [Text Preprocessing](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab02-text-preprocessing.html) | coming soon | Tokenizers, normalization, stop words, stemming and lemmatization, a preprocessing pipeline |
+| 03 | [Tolerant Retrieval and Spelling Correction](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab03-spelling-correction.html) | coming soon | Wild-card queries, edit distance, n-gram overlap, context-sensitive correction, Soundex |
+| 04 | [Ranked Retrieval: TF-IDF and BM25](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab04-ranked-retrieval.html) | coming soon | TF, DF and IDF, TF-IDF vectors, cosine similarity, BM25, the Cranfield collection |
+| 05 | [Evaluating IR Systems](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab05-evaluation.html) | coming soon | Precision and recall, MRR, MAP, nDCG, per-query analysis, Recall@k for RAG |
 
 ## 💻 Jupyter Notebooks
 
