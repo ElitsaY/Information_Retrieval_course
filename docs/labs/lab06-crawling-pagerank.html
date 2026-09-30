@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab 06 — Web Crawling, Web Graphs and PageRank | Class Notes</title>
+<meta name="description" content="Interactive notes on web search: crawler types, crawling vs scraping, the crawl loop and URL frontier, URL normalization, duplicate detection, robots.txt and politeness, Scrapy and BeautifulSoup, the Web as a graph, PageRank and combining text and link signals.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../style.css">
+<script src="../theme.js"></script>
+</head>
+<body>
+
+<header class="site-nav">
+  <button class="side-toggle" type="button" aria-controls="lab-menu" aria-expanded="false" aria-label="Labs menu"><span></span></button>
+  <a class="brand" href="../index.html"><span class="dot"></span> Class Notes</a>
+  <nav><a href="../index.html">Home</a></nav>
+  <button class="theme-toggle" type="button" aria-label="Switch colour theme"><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+</header>
+
+<div class="lab-layout">
+  <aside class="lab-menu" id="lab-menu" aria-label="Contents">
+    <div class="lm-tabs" role="tablist" aria-label="Menus">
+      <button class="lm-tab" type="button" role="tab" id="lm-t-notes" aria-controls="lm-notes" aria-selected="true">Class notes</button>
+      <button class="lm-tab" type="button" role="tab" id="lm-t-quiz" aria-controls="lm-quiz" aria-selected="false">Quizzes</button>
+    </div>
+    <div class="lm-panel" id="lm-notes" role="tabpanel" aria-labelledby="lm-t-notes">
+    <ol>
+      <li><a href="lab01-inverted-index.html"><span class="lm-n">01</span>Inverted Index and Boolean Queries</a></li>
+      <li><a href="lab02-text-preprocessing.html"><span class="lm-n">02</span>Text Preprocessing</a></li>
+      <li><a href="lab03-spelling-correction.html"><span class="lm-n">03</span>Tolerant Retrieval and Spelling Correction</a></li>
+      <li><a href="lab04-ranked-retrieval.html"><span class="lm-n">04</span>Ranked Retrieval: TF-IDF and BM25</a></li>
+      <li><a href="lab05-evaluation.html"><span class="lm-n">05</span>Evaluating IR Systems</a></li>
+      <li><a href="lab06-crawling-pagerank.html" aria-current="page"><span class="lm-n">06</span>Web Crawling and PageRank</a></li>
+    </ol>
+    </div>
+    <div class="lm-panel" id="lm-quiz" role="tabpanel" aria-labelledby="lm-t-quiz" hidden>
+    <ol>
+
+    </ol>
+    <p class="lm-note">A quiz follows each lab; more are on the way.</p>
+    </div>
+  </aside>
+  <script>(function(){var b=document.body,t=document.querySelector(".side-toggle"),m=document.getElementById("lab-menu"),c=m.querySelector("[aria-current]");if(c&&m.scrollHeight>m.clientHeight)m.scrollTop=c.offsetTop-m.clientHeight/2;var ts=m.querySelectorAll(".lm-tab");ts.forEach(function(x){x.addEventListener("click",function(){ts.forEach(function(y){var o=y===x;y.setAttribute("aria-selected",o);document.getElementById(y.getAttribute("aria-controls")).hidden=!o})})});function s(o){b.classList.toggle("menu-open",o);t.setAttribute("aria-expanded",o)}t.addEventListener("click",function(e){e.stopPropagation();s(!b.classList.contains("menu-open"))});document.addEventListener("click",function(e){if(b.classList.contains("menu-open")&&!m.contains(e.target))s(false)});document.addEventListener("keydown",function(e){if(e.key==="Escape")s(false)})})();</script>
+<main class="lab-main">
+
+
+<section class="hero art-hero art-wc6">
+  <svg id="wc-hero-bg" class="hero-art" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+  <div class="wrap">
+    <p class="eyebrow">Lab 06</p>
+    <h1>Web Crawling, Web Graphs and PageRank</h1>
+    <div class="badges">
+      <span class="badge ids">Crawlers</span>
+      <span class="badge ucs">robots.txt</span>
+      <span class="badge bfs">Web graph</span>
+      <span class="badge dfs">PageRank</span>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+
+  <!-- work-in-progress notice: remove from a lab once it is finished -->
+  <div class="wip-note" role="note"><span class="wip-tag">Work in progress</span> These notes are still being written and reviewed: content may change, and some parts may still contain mistakes.</div>
+
+  <!-- ===== OVERVIEW ===== -->
+  <section class="block" id="overview">
+    <h2 class="section-title">Overview of the lab</h2>
+    <p class="section-lede">So far we assumed that the document collection already exists. For web search that assumption breaks: before we can index, rank and evaluate web pages, we must answer <b>"How do we discover and collect the documents?"</b> The Web also gives us something ordinary collections do not: <b>pages link to one another</b>. The links form a graph, and the graph itself provides ranking signals.</p>
+    <div class="rr-pipe">Web → crawler → document collection → index → content-based ranking + link-based ranking → search results</div>
+    <ol class="concept-list" style="margin-top:1.2rem;">
+      <li><a href="#web">From a fixed corpus to the Web</a>: what crawlers are, their types, crawling vs scraping.</li>
+      <li><a href="#arch">How a crawler works</a>: the crawl loop, seed URLs, the URL frontier.</li>
+      <li><a href="#urls">URLs are messier than they look</a>: normalization, URL and content duplicates.</li>
+      <li><a href="#robots">robots.txt and politeness</a>, and crawl traps.</li>
+      <li><a href="#practice">Crawling in practice</a>: Scrapy, BeautifulSoup, dynamic pages, good practices.</li>
+      <li><a href="#graph">The Web as a directed graph</a>: in-degree, and why counting links is not enough.</li>
+      <li><a href="#pagerank">PageRank</a>: the random surfer, damping, dangling nodes, link farms, real graphs.</li>
+      <li><a href="#combine">Combining textual and link signals</a>.</li>
+      <li><a href="#rag">Connection to modern retrieval and RAG</a>.</li>
+      <li><a href="#summary">Summary</a>, and optional exercises.</li>
+    </ol>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Learning objectives</h3>
+    <p class="section-lede">By the end you should be able to explain:</p>
+    <ul class="concept-list">
+      <li>why web crawling is a separate problem from indexing, and the basic architecture of a crawler;</li>
+      <li>what a URL frontier is, and why URL normalization and duplicate detection are necessary;</li>
+      <li>the purpose and limitations of <code>robots.txt</code>, and why crawlers need politeness and rate limiting;</li>
+      <li>how hyperlinks form a directed graph, and why counting incoming links is not enough;</li>
+      <li>the intuition behind PageRank and the role of the damping factor;</li>
+      <li>why link-based authority and textual relevance are different signals;</li>
+      <li>how web crawling relates to modern search and RAG ingestion pipelines.</li>
+    </ul>
+  </section>
+
+  <!-- ===== PART I: FROM A FIXED CORPUS TO THE WEB ===== -->
+  <section class="block algo-section ids" id="web">
+    <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part I</span>
+    <h2 class="section-title">From a fixed corpus to the Web</h2>
+    <p class="section-lede">In previous labs we started with <code>documents = [...]</code> and built <b>documents → preprocessing → index → retrieval model</b>. But where did the documents come from? For a web search engine the collection is not given in advance: the system must <b>discover</b> pages.</p>
+    <div class="pipe">
+      <div class="pipe-card stage"><span class="pipe-l">1. Crawling</span><p class="pipe-lab">discover and fetch pages</p></div>
+      <span class="pipe-arrow" aria-hidden="true">→</span>
+      <div class="pipe-card stage"><span class="pipe-l">2. Indexing</span><p class="pipe-lab">turn fetched pages into searchable representations (<a href="lab01-inverted-index.html">Lab 01</a>)</p></div>
+      <span class="pipe-arrow" aria-hidden="true">→</span>
+      <div class="pipe-card stage"><span class="pipe-l">3. Ranking</span><p class="pipe-lab">order the results for a query (<a href="lab04-ranked-retrieval.html">Lab 04</a>)</p></div>
+    </div>
+    <p class="section-lede" style="margin-top:1rem;">These are different engineering problems. A crawler is not a search engine by itself, an inverted index is not a crawler, and a ranking function does not discover new pages.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">What are web crawlers?</h3>
+    <div class="definition-box">
+      <div class="dbox-label">📐 Web crawler</div>
+      <p>A <b>web crawler</b> (crawler, web spider) is a program that searches and automatically indexes website content and other information over the internet. Alternatively: crawlers are software or scripts programmed to <b>systematically browse</b> the World Wide Web as part of an automated process.</p>
+    </div>
+    <ol class="concept-list" style="margin-top:1rem;">
+      <li><b>Step 1</b>: the crawler starts processing a predefined list of web pages.</li>
+      <li><b>Step 2</b>: once it crawls a page, it discovers new pages via hyperlinks.</li>
+      <li><b>Step 3</b>: it adds the newly discovered URLs to the crawl queue, to be crawled later.</li>
+    </ol>
+    <p class="section-lede">Result: a crawler can explore every page that is <b>connected</b> to the ones it already knows. It does not magically know every URL on the Web.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">What are they used for?</h3>
+    <ul class="concept-list">
+      <li><b>Search engines</b>: Googlebot, Bingbot, Applebot (Siri and Spotlight), OpenAI's crawlers for ChatGPT, and Xenon, a crawler the Dutch tax administration has used since 2004 to find undeclared online sellers.</li>
+      <li><b>Web scraping</b>: data analytics and data science, marketing and sales, competition research, and academic research (especially with the machine-learning advances of recent years).</li>
+      <li><b>Data analytics</b>.</li>
+    </ul>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">See it: types of web crawlers</h4>
+    <p class="section-lede">The taxonomy of <a href="https://doi.org/10.1002/widm.1218" target="_blank" rel="noopener">Kumar, Bhatia &amp; Rattan (2017), <i>A survey of Web crawlers for information retrieval</i></a>. Click a type.</p>
+    <div class="playground">
+      <div class="tx-tree" id="tx-tree"></div>
+      <div class="al-out tx-out" id="tx-out"></div>
+    </div>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Crawling vs scraping</h3>
+    <div class="table-wrap">
+      <table class="summary sc-small">
+        <thead><tr><th></th><th>Crawling</th><th>Scraping</th></tr></thead>
+        <tbody>
+          <tr data-s="ids"><td><b>Goal</b></td><td>discover and fetch whole pages, and the URLs they link to</td><td>extract <b>specific data</b> from one or more websites</td></tr>
+          <tr data-s="ids"><td><b>Output</b></td><td>a collection of pages + a link graph</td><td>structured records (a table, JSON)</td></tr>
+          <tr data-s="ids"><td><b>Scale</b></td><td>always large</td><td>small or large</td></tr>
+          <tr data-s="ids"><td><b>Knows the page layout?</b></td><td>no: works on any page</td><td>yes: written for a particular page structure</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="dt-ex-list" style="margin-top:1rem;">
+      <details class="dt-ex">
+        <summary><span class="dt-ex-no">1</span><span class="dt-ex-q">A client extracts large amounts of sports data with a framework that executes "crawlers". Looking at the architecture, you see that a separate "crawler" is implemented for <b>every web page of interest</b>. How does this align with the definition of a crawler?</span></summary>
+        <div class="dt-ex-sol"><p>It does not: these are <b>scrapers</b>. Web scraping extracts specific data from one or more websites, with code written for each page's layout. Crawling extracts the whole page and the additional URLs it links to, and one crawler works on any page.</p></div>
+      </details>
+      <details class="dt-ex">
+        <summary><span class="dt-ex-no">2</span><span class="dt-ex-q">Does a web crawler exclude the use of a web scraper? How do crawlers and scrapers scale?</span></summary>
+        <div class="dt-ex-sol"><p>No, they combine: a crawler <b>detects</b> pages, then scrapers extract specific information rather than the whole page content. This is used when the target domain is clear. Crawlers are always used at large scale; scrapers at small and large scale.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ===== PART II: CRAWLER ARCHITECTURE ===== -->
+  <section class="block algo-section bfs" id="arch">
+    <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Part II</span>
+    <h2 class="section-title">How a crawler works</h2>
+    <p class="section-lede">Start from one page, <code>https://example.org/</code>. Fetch it and find links to <code>/about</code>, <code>/courses</code>, <code>/people</code>. Fetch those and discover more links. The process is <b>recursive</b>.</p>
+    <details class="code-card" open>
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">crawl_loop.py (conceptual)</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py">frontier = [seed_url]
+visited = set()
+
+while frontier:
+    url = frontier.pop()
+
+    if url in visited:
+        continue
+
+    page = fetch(url)
+    visited.add(url)
+
+    store(page)
+
+    for link in extract_links(page):
+        frontier.append(link)</code></pre>
+    </details>
+    <p class="section-lede">This is enough to explain the idea. It is <b>not</b> enough to build a responsible production crawler.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Crawler architecture</h3>
+    <p class="section-lede">A slightly more realistic pipeline. It is a loop: the links a page yields go back into the frontier. Click a stage.</p>
+    <div class="playground">
+      <div class="cw-flow" id="cw-flow"></div>
+      <div class="al-out" id="cw-flow-out" style="margin-top:0.9rem;"></div>
+    </div>
+    <ul class="concept-list" style="margin-top:1rem;">
+      <li><b>Seed URLs</b>: a crawler must start somewhere: a university homepage, a news homepage, a known domain list, a sitemap, a previous crawl. The seed set strongly affects what the crawler discovers.</li>
+      <li><b>URL frontier</b>: the collection of URLs waiting to be crawled. A naive implementation uses a list, a queue or a stack; a real crawler needs <b>scheduling</b>: Which URL should be fetched next? Which host was contacted recently? Which pages are likely to be important? Which should be revisited? How do we avoid crawling one site too aggressively?</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Breadth-first vs depth-first</h3>
+    <p class="section-lede">With links <b>A → B → C → D</b> and <b>A → E</b>, a depth-first crawler may go <b>A, B, C, D, E</b>; a breadth-first crawler <b>A, B, E, C, D</b>. For web crawling a pure DFS or BFS policy is usually too simplistic, but they are useful starting points for understanding frontier scheduling.</p>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: a crawl simulator</h4>
+    <p class="section-lede">Choose a site and a frontier policy, then step through the crawl loop. The <b>toy graph</b> is the example above. <b>example.org</b> is an invented site with the problems of Parts III and IV: messy links, a printer-friendly copy, a <code>/private/</code> area and an endless calendar. Switch the protections on one by one and watch the <b>wasted fetches</b> fall.</p>
+    <div class="playground" id="cs">
+      <div class="pg-controls">
+        <div class="strategy-pick" id="cs-site"></div>
+        <div class="strategy-pick" id="cs-pol"></div>
+      </div>
+      <div class="pg-controls cs-opts" id="cs-opts">
+        <label class="ii-check"><input type="checkbox" id="cs-norm"> normalize URLs</label>
+        <label class="ii-check"><input type="checkbox" id="cs-dup"> content fingerprints</label>
+        <label class="ii-check"><input type="checkbox" id="cs-rob"> obey robots.txt</label>
+        <label class="ii-check"><input type="checkbox" id="cs-trap"> trap limit (≤ 3 query variants per path)</label>
+        <div class="beam-control show" style="margin:0;"><label for="cs-max">fetch budget</label><input type="range" id="cs-max" min="8" max="40" value="20" step="1"><span class="val" id="cs-max-val">20</span></div>
+      </div>
+      <div class="pg-controls">
+        <span class="ids-readout" id="cs-step" style="margin:0;">step 0</span>
+        <div class="play-btns">
+          <button class="icon-btn" id="cs-reset" type="button" aria-label="Restart">⟲</button>
+          <button class="icon-btn" id="cs-prev" type="button" aria-label="Step back">◀</button>
+          <button class="icon-btn" id="cs-next" type="button" aria-label="Step forward">▶</button>
+          <button class="icon-btn" id="cs-end" type="button" aria-label="Run to the end">⏭</button>
+        </div>
+      </div>
+      <div class="pg-grid">
+        <div>
+          <svg id="cs-svg" class="ml-plot cs-svg" viewBox="0 0 460 300" aria-label="Site map with fetch counts"></svg>
+          <p class="bt-legend" style="margin:0.2rem 0 0;"><span class="k" style="background:var(--bfs);"></span> stored &nbsp; <span class="k" style="background:var(--ucs);"></span> fetched, wasted &nbsp; <span class="k" style="background:#d9546e;"></span> should not be fetched &nbsp; <span class="k cs-k-fr"></span> in frontier</p>
+        </div>
+        <div>
+          <div class="frontier-box"><h5 id="cs-fr-h">Frontier</h5><div class="chip-row" id="cs-frontier"></div></div>
+          <div class="stat-strip cs-stats" id="cs-stats"></div>
+        </div>
+      </div>
+      <div class="log-box cs-log" id="cs-log"></div>
+    </div>
+    <p class="caption-note">💡 The loop above uses <code>frontier.pop()</code>, which takes the <b>last</b> URL: a stack, so it is depth-first, and it visits A, E, B, C, D (the last link first). The simulator pushes each page's links in reverse, so its DFS follows the first link first: A, B, C, D, E. BFS uses <code>collections.deque</code> and <code>popleft()</code>.</p>
+  </section>
+
+  <!-- ===== PART III: URLS AND DUPLICATES ===== -->
+  <section class="block algo-section dfs" id="urls">
+    <span class="badge dfs" style="margin-bottom:0.6rem; display:inline-block;">Part III</span>
+    <h2 class="section-title">URLs are messier than they look</h2>
+    <p class="section-lede">Are <code>https://example.org/page</code>, <code>https://example.org/page/</code>, <code>https://example.org/page#section</code> and <code>https://EXAMPLE.org/page</code> four different documents? Maybe. Maybe not. This introduces <b>URL normalization</b> and <b>canonicalization</b>.</p>
+    <ul class="concept-list">
+      <li><b>Normalization steps</b>: lowercase the hostname, remove URL fragments, resolve relative URLs, remove default ports, normalize path components (<code>https://example.org/a/../page</code> → <code>https://example.org/page</code>).</li>
+      <li>❗ <b>Normalization must be conservative.</b> Different URLs can genuinely represent different resources: <code>/page</code> and <code>/page/</code> may differ, and so may <code>?id=1</code> and <code>?id=2</code>.</li>
+    </ul>
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: normalize a URL</h4>
+    <p class="section-lede">Each step shows what it changed. The last three are <b>not</b> safe in general: turn them on to see what an aggressive crawler would merge.</p>
+    <div class="playground">
+      <div class="pg-controls"><div class="strategy-pick" id="un-presets"></div></div>
+      <div class="pg-controls un-in">
+        <label class="ii-lbl" for="un-base">page it was found on</label><input id="un-base" class="ii-input" spellcheck="false" autocomplete="off">
+        <label class="ii-lbl" for="un-href">link (href)</label><input id="un-href" class="ii-input" spellcheck="false" autocomplete="off">
+      </div>
+      <div class="pg-controls">
+        <label class="ii-check"><input type="checkbox" id="un-slash"> drop trailing slash</label>
+        <label class="ii-check"><input type="checkbox" id="un-utm"> drop <code>utm_*</code> tracking parameters</label>
+        <label class="ii-check"><input type="checkbox" id="un-sort"> sort query parameters</label>
+      </div>
+      <div id="un-out"></div>
+    </div>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Why duplicate URLs matter</h3>
+    <p class="section-lede">Without duplicate handling, with links <b>A → B, A → C, B → C, C → A</b>, the crawler keeps rediscovering A, B, C, A, B, C, … At minimum, maintain <code>visited_urls = set()</code>. But there is a second problem: <b>different URLs → the same or nearly identical content</b>: printer-friendly pages, tracking-parameter variants, mobile/desktop versions, mirrored pages, session-specific URLs. So we distinguish a <b>URL duplicate</b> from a <b>content duplicate</b>.</p>
+    <div class="definition-box">
+      <div class="dbox-label">📐 Exact duplicate detection</div>
+      <p>Hash the (normalized) content: if the same content produces the same hash, it is an exact duplicate.</p>
+    </div>
+    <details class="code-card">
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">fingerprint.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py">import hashlib
+
+fingerprint = hashlib.sha256(
+    text.encode("utf-8")
+).hexdigest()</code></pre>
+    </details>
+    <p class="section-lede"><b>Near duplicates</b>: two pages may differ only slightly: the same article with a different navigation bar, timestamp or ad. Exact hashes will not detect this. Large crawlers use approximate techniques such as <b>shingling</b>, <b>MinHash</b> and <b>SimHash</b>. We do not derive them here; the point is that duplicate detection is an IR systems problem, not merely a storage problem.</p>
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: exact vs near duplicates</h4>
+    <p class="section-lede">SHA-256 of both texts (computed in your browser), and, as a preview of shingling, the Jaccard overlap of their word 3-grams. One changed character changes the whole hash.</p>
+    <div class="playground">
+      <div class="pg-controls"><div class="strategy-pick" id="fp-presets"></div></div>
+      <div class="fp-two">
+        <div><label class="ii-lbl" for="fp-a">Page 1</label><textarea id="fp-a" class="ii-text" rows="4" spellcheck="false"></textarea></div>
+        <div><label class="ii-lbl" for="fp-b">Page 2</label><textarea id="fp-b" class="ii-text" rows="4" spellcheck="false"></textarea></div>
+      </div>
+      <div class="al-out" id="fp-out" style="margin-top:0.9rem;"></div>
+    </div>
+    <p class="caption-note">💡 This happens on real sites. The polite crawler of <a href="#real">Part VII</a> fetched 50 pages of quotes.toscrape.com and found <b>7 pairs of byte-identical pages</b>, like <code>/tag/love/</code> and <code>/tag/love/page/1/</code>: 14% of the crawl budget spent on copies.</p>
+  </section>
+
+  <!-- ===== PART IV: ROBOTS AND POLITENESS ===== -->
+  <section class="block algo-section ucs" id="robots">
+    <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Part IV</span>
+    <h2 class="section-title">robots.txt and politeness</h2>
+    <p class="section-lede">A crawler should not fetch arbitrary URLs as fast as possible. Two concepts matter: <b>rules + politeness</b>.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.4rem;">robots.txt</h3>
+    <p class="section-lede">Websites can publish a file at <code>/robots.txt</code>, e.g. <code>https://example.org/robots.txt</code>. The Robots Exclusion Protocol is standardized in <a href="https://www.rfc-editor.org/rfc/rfc9309.html" target="_blank" rel="noopener">RFC 9309</a>.</p>
+    <div class="definition-box">
+      <div class="dbox-label">📐 A simple robots.txt</div>
+      <pre class="rb-pre">User-agent: *
+Disallow: /private/
+Allow: /public/</pre>
+      <p>Meaning: <b>all crawlers</b> should not crawl <code>/private/</code>. ❗ <code>robots.txt</code> is <b>not</b> an authentication or authorization mechanism: it communicates crawling preferences. Sensitive information should never be protected by relying on <code>robots.txt</code>.</p>
+    </div>
+    <p class="section-lede" style="margin-top:1rem;">Python includes a parser:</p>
+    <details class="code-card" open>
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">robots.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py">from urllib.robotparser import RobotFileParser
+
+rp = RobotFileParser()
+rp.set_url("https://example.org/robots.txt")
+rp.read()
+
+allowed = rp.can_fetch(
+    "MyCourseCrawler",
+    "https://example.org/page"
+)
+
+# the same parser on rules given as text
+rp = RobotFileParser()
+rp.parse("""User-agent: *
+Disallow: /private/
+Allow: /private/press/""".splitlines())
+rp.can_fetch("MyCourseCrawler", "https://example.org/private/press/news")
+# False  (RFC 9309: allowed, see below)</code></pre>
+    </details>
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: a robots.txt tester</h4>
+    <p class="section-lede">Edit the file, the crawler name or the path. The tester applies RFC 9309 (the most specific, i.e. <b>longest</b>, matching rule wins; on a tie <code>Allow</code> wins; <code>*</code> and <code>$</code> are wildcards) and, next to it, what Python's <code>urllib.robotparser</code> answers.</p>
+    <div class="playground">
+      <div class="rb-grid">
+        <div><label class="ii-lbl" for="rb-txt">robots.txt</label><textarea id="rb-txt" class="ii-text" rows="10" spellcheck="false"></textarea></div>
+        <div>
+          <label class="ii-lbl" for="rb-ua">crawler (User-agent)</label><input id="rb-ua" class="ii-input" spellcheck="false" autocomplete="off">
+          <div id="rb-paths" class="rb-paths" style="margin-top:0.4rem;"></div>
+          <label class="ii-lbl" for="rb-path" style="display:block; margin:0.9rem 0 0.3rem;">add a path to test</label>
+          <input id="rb-path" class="ii-input" spellcheck="false" autocomplete="off">
+        </div>
+      </div>
+      <div id="rb-out" style="margin-top:1rem;"></div>
+    </div>
+    <p class="caption-note">💡 Python's parser predates RFC 9309: it applies the rules <b>in file order</b> (first match wins) and treats <code>*</code> and <code>$</code> inside paths literally. On <code>/private/press/news</code> it says no, although the RFC says yes; on <code>/files/report.pdf</code> it says yes, although <code>Disallow: /*.pdf$</code> means no. Checked with Python 3.14. Order your rules from specific to general, or use a parser that follows the RFC.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Politeness</h3>
+    <p class="section-lede">Even when crawling is allowed, a crawler should avoid overwhelming a server. A basic policy: do not request many pages from the same host simultaneously, wait between requests, <b>identify the crawler</b> (an honest User-agent), handle HTTP errors, respect retry signals (<code>429 Too Many Requests</code>, <code>Retry-After</code>). The precise policy depends on the application.</p>
+    <p class="section-lede">Why this matters technically: <b>too many requests → server overload → blocking / failures → a worse crawl</b>. Politeness is not separate from system quality.</p>
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: one frontier vs per-host queues</h4>
+    <p class="section-lede">Twelve URLs wait in the frontier, eight of them on <b>a.org</b>. Each fetch takes 0.5 s. The naive scheduler gives the next URL to any free fetcher; the polite one keeps one queue per host, never has two requests open to the same host, and waits the delay between them.</p>
+    <div class="playground">
+      <div class="pg-controls">
+        <div class="strategy-pick" id="po-mode"></div>
+        <div class="beam-control show" style="margin:0;"><label for="po-k">parallel fetchers</label><input type="range" id="po-k" min="1" max="4" value="4" step="1"><span class="val" id="po-k-val">4</span></div>
+        <div class="beam-control show" style="margin:0;"><label for="po-d">per-host delay</label><input type="range" id="po-d" min="0" max="2" value="1" step="0.5"><span class="val" id="po-d-val">1 s</span></div>
+      </div>
+      <div class="fig-scroll"><svg id="po-svg" class="ml-plot po-svg" viewBox="0 0 560 170" aria-label="Request timeline per host"></svg></div>
+      <div class="al-out" id="po-out" style="margin-top:0.6rem;"></div>
+    </div>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Crawl traps</h3>
+    <p class="section-lede">Some sites generate effectively unlimited URL spaces. A crawler needs heuristics and limits, otherwise the frontier explodes (try the calendar on example.org in the <a href="#cs">simulator</a> with DFS and no trap limit).</p>
+    <ul class="concept-list">
+      <li><b>Calendars</b>: <code>?year=2026</code>, <code>?year=2027</code>, <code>?year=2028</code>, …</li>
+      <li><b>Faceted navigation</b>: <code>?color=red&amp;size=m&amp;sort=price</code>, every combination of filters is a URL.</li>
+      <li><b>Session identifiers</b>: <code>?id=123</code>, <code>?id=456</code>, … the same page under endless names.</li>
+      <li><b>Honeypot traps</b>: links in the HTML that only bots see, not human visitors. A crawler that follows them identifies itself as a bot that ignores the page as a user sees it.</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Why crawlers get blocked</h3>
+    <ul class="concept-list">
+      <li><b>Too many requests</b> to the same pages or host: reduce the number of crawls for specific web pages, and slow down on <code>429</code> and <code>503</code> responses.</li>
+      <li><b>Ignoring robots.txt</b> or following honeypot links.</li>
+      <li><b>No agreement</b>: for large, repeated crawls the commercial solution is a contract with the site (whitelisted IPs and a permitted number of crawls per day, week or month), or its official API or data dumps.</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Recap: the crawl loop</h3>
+    <div class="rr-pipe">seed URLs → frontier → check URL → robots + politeness → fetch → parse → store content → extract links → normalize / deduplicate → frontier</div>
+    <p class="section-lede" style="margin-top:1rem;">Once we have crawled these pages, is the text the only information available to us? No: pages link to one another, and that link structure gives us another ranking signal (<a href="#graph">Part VI</a>). First, the notebook's practical tools.</p>
+  </section>
+
+  <!-- ===== PART V: CRAWLING IN PRACTICE ===== -->
+  <section class="block algo-section ids" id="practice">
+    <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part V</span>
+    <h2 class="section-title">Crawling in practice</h2>
+    <p class="section-lede">All examples use <a href="https://quotes.toscrape.com/" target="_blank" rel="noopener">quotes.toscrape.com</a>, a sandbox site made for practising scraping. Only crawl a site you own, have permission to crawl, or that is explicitly provided for the exercise.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.4rem;">Crawling with Scrapy</h3>
+    <p class="section-lede"><a href="https://scrapy.org/" target="_blank" rel="noopener">Scrapy</a> is a crawling framework: you write a <b>spider</b> (where to start, how to parse a page, which links to follow), and Scrapy runs the frontier, the scheduler, robots.txt, the delays and the output pipelines. Items go through <b>item pipelines</b> (pipeline 1: our own JSON-lines writer) and <b>feed exports</b> (pipeline 2: a JSON file).</p>
+    <details class="code-card">
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">quotes_spider.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py"># pip install scrapy
+import json
+import scrapy
+from scrapy.crawler import CrawlerProcess
+
+class JsonWriterPipeline:
+    def open_spider(self):
+        self.file = open("quoteresult.jl", "w", encoding="utf-8")
+
+    def close_spider(self):
+        self.file.close()
+
+    def process_item(self, item):
+        self.file.write(json.dumps(dict(item), ensure_ascii=False) + "\n")
+        return item
+
+class QuotesSpider(scrapy.Spider):
+    name = "quotes"
+    start_urls = ["https://quotes.toscrape.com/page/1/"]
+    custom_settings = {
+        "ITEM_PIPELINES": {"__main__.JsonWriterPipeline": 1},  # pipeline 1: our own writer
+        "FEEDS": {"quoteresult.json": {"format": "json"}},    # pipeline 2: a feed export
+    }
+
+    def parse(self, response):
+        for quote in response.css("div.quote"):
+            yield {
+                "text": quote.css("span.text::text").get(),
+                "author": quote.css("small.author::text").get(),
+                "tags": quote.css("div.tags a.tag::text").getall(),
+            }
+        next_page = response.css("li.next a::attr(href)").get()
+        if next_page:                                  # follow the link: now it crawls
+            yield response.follow(next_page, self.parse)
+
+process = CrawlerProcess({
+    "USER_AGENT": "IRCourseBot/0.1 (student lab crawler)",
+    "ROBOTSTXT_OBEY": True,
+    "DOWNLOAD_DELAY": 1.0,
+    "CONCURRENT_REQUESTS_PER_DOMAIN": 1,
+    "LOG_LEVEL": "WARNING",
+})
+process.crawl(QuotesSpider)
+process.start()
+# 10 pages followed through "Next", 100 quotes in quoteresult.jl and quoteresult.json</code></pre>
+    </details>
+    <details class="code-card">
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">read_results.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py">import pandas as pd
+
+df = pd.read_json("quoteresult.jl", lines=True)   # one JSON object per line
+df.shape
+# (100, 3)
+df.loc[0, "author"], df.loc[0, "tags"]
+# ('Albert Einstein', ['change', 'deep-thoughts', 'thinking', 'world'])
+
+df2 = pd.read_json("quoteresult.json")            # one JSON array
+df2.shape
+# (100, 3)</code></pre>
+    </details>
+    <p class="caption-note">💡 Updated from the course notebook for current Scrapy (2.19): the <code>FEEDS</code> setting replaces the deprecated <code>FEED_FORMAT</code> / <code>FEED_URI</code>, and pipeline methods no longer take a <code>spider</code> argument. The spider now follows the "Next" link, which turns a scraper of two pages into a small crawler, and it identifies itself honestly instead of pretending to be Internet Explorer 7.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">A single web page with BeautifulSoup</h3>
+    <p class="section-lede">For one page, <code>requests</code> fetches the HTML and <a href="https://www.crummy.com/software/BeautifulSoup/bs4/doc/" target="_blank" rel="noopener">BeautifulSoup</a> parses it. The notebook leaves <code>getPropertyFromPage</code> as an exercise; one possible solution:</p>
+    <details class="code-card">
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">single_page.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py">import requests
+from bs4 import BeautifulSoup
+
+HEADERS = {"User-Agent": "IRCourseBot/0.1 (student lab crawler)"}
+
+def getPropertyFromPage(url):
+    """
+    Visit the page and choose some properties to crawl from the parser
+    """
+    html = requests.get(url, headers=HEADERS, timeout=10).text
+    document = BeautifulSoup(html, "html.parser")
+    return {
+        "title": document.title.get_text(strip=True),
+        "quotes": [q.get_text() for q in document.select("div.quote span.text")],
+        "authors": [a.get_text() for a in document.select("small.author")],
+        "links": [a["href"] for a in document.find_all("a", href=True)],
+    }
+
+page = getPropertyFromPage("https://quotes.toscrape.com/page/1/")
+page["title"]
+# 'Quotes to Scrape'
+len(page["quotes"]), page["authors"][:3]
+# (10, ['Albert Einstein', 'J.K. Rowling', 'Albert Einstein'])
+len(page["links"]), page["links"][:4]
+# (55, ['/', '/login', '/author/Albert-Einstein', '/tag/change/page/1/'])</code></pre>
+    </details>
+    <p class="section-lede">The links are relative: a crawler resolves them against the page URL (<code>urljoin</code>) and normalizes them before they enter the frontier (<a href="#urls">Part III</a>).</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">The problem for all of the above: infinite scroll (dynamic content)</h3>
+    <p class="section-lede">Many pages load their content with JavaScript as you scroll. The HTML that <code>requests</code> or Scrapy downloads then contains no content at all.</p>
+    <div class="table-wrap">
+      <table class="summary sc-small">
+        <thead><tr><th>Solution</th><th>✅ Pros</th><th>❌ Cons</th></tr></thead>
+        <tbody>
+          <tr data-s="ids"><td><b>1. Naive, semi-automatic</b>: open the page, scroll down as far as necessary, save it (Ctrl + S)</td><td>easy; surprisingly helps with hard-to-crawl websites</td><td>a lot of manual work; not scalable</td></tr>
+          <tr data-s="ids"><td><b>2. Fully automatic</b>: a browser-automation tool (Selenium, Playwright) scrolls and renders the page</td><td>overcomes dynamic content; complex logic; scales</td><td>requires deeper understanding; much slower in most cases</td></tr>
+          <tr data-s="ids"><td><b>Extra option</b>: find the JavaScript's data source (the browser's <b>Network</b> tab) and request it directly</td><td>fast, structured JSON, no rendering</td><td>works only when such an endpoint exists; it can change without notice</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="section-lede" style="margin-top:1rem;">Not all dynamic pages are the same: some render content through JS APIs visible in the Network tab, others embed the JS-rendered content as JSON in the page. <code>quotes.toscrape.com/scroll</code> is an infinite-scroll page: its script calls <code>/api/quotes?page=N</code>.</p>
+    <details class="code-card">
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">scroll_api.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py">import requests
+
+r = requests.get("https://quotes.toscrape.com/api/quotes", params={"page": 1},
+                 headers={"User-Agent": "IRCourseBot/0.1 (student lab crawler)"}, timeout=10)
+data = r.json()
+data.keys()
+# dict_keys(['has_next', 'page', 'quotes', 'tag', 'top_ten_tags'])
+data["has_next"], len(data["quotes"])
+# (True, 10)
+data["quotes"][0]["author"]["name"]
+# 'Albert Einstein'</code></pre>
+    </details>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Good practices for large-scale crawlers</h3>
+    <ul class="concept-list">
+      <li>Ensure you have full access to the server the crawler runs on.</li>
+      <li>Identify slow websites, e.g. with the <b>TTFB</b> (time to first byte) metric.</li>
+      <li>Crawl during low-traffic (off-peak) hours.</li>
+      <li>Use a fast and stable connection, preferably Ethernet: Wi-Fi is slower and less reliable.</li>
+      <li>For big-scale crawling, run crawlers on a server (cloud compute) instead of a desktop.</li>
+      <li><b>Partial crawls</b>: crawl a single website with several continuous crawlers, each focusing on a different section. Things stay simple and the data is updated faster.</li>
+      <li>Ignore URL parameters and other URLs that are duplicates of a canonical URL.</li>
+    </ul>
+  </section>
+
+  <!-- ===== PART VI: THE WEB AS A GRAPH ===== -->
+  <section class="block algo-section bfs" id="graph">
+    <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Part VI</span>
+    <h2 class="section-title">The Web as a directed graph</h2>
+    <p class="section-lede">Represent each page as a <b>node</b> and each hyperlink as a <b>directed edge</b>: if page A links to page B, then \(A \rightarrow B\). A small web graph: <b>A → B, A → C, B → C, C → A, D → C, D → A</b>. It is the graph in the <a href="#pagerank">playground below</a>.</p>
+    <div class="definition-box">
+      <div class="dbox-label">📐 In-degree</div>
+      <div class="math-block">\[ \text{indegree}(p) = \text{number of pages linking to } p \]</div>
+      <p>A naive idea: a page with many incoming links may be important.</p>
+    </div>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Why counting links is not enough</h3>
+    <p class="section-lede">100 obscure pages link to X; 1 very authoritative page links to Y. Should X automatically be more important? Not necessarily. We want a <b>recursive</b> idea: a link from an important page should count more than a link from an unimportant page. This is the intuition behind PageRank. (Load <b>Many weak vs one strong</b> in the playground.)</p>
+  </section>
+
+  <!-- ===== PART VII: PAGERANK ===== -->
+  <section class="block algo-section dfs" id="pagerank">
+    <span class="badge dfs" style="margin-bottom:0.6rem; display:inline-block;">Part VII</span>
+    <h2 class="section-title">PageRank</h2>
+    <p class="section-lede">PageRank can be explained with a <b>random surfer</b> browsing the Web. At each page: with probability \(d\), follow one outgoing link chosen at random; with probability \(1 - d\), jump to a random page. The <b>long-run probability</b> of being on a page is its PageRank.</p>
+    <div class="definition-box">
+      <div class="dbox-label">📐 PageRank</div>
+      <div class="math-block">\[ PR(u) = \frac{1-d}{N} + d \sum_{v \in B_u} \frac{PR(v)}{L(v)} \]</div>
+      <p>\(N\) = number of pages; \(d\) = damping factor, commonly \(d = 0.85\); \(B_u\) = pages linking to \(u\); \(L(v)\) = number of outgoing links from \(v\).</p>
+    </div>
+    <ul class="concept-list" style="margin-top:1rem;">
+      <li><b>Incoming PageRank</b>: a page receives score from the pages that link to it, \(\sum_{v \in B_u} PR(v) / L(v)\).</li>
+      <li><b>Outgoing-link division</b>: if page A has PageRank 0.8 and links to four pages, it distributes 0.2 to each before damping. A page does not give its full score independently to every outgoing link.</li>
+      <li><b>Damping</b>: the \(1 - d\) component means the surfer can jump rather than follow links forever. This helps avoid problems caused by graph structure and gives a stable stochastic interpretation.</li>
+      <li><b>Computing it</b>: start with \(PR = 1/N\) everywhere and apply the formula to every page again and again (<b>power iteration</b>) until the values stop changing.</li>
+    </ul>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: a PageRank playground</h4>
+    <p class="section-lede">Node size shows PageRank. <b>Click a node</b> to see its formula with the numbers plugged in; click one node and then another to <b>add or remove a link</b>. Step through the power iteration, or send a random surfer and compare its visit frequencies with PageRank. The last column is the converged value, the same as <code>nx.pagerank(G, alpha=d)</code>.</p>
+    <div class="playground" id="pr">
+      <div class="pg-controls"><div class="strategy-pick" id="pr-presets"></div></div>
+      <div class="pg-controls">
+        <div class="beam-control show" style="margin:0;"><label for="pr-d">damping \(d\)</label><input type="range" id="pr-d" min="0" max="1" value="0.85" step="0.01"><span class="val" id="pr-d-val">0.85</span></div>
+        <span class="ids-readout" id="pr-it" style="margin:0;">iteration 0</span>
+        <div class="play-btns">
+          <button class="icon-btn" id="pr-reset" type="button" aria-label="Back to iteration 0">⟲</button>
+          <button class="icon-btn" id="pr-prev" type="button" aria-label="Previous iteration">◀</button>
+          <button class="icon-btn" id="pr-next" type="button" aria-label="Next iteration">▶</button>
+          <button class="icon-btn" id="pr-end" type="button" aria-label="Iterate to convergence">⏭</button>
+        </div>
+      </div>
+      <div class="pg-grid pr-grid">
+        <div>
+          <svg id="pr-svg" class="ml-plot pr-svg" viewBox="0 0 440 320" aria-label="Link graph"></svg>
+          <div class="pg-controls" style="margin:0.4rem 0 0;">
+            <button type="button" class="strat-btn" id="pr-s1">Surfer: 1 step</button>
+            <button type="button" class="strat-btn" id="pr-s1k">+ 1,000 steps</button>
+            <button type="button" class="strat-btn" id="pr-s0">Reset surfer</button>
+          </div>
+        </div>
+        <div>
+          <div class="table-wrap"><table class="summary sc-small pr-table" id="pr-table"></table></div>
+          <div class="al-out" id="pr-out" style="margin-top:0.8rem;"></div>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">PageRank is query-independent</h3>
+    <p class="section-lede">TF-IDF and BM25 compute \(score(q, d)\). PageRank computes something closer to \(importance(d)\), <b>without knowing the user's query</b>: BM25 is a query-dependent relevance signal, PageRank a query-independent authority / popularity signal. They measure different things. For the query <i>python sorting algorithm</i>, a globally important <i>world news</i> page should not rank highly merely because it has a high PageRank: textual relevance still matters.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">The live demo with NetworkX</h3>
+    <p class="section-lede">A small deterministic graph, not the live Web. Before running it: which node do you expect to get the largest score? Then compare the in-degree ranking with the PageRank ranking.</p>
+    <details class="code-card">
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">pagerank_demo.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py"># pip install networkx scipy
+import networkx as nx
+
+G = nx.DiGraph()
+G.add_edges_from([
+    ("A", "B"),
+    ("A", "C"),
+    ("B", "C"),
+    ("C", "A"),
+    ("D", "C"),
+    ("D", "A"),
+])
+
+list(G.edges())
+# [('A', 'B'), ('A', 'C'), ('B', 'C'), ('C', 'A'), ('D', 'C'), ('D', 'A')]
+dict(G.in_degree())
+# {'A': 2, 'B': 1, 'C': 3, 'D': 0}
+
+pr = nx.pagerank(G, alpha=0.85)
+for page, score in sorted(pr.items(), key=lambda x: x[1], reverse=True):
+    print(page, round(score, 4))
+# C 0.3839
+# A 0.3797
+# B 0.1989
+# D 0.0375</code></pre>
+    </details>
+    <p class="caption-note">💡 NetworkX's <code>pagerank</code> uses <code>alpha=0.85</code> by default (<a href="https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.link_analysis.pagerank_alg.pagerank.html" target="_blank" rel="noopener">docs</a>) and needs <b>SciPy</b>: with <code>pip install networkx</code> alone it fails with <code>No module named 'scipy'</code>. Are the two rankings identical? Here the <b>order</b> is: C, A, B, D both ways. But C has 3 in-links and A only 2, and A ends only 0.004 behind: A's one link from C carries C's whole score, while C's three links come from pages that split theirs.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Dangling nodes</h3>
+    <p class="section-lede">A <b>dangling node</b> has no outgoing links: <b>A → B → C → nothing</b>. In the random-surfer model the surfer would get stuck at C. Practical implementations redistribute this probability mass, usually uniformly over all pages (NetworkX does; the playground shows the extra term). Load <b>Dangling node</b> in the playground: C = 0.4744, B = 0.3412, A = 0.1844.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Link farms and manipulation</h3>
+    <p class="section-lede">Once links affect rankings, people have incentives to manipulate links, e.g. artificial networks of pages created to amplify authority. Load <b>Link farm</b>: five farm pages and a target S that link to each other push S (0.2838) above C (0.1536), although no real page links to any of them. This illustrates a broader IR principle: <b>a ranking feature can change user and publisher behaviour once people know it matters</b>. Link analysis is useful, but it is not an unquestionable measure of quality.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;" id="real">PageRank on real graphs</h3>
+    <p class="section-lede"><b>A tiny crawler on a controlled site</b>: one domain, at most 50 pages, one request at a time. It stores the URL, the page title and the outgoing links, builds the directed graph and calculates PageRank.</p>
+    <details class="code-card">
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">tiny_crawler.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py"># pip install requests beautifulsoup4 networkx scipy
+import hashlib
+import time
+from collections import deque
+from urllib.parse import urljoin, urldefrag, urlparse
+from urllib.robotparser import RobotFileParser
+
+import networkx as nx
+import requests
+from bs4 import BeautifulSoup
+
+SEED = "https://quotes.toscrape.com/"
+AGENT = "IRCourseBot/0.1 (student lab crawler)"
+MAX_PAGES, DELAY = 50, 1.0
+
+def normalize(base, href):
+    url = urldefrag(urljoin(base, href)).url          # resolve relative, drop #fragment
+    p = urlparse(url)
+    return p._replace(netloc=p.netloc.lower()).geturl()
+
+robots = RobotFileParser()
+r = requests.get(urljoin(SEED, "/robots.txt"), headers={"User-Agent": AGENT}, timeout=10)
+robots.parse(r.text.splitlines() if r.status_code == 200 else [])   # 404: no rules, all allowed
+
+host = urlparse(SEED).netloc
+frontier, seen = deque([SEED]), {SEED}                 # BFS frontier + URL-duplicate check
+G, pages, fingerprints = nx.DiGraph(), {}, {}
+
+while frontier and len(pages) &lt; MAX_PAGES:
+    url = frontier.popleft()
+    if not robots.can_fetch(AGENT, url):
+        continue
+    r = requests.get(url, headers={"User-Agent": AGENT}, timeout=10)
+    time.sleep(DELAY)                                  # politeness: one request at a time
+    if r.status_code != 200 or "text/html" not in r.headers.get("Content-Type", ""):
+        continue
+    soup = BeautifulSoup(r.text, "html.parser")
+    pages[url] = soup.title.get_text(strip=True) if soup.title else ""
+    fp = hashlib.sha256(r.text.encode("utf-8")).hexdigest()   # exact-duplicate fingerprint
+    fingerprints.setdefault(fp, []).append(url)
+    G.add_node(url)
+    for a in soup.find_all("a", href=True):
+        link = normalize(url, a["href"])
+        if urlparse(link).netloc != host:              # stay on one domain
+            continue
+        G.add_edge(url, link)
+        if link not in seen:
+            seen.add(link)
+            frontier.append(link)
+
+G = G.subgraph(pages)                                  # keep only fetched pages
+print(len(pages), "pages,", G.number_of_edges(), "links,", len(frontier), "URLs still in the frontier")
+dupes = [urls for urls in fingerprints.values() if len(urls) &gt; 1]
+print(len(dupes), "groups of identical pages, e.g.", [u.replace(SEED, "/") for u in dupes[0]])
+
+pr = nx.pagerank(G, alpha=0.85)
+indeg = dict(G.in_degree())
+for url, score in sorted(pr.items(), key=lambda x: -x[1])[:8]:
+    print(f"{score:.4f}  in={indeg[url]:&gt;2}  {url.replace(SEED, '/')}")
+# 50 pages, 785 links, 99 URLs still in the frontier
+# 7 groups of identical pages, e.g. ['/tag/inspirational/page/1/', '/tag/inspirational/']
+# 0.1316  in=50  /
+# 0.1316  in=50  /login
+# 0.0343  in=40  /tag/truth/
+# 0.0343  in=40  /tag/life/
+# ...                                   (the ten "Top Ten tags" pages tie at 0.0343)</code></pre>
+    </details>
+    <p class="section-lede">The winners are <code>/</code> and <code>/login</code>: every page's header links to them. Inside one site, PageRank mostly measures the <b>navigation template</b>, not content quality; the ten sidebar tag pages tie for the same reason. The run took about 75 seconds, almost all of it the politeness delay.</p>
+
+    <p class="section-lede" style="margin-top:1.2rem;"><b>A pre-existing web graph</b>, without live crawling: the <a href="https://snap.stanford.edu/data/web-Stanford.html" target="_blank" rel="noopener">Stanford web graph</a> from SNAP, pages of stanford.edu (2002) as nodes and hyperlinks as directed edges: <b>281,903 nodes, 2,312,497 edges</b> (an 8.9 MB file). PageRank on the whole graph takes a few seconds; do not try to <i>visualize</i> the whole graph.</p>
+    <details class="code-card">
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">stanford_pagerank.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py"># download web-Stanford.txt.gz from https://snap.stanford.edu/data/web-Stanford.html
+import networkx as nx
+
+G = nx.read_edgelist("web-Stanford.txt.gz", create_using=nx.DiGraph, nodetype=int, comments="#")
+print(G.number_of_nodes(), G.number_of_edges())
+# 281903 2312497
+
+pr = nx.pagerank(G, alpha=0.85)
+indeg = dict(G.in_degree())
+by_indeg = sorted(indeg, key=indeg.get, reverse=True)
+indeg_rank = {n: r for r, n in enumerate(by_indeg, start=1)}
+
+for node, score in sorted(pr.items(), key=lambda x: -x[1])[:10]:
+    print(f"node {node:&gt;6}  PageRank {score:.5f}  in-degree {indeg[node]:&gt;6} (rank {indeg_rank[node]})")</code></pre>
+    </details>
+    <div class="table-wrap">
+      <table class="summary sc-small rr-num">
+        <thead><tr><th>PageRank rank</th><th>Node</th><th>PageRank</th><th>In-degree</th><th>In-degree rank</th></tr></thead>
+        <tbody>
+          <tr data-s="dfs"><td>1</td><td>89073</td><td>0.01001</td><td>15,277</td><td class="hl">12</td></tr>
+          <tr data-s="dfs"><td>2</td><td>226411</td><td>0.00968</td><td>38,606</td><td>1</td></tr>
+          <tr data-s="dfs"><td>3</td><td>241454</td><td>0.00890</td><td>19,377</td><td>4</td></tr>
+          <tr data-s="dfs"><td>4</td><td>134832</td><td>0.00589</td><td>10,336</td><td class="hl">15</td></tr>
+          <tr data-s="dfs"><td>5</td><td>69358</td><td>0.00340</td><td>13,936</td><td>13</td></tr>
+          <tr data-s="dfs"><td>6</td><td>67756</td><td>0.00321</td><td>13,872</td><td>14</td></tr>
+          <tr data-s="dfs"><td>7</td><td>105607</td><td>0.00293</td><td>19,457</td><td>3</td></tr>
+          <tr data-s="dfs"><td>8</td><td>225872</td><td>0.00287</td><td>6,671</td><td class="hl">30</td></tr>
+          <tr data-s="dfs"><td>9</td><td>234704</td><td>0.00287</td><td>21,920</td><td>2</td></tr>
+          <tr data-s="dfs"><td>10</td><td>186750</td><td>0.00285</td><td>6,693</td><td class="hl">29</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="section-lede" style="margin-top:0.8rem;">On a real graph the two rankings clearly differ: the top PageRank page is only 12th by in-degree, and the 2nd page by in-degree (21,920 in-links) is 9th by PageRank. <b>Which</b> pages link matters, not only how many.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Exercises</h3>
+    <p class="section-lede">For the graph A → B, A → C, B → C, C → A, D → C, D → A (<b>Outline graph</b> in the playground). Answer first, then verify in the playground or with <code>nx.pagerank(G, alpha=0.85)</code>.</p>
+    <div class="dt-ex-list">
+      <details class="dt-ex"><summary><span class="dt-ex-no">3</span><span class="dt-ex-q">Which node has the highest in-degree?</span></summary>
+        <div class="dt-ex-sol"><p><b>C</b>, with 3 (from A, B and D). A has 2, B 1, D 0.</p></div></details>
+      <details class="dt-ex"><summary><span class="dt-ex-no">4</span><span class="dt-ex-q">Does the highest in-degree guarantee the highest PageRank?</span></summary>
+        <div class="dt-ex-sol"><p>No. Here C does win, but only by 0.3839 to 0.3797 over A, which has one link fewer. In <b>Many weak vs one strong</b>, X has 4 in-links and PageRank 0.0550, while Y has a single in-link, from the authority H, and 0.3893. In the Stanford graph the top PageRank page is 12th by in-degree.</p></div></details>
+      <details class="dt-ex"><summary><span class="dt-ex-no">5</span><span class="dt-ex-q">What happens if <code>C → A</code> is removed?</span></summary>
+        <div class="dt-ex-sol"><p>A loses its strongest in-link and falls from 0.3797 to 0.1919 (now 3rd, behind B with 0.2162). C rises to 0.4572. Less obviously, <b>D rises</b> from 0.0375 to 0.1347 with no new in-link: C now has no outgoing links, it became a <b>dangling node</b>, and its mass is spread over all pages.</p></div></details>
+      <details class="dt-ex"><summary><span class="dt-ex-no">6</span><span class="dt-ex-q">What happens if a high-PageRank page adds a link to <code>D</code>?</span></summary>
+        <div class="dt-ex-sol"><p>Add <code>A → D</code>: D jumps from 0.0375 to 0.1451. A's score is now split three ways instead of two, so B falls from 0.1989 to 0.1451 and C from 0.3839 to 0.3301; A itself stays at 0.3797. A link is a vote, and a page's votes are shared among its links.</p></div></details>
+      <details class="dt-ex"><summary><span class="dt-ex-no">7</span><span class="dt-ex-q">Why does the damping factor matter?</span></summary>
+        <div class="dt-ex-sol"><p>\(d\) sets how much of the score flows along links and how much is spread evenly. At \(d = 0\) every page gets \(1/N = 0.25\). At \(d = 0.5\): C 0.3413, A 0.3269, B 0.2067, D 0.1250. At \(d = 0.99\), D (no in-links) keeps only \((1 - d)/N = 0.0025\), and C and A are almost tied (0.3989, 0.3987). Without damping the surfer can be trapped in parts of the graph with no way out and the iteration may not converge; the closer \(d\) is to 1, the more iterations it needs.</p></div></details>
+    </div>
+  </section>
+
+  <!-- ===== PART VIII: COMBINING SIGNALS ===== -->
+  <section class="block algo-section ucs" id="combine">
+    <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Part VIII</span>
+    <h2 class="section-title">Combining textual and link signals</h2>
+    <p class="section-lede">A conceptual search score might combine a query-dependent text score (e.g. BM25) with a query-independent link score (e.g. PageRank):</p>
+    <div class="math-block">\[ Score(q, d) = \alpha \cdot TextScore(q, d) + \beta \cdot LinkScore(d) \]</div>
+    <p class="section-lede">This formula is only illustrative: real search systems combine many signals with learned ranking models.</p>
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: move the weight</h4>
+    <p class="section-lede">Query <i>python sorting algorithm</i> over five pages with <b>invented</b> BM25 and PageRank values. The two signals live on very different scales, so each is first divided by its maximum. Then \(\alpha = 1 - w\), \(\beta = w\).</p>
+    <div class="playground">
+      <div class="pg-controls">
+        <div class="beam-control show" style="margin:0;"><label for="cb-w">link weight \(w = \beta\)</label><input type="range" id="cb-w" min="0" max="1" value="0.2" step="0.05"><span class="val" id="cb-w-val">0.20</span></div>
+      </div>
+      <div id="cb-out"></div>
+    </div>
+    <p class="section-lede" style="margin-top:1rem;">Document A has a high BM25 and a low PageRank, document B a medium BM25 and a high PageRank. Which should rank first? There is no universal answer: it depends on the <b>query</b>, the <b>task</b>, the <b>training data</b> and the <b>evaluation metric</b>. This connects directly back to <a href="lab05-evaluation.html">Lab 05</a>: choose \(w\) by evaluating the rankings.</p>
+  </section>
+
+  <!-- ===== PART IX: RAG ===== -->
+  <section class="block algo-section ids" id="rag">
+    <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part IX</span>
+    <h2 class="section-title">Connection to modern retrieval and RAG</h2>
+    <p class="section-lede">Crawling is still relevant when the final application is a RAG system: a RAG system needs a knowledge collection, which may come from web pages, documentation, a company intranet, PDFs, APIs or databases. Before retrieval we still need an <b>ingestion pipeline</b>:</p>
+    <div class="rr-pipe">discover → fetch → parse → deduplicate → clean → chunk → index</div>
+    <p class="section-lede" style="margin-top:1rem;">The technology changes, but many crawler problems remain: duplicate content, stale pages, broken links, canonicalization, refresh scheduling, access restrictions. Crawling is not merely historical web-search material; it is part of modern retrieval infrastructure.</p>
+  </section>
+
+  <!-- ===== SUMMARY ===== -->
+  <section class="block" id="summary">
+    <h2 class="section-title">Summary: key takeaways</h2>
+    <div class="rr-pipe"><b>Web crawling</b>: seed URLs → frontier → robots / politeness → fetch → parse → normalize + deduplicate → store + index</div>
+    <div class="rr-pipe" style="margin-top:0.6rem;"><b>Web ranking</b>: query → textual relevance (TF-IDF / BM25) + link structure (PageRank) → ranked results</div>
+    <ol class="concept-list" style="margin-top:1.2rem;">
+      <li>Search cannot index pages it has not discovered.</li>
+      <li>A crawler requires scheduling, normalization, duplicate handling and politeness, not just HTTP requests.</li>
+      <li>Hyperlinks turn the Web into a directed graph.</li>
+      <li>PageRank recursively values links from already-important pages.</li>
+      <li>PageRank measures a query-independent graph signal; it does not replace textual relevance.</li>
+    </ol>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Optional exercises</h3>
+    <ul class="concept-list">
+      <li><b>Option A: a tiny crawler on a controlled site.</b> One domain, at most 50 pages, one request at a time; store the URL, the page title and the outgoing links; build a directed graph and calculate PageRank. <a href="#real"><code>tiny_crawler.py</code></a> is one solution: extend it, e.g. skip the content duplicates it finds, or compare BFS with DFS.</li>
+      <li><b>Option B: a pre-existing web graph.</b> Use the <a href="https://snap.stanford.edu/data/web-Stanford.html" target="_blank" rel="noopener">SNAP Stanford web graph</a>. For visualization, take a sampled subgraph.</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Where the course goes next</h3>
+    <p class="section-lede">Labs 01–03: how documents are indexed and matched. Lab 04: how they are ranked. Lab 05: how rankings are evaluated. Lab 06: how web documents are discovered, and how link structure provides another ranking signal. Next, from lexical matching toward models that estimate relevance with richer representations: query expansion, language-model retrieval, semantic representations, dense retrieval, and eventually retrieval-augmented generation.</p>
+  </section>
+
+</div>
+
+<footer>Class notes by Elitsa Yotkova · Lab 06</footer>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="code-cards.js"></script>
+<script src="lab06.js"></script>
+</body>
+</html>
