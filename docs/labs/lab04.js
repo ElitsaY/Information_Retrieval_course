@@ -26,48 +26,6 @@ function pills(box, items, cur, onPick) {
 }
 function mathIn(node) { if (window.renderMathInElement) renderMathInElement(node, { delimiters: [{ left: '\\(', right: '\\)', display: false }], throwOnError: false }); }
 
-// Porter (1980) stemmer, original algorithm (the same code as Lab 01; checked against NLTK)
-function porterStem(w) {
-  if (w.length <= 2 || !/^[a-z]+$/.test(w)) return w;
-  const cons = (s, i) => { const c = s[i]; if ('aeiou'.includes(c)) return false; if (c === 'y') return i === 0 || !cons(s, i - 1); return true; };
-  const m = (s) => { let n = 0, i = 0; const L = s.length; while (i < L && cons(s, i)) i++; while (i < L) { while (i < L && !cons(s, i)) i++; if (i >= L) break; n++; while (i < L && cons(s, i)) i++; } return n; };
-  const hasV = (s) => [...s].some((_, i) => !cons(s, i));
-  const dbl = (s) => s.length >= 2 && s[s.length - 1] === s[s.length - 2] && cons(s, s.length - 1);
-  const cvc = (s) => { const L = s.length; return L >= 3 && cons(s, L - 3) && !cons(s, L - 2) && cons(s, L - 1) && !'wxy'.includes(s[L - 1]); };
-  // apply the rule with the longest matching suffix; stop there even if its condition fails
-  const step = (s, rules, cond) => {
-    let best = null;
-    for (const [suf, rep] of rules) if (s.endsWith(suf) && (!best || suf.length > best[0].length)) best = [suf, rep];
-    if (!best) return s;
-    const stem = s.slice(0, -best[0].length);
-    return cond(stem, best[0]) ? stem + best[1] : s;
-  };
-  // step 1a
-  if (w.endsWith('sses')) w = w.slice(0, -2); else if (w.endsWith('ies')) w = w.slice(0, -2); else if (w.endsWith('ss')) {} else if (w.endsWith('s')) w = w.slice(0, -1);
-  // step 1b
-  let extra = false;
-  if (w.endsWith('eed')) { if (m(w.slice(0, -3)) > 0) w = w.slice(0, -1); }
-  else if (w.endsWith('ed') && hasV(w.slice(0, -2))) { w = w.slice(0, -2); extra = true; }
-  else if (w.endsWith('ing') && hasV(w.slice(0, -3))) { w = w.slice(0, -3); extra = true; }
-  if (extra) {
-    if (w.endsWith('at') || w.endsWith('bl') || w.endsWith('iz')) w += 'e';
-    else if (dbl(w) && !'lsz'.includes(w[w.length - 1])) w = w.slice(0, -1);
-    else if (m(w) === 1 && cvc(w)) w += 'e';
-  }
-  // step 1c
-  if (w.endsWith('y') && hasV(w.slice(0, -1))) w = w.slice(0, -1) + 'i';
-  // steps 2–4
-  w = step(w, [['ational', 'ate'], ['tional', 'tion'], ['enci', 'ence'], ['anci', 'ance'], ['izer', 'ize'], ['abli', 'able'], ['alli', 'al'], ['entli', 'ent'], ['eli', 'e'], ['ousli', 'ous'], ['ization', 'ize'], ['ation', 'ate'], ['ator', 'ate'], ['alism', 'al'], ['iveness', 'ive'], ['fulness', 'ful'], ['ousness', 'ous'], ['aliti', 'al'], ['iviti', 'ive'], ['biliti', 'ble']], s => m(s) > 0);
-  w = step(w, [['icate', 'ic'], ['ative', ''], ['alize', 'al'], ['iciti', 'ic'], ['ical', 'ic'], ['ful', ''], ['ness', '']], s => m(s) > 0);
-  w = step(w, ['al', 'ance', 'ence', 'er', 'ic', 'able', 'ible', 'ant', 'ement', 'ment', 'ent', 'ion', 'ou', 'ism', 'ate', 'iti', 'ous', 'ive', 'ize'].map(x => [x, '']),
-    (s, suf) => m(s) > 1 && (suf !== 'ion' || /[st]$/.test(s)));
-  // step 5
-  if (w.endsWith('e')) { const s = w.slice(0, -1); if (m(s) > 1 || (m(s) === 1 && !cvc(s))) w = s; }
-  if (m(w) > 1 && dbl(w) && w.endsWith('l')) w = w.slice(0, -1);
-  return w;
-}
-
-
 /* ---------- toy corpus ---------- */
 const TOY = {
   D1: 'information retrieval finds relevant documents',
@@ -212,175 +170,108 @@ function initCosine() {
 
 /* ====================== Cranfield ====================== */
 const C = typeof CRAN !== 'undefined' ? CRAN : null;
-let IDX = null;            // built once from CRAN
+const unflat = (flat) => { const m = []; for (let i = 0; i < flat.length; i += 2) m.push([flat[i], flat[i + 1]]); return m; };
+let IDX = null;            // \b\w+\b tokens, for scikit-learn's TF-IDF
 function buildIndex() {
   if (IDX || !C) return IDX;
-  const N = C.ids.length, V = C.vocab;
-  const docTerms = C.terms.map(flat => { const m = []; for (let i = 0; i < flat.length; i += 2) m.push([flat[i], flat[i + 1]]); return m; });
-  const bmLen = docTerms.map(ts => ts.reduce((s, [, f]) => s + f, 0));
-  const avgdl = bmLen.reduce((a, b) => a + b, 0) / N;
-  const vocabId = new Map(V.map((w, i) => [w, i]));
-  IDX = { N, V, docTerms, bmLen, avgdl, vocabId, qrels: C.qrels, systems: {} };
+  IDX = { N: C.ids.length, V: C.vocab, docTerms: C.terms.map(unflat), vocabId: new Map(C.vocab.map((w, i) => [w, i])) };
   return IDX;
 }
 const queryTokens = (q) => (q.toLowerCase().match(/[\p{L}\p{N}_]+/gu) || []);
-const STOP = new Set(C ? C.stop : []);
-// a TF-IDF system: map every vocabulary term to an index term (or drop it), then build sklearn-style weights
-function tfidfSystem(opts = {}) {
-  const I = buildIndex(), key = JSON.stringify(opts);
-  if (I.systems[key]) return I.systems[key];
-  const map = I.V.map(w => {
-    if (w.length < 2) return null;                                   // token_pattern \b\w\w+\b
-    if (opts.stop && STOP.has(w)) return null;
-    if (opts.num && /^\d+$/.test(w)) return null;
-    return opts.stem ? porterStem(w) : w;
-  });
-  const df = new Map(), docs = [];
+// TfidfVectorizer(lowercase=True, norm="l2"): tokens of 2+ word characters, smoothed idf, raw tf, L2-normalized rows
+let TFIDF = null;
+function tfidfSystem() {
+  if (TFIDF) return TFIDF;
+  const I = buildIndex(), df = new Map(), docs = [];
   I.docTerms.forEach(ts => {
     const m = new Map();
-    ts.forEach(([t, f]) => { const k = map[t]; if (k !== null) m.set(k, (m.get(k) || 0) + f); });
-    docs.push(m); m.forEach((_, k) => df.set(k, (df.get(k) || 0) + 1));
+    ts.forEach(([t, f]) => { const w = I.V[t]; if (w.length >= 2) m.set(w, f); });
+    docs.push(m); m.forEach((_, w) => df.set(w, (df.get(w) || 0) + 1));
   });
-  const idf = new Map([...df].map(([k, d]) => [k, Math.log((1 + I.N) / (1 + d)) + 1]));
+  const idf = new Map([...df].map(([w, d]) => [w, Math.log((1 + I.N) / (1 + d)) + 1]));
   const post = new Map(), dnorm = [];
-  docs.forEach((m, i) => { let s = 0; m.forEach((f, k) => { const w = f * idf.get(k); s += w * w; if (!post.has(k)) post.set(k, []); post.get(k).push([i, f]); }); dnorm.push(Math.sqrt(s)); });
-  const toTerm = (w) => { if (w.length < 2 || (opts.stop && STOP.has(w)) || (opts.num && /^\d+$/.test(w))) return null; return opts.stem ? porterStem(w) : w; };
-  return (I.systems[key] = { df, idf, post, dnorm, toTerm });
+  docs.forEach((m, i) => { let s = 0; m.forEach((f, w) => { const x = f * idf.get(w); s += x * x; if (!post.has(w)) post.set(w, []); post.get(w).push([i, f]); }); dnorm.push(Math.sqrt(s)); });
+  return (TFIDF = { df, idf, post, dnorm });
 }
-function topK(scores, k) { return scores.map((s, i) => [s, i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]).slice(0, k); }
-function searchTfidf(q, k = 10, opts = {}) {
-  const I = buildIndex(), S = tfidfSystem(opts), scores = new Array(I.N).fill(0);
-  const qc = new Map(); queryTokens(q).forEach(w => { const t = S.toTerm(w); if (t !== null && S.idf.has(t)) qc.set(t, (qc.get(t) || 0) + 1); });
-  let qn = 0; qc.forEach((f, t) => { const w = f * S.idf.get(t); qn += w * w; }); qn = Math.sqrt(qn);
-  if (qn > 0) qc.forEach((f, t) => { const qw = f * S.idf.get(t) / qn; S.post.get(t).forEach(([i, tf]) => { scores[i] += qw * tf * S.idf.get(t) / S.dnorm[i]; }); });
+function topK(scores, k) { return scores.map((s, i) => [s, i]).sort((a, b) => b[0] - a[0] || b[1] - a[1]).slice(0, k); }   // like argsort()[::-1]
+function searchTfidf(q, k = 5) {
+  const I = buildIndex(), S = tfidfSystem(), scores = new Array(I.N).fill(0);
+  const qc = new Map(); queryTokens(q).forEach(w => { if (w.length >= 2 && S.idf.has(w)) qc.set(w, (qc.get(w) || 0) + 1); });
+  let qn = 0; qc.forEach((f, w) => { const x = f * S.idf.get(w); qn += x * x; }); qn = Math.sqrt(qn);
+  if (qn > 0) qc.forEach((f, w) => { const qw = f * S.idf.get(w) / qn; S.post.get(w).forEach(([i, tf]) => { scores[i] += qw * tf * S.idf.get(w) / S.dnorm[i]; }); });
   return topK(scores, k).map(([s, i], r) => ({ rank: r + 1, i, doc_id: C.ids[i], score: s }));
 }
-let BM = null;
-function bm25Index() {
-  if (BM) return BM;
-  const I = buildIndex(), post = new Map();
-  I.docTerms.forEach((ts, i) => ts.forEach(([t, f]) => { if (!post.has(t)) post.set(t, []); post.get(t).push([i, f]); }));
-  return (BM = { post });
+// rank_bm25's BM25Okapi on text.lower().split() tokens: idf = ln(N - df + 0.5) - ln(df + 0.5), negative idf -> 0.25 * average idf
+let OK = null;
+function okapiIndex() {
+  if (OK || !C) return OK;
+  const N = C.ids.length, docTerms = C.wterms.map(unflat), len = docTerms.map(ts => ts.reduce((s, [, f]) => s + f, 0));
+  const avgdl = len.reduce((a, b) => a + b, 0) / N, post = new Map();
+  docTerms.forEach((ts, i) => ts.forEach(([t, f]) => { if (!post.has(t)) post.set(t, []); post.get(t).push([i, f]); }));
+  const idf = new Map(); let sum = 0;
+  post.forEach((p, t) => { const v = Math.log(N - p.length + 0.5) - Math.log(p.length + 0.5); idf.set(t, v); sum += v; });
+  const eps = 0.25 * sum / idf.size;
+  idf.forEach((v, t) => { if (v < 0) idf.set(t, eps); });
+  return (OK = { N, len, avgdl, post, idf, wid: new Map(C.wvocab.map((w, i) => [w, i])) });
 }
-const bm25Idf = (df, N) => Math.log(1 + (N - df + 0.5) / (df + 0.5));
-function searchBm25(q, k = 10, k1 = 1.2, b = 0.75) {
-  const I = buildIndex(), B = bm25Index(), scores = new Array(I.N).fill(0);
-  new Set(queryTokens(q)).forEach(w => {
-    const t = I.vocabId.get(w); if (t === undefined) return;
-    const P = B.post.get(t), idf = bm25Idf(P.length, I.N);
-    P.forEach(([i, tf]) => { scores[i] += idf * tf * (k1 + 1) / (tf + k1 * (1 - b + b * I.bmLen[i] / I.avgdl)); });
+function searchBm25(q, k = 5, k1 = 1.5, b = 0.75) {
+  const O = okapiIndex(), scores = new Array(O.N).fill(0);
+  q.toLowerCase().split(/\s+/).filter(Boolean).forEach(w => {            // every query token, repeats included
+    const t = O.wid.get(w); if (t === undefined) return;
+    const idf = O.idf.get(t);
+    O.post.get(t).forEach(([i, tf]) => { scores[i] += idf * tf * (k1 + 1) / (tf + k1 * (1 - b + b * O.len[i] / O.avgdl)); });
   });
   return topK(scores, k).map(([s, i], r) => ({ rank: r + 1, i, doc_id: C.ids[i], score: s }));
 }
-const grade = (qid, docId) => { const g = (C.qrels[qid] || {})[docId]; return g === undefined ? null : g; };
-const gradeBadge = (g) => `<span class="rr-g ${g === null ? 'none' : 'g' + (g < 0 ? 'n' : g)}" title="${g === null ? 'not judged' : 'relevance grade ' + g}">${g === null ? '–' : g}</span>`;
 const qLabel = (i) => `${i + 1} · ${C.queries[i].length > 90 ? C.queries[i].slice(0, 88) + '…' : C.queries[i]}`;
 function fillQuerySelect(sel, cur = 0) { sel.innerHTML = C.queries.map((_, i) => `<option value="${i}"${i === cur ? ' selected' : ''}>${esc(qLabel(i))}</option>`).join(''); }
+const sameList = (a, b) => a.every((r, k) => r.doc_id === b[k].doc_id);
+const overlap = (a, b) => a.filter(r => b.some(s => s.doc_id === r.doc_id)).length;
 
-function initCranStats() {
-  const I = buildIndex();
-  const nq = Object.values(C.qrels).reduce((s, m) => s + Object.keys(m).length, 0);
-  const wsAvg = C.wslen.reduce((a, b) => a + b, 0) / I.N;
-  document.getElementById('cr-stats').innerHTML = [[I.N.toLocaleString('en'), 'abstracts'], [C.queries.length, 'queries'], [nq.toLocaleString('en'), 'relevance judgments'], [wsAvg.toFixed(1), 'avg. tokens per doc']]
+function initDemoStats() {
+  const I = buildIndex(), S = tfidfSystem(), nnz = [...S.post.values()].reduce((s, p) => s + p.length, 0), V = S.idf.size;
+  document.getElementById('dm-stats').innerHTML = [[`(${I.N.toLocaleString('en')}, ${V.toLocaleString('en')})`, 'X.shape'], [nnz.toLocaleString('en'), 'non-zero entries'], [(100 * nnz / (I.N * V)).toFixed(2) + '%', 'of the cells are non-zero'], [(nnz / I.N).toFixed(0), 'distinct terms per document']]
     .map(([n, l]) => `<div class="stat"><span class="n">${n}</span><span class="l">${l}</span></div>`).join('');
-  const DEF = { '-1': 'References of no interest.', 1: 'Minimum interest, e.g. included from a historical viewpoint.', 2: 'Useful: general background, or methods for some aspects of the work.', 3: 'High relevance: without them the research would be impracticable or much more work.', 4: 'A complete answer to the question.' };
-  const cnt = {}; Object.values(C.qrels).forEach(m => Object.values(m).forEach(g => { cnt[g] = (cnt[g] || 0) + 1; }));
-  document.getElementById('cr-grades').innerHTML = ['4', '3', '2', '1', '-1'].map(g => `<tr data-s="ids"><td>${gradeBadge(+g)}</td><td>${DEF[g]}</td><td>${(cnt[g] || 0).toLocaleString('en')} (${((cnt[g] || 0) / nq * 100).toFixed(1)}%)</td></tr>`).join('');
 }
-function initLengths() {
-  const I = buildIndex(), svg = document.getElementById('len-svg'), out = document.getElementById('len-out');
-  const L = C.wslen, maxL = Math.max(...L), minL = Math.min(...L), bin = 25, nb = Math.ceil((maxL + 1) / bin);
-  const counts = new Array(nb).fill(0); L.forEach(v => counts[Math.floor(v / bin)]++);
-  const W = 460, H = 250, X0 = 40, R = 10, T = 12, B = 36, cmax = Math.max(...counts);
-  const x = (v) => X0 + v / (nb * bin) * (W - X0 - R), y = (c) => H - B - c / cmax * (H - B - T);
-  [0, Math.round(cmax / 2), cmax].forEach(c => { el('line', { x1: X0, x2: W - R, y1: y(c), y2: y(c), class: 'grid-line' }, svg); txt(svg, X0 - 6, y(c) + 4, c, 'tick', 'end'); });
-  counts.forEach((c, k) => el('rect', { x: x(k * bin) + 1, y: y(c), width: Math.max(1, x(bin) - X0 - 2), height: H - B - y(c), class: 'len-bar' }, svg));
-  el('line', { x1: X0, x2: W - R, y1: H - B, y2: H - B, class: 'axis' }, svg);
-  for (let v = 0; v <= nb * bin; v += 100) txt(svg, x(v), H - B + 15, v, 'tick', 'middle');
-  const avg = L.reduce((a, b) => a + b, 0) / L.length;
-  el('line', { x1: x(avg), x2: x(avg), y1: T, y2: H - B, class: 'len-avg' }, svg); txt(svg, x(avg) + 4, T + 10, `avg ${avg.toFixed(1)}`, 'lbl');
-  txt(svg, X0 + (W - X0 - R) / 2, H - 4, 'tokens in title + text', 'tick', 'middle');
-  const imin = L.indexOf(minL), imax = L.indexOf(maxL);
-  out.innerHTML = `<p class="big">Average <b>${avg.toFixed(1)}</b> tokens</p>` +
-    `<p>Shortest: doc <b>${C.ids[imin]}</b>, ${minL} tokens <span class="note">${minL === 0 ? `(empty: no title and no text; ${L.filter(v => v === 0).length} such documents, ${L.map((v, i) => v === 0 ? C.ids[i] : null).filter(Boolean).join(' and ')})` : `(${esc(C.titles[imin])})`}</span></p>` +
-    `<p>Longest: doc <b>${C.ids[imax]}</b>, ${maxL} tokens <span class="note">(${esc(C.titles[imax].slice(0, 80))}…)</span></p>` +
-    `<p class="note" style="margin-top:0.7rem;">Five example queries:</p><ol class="rr-qs">${C.queries.slice(0, 5).map((q, i) => `<li><b>${i + 1}</b> ${esc(q)}</li>`).join('')}</ol>`;
-}
-function initSklearnStats() {
-  const I = buildIndex(), S = tfidfSystem({}), stats = document.getElementById('sk-stats');
-  const nnz = S.post.size ? [...S.post.values()].reduce((s, p) => s + p.length, 0) : 0, V = S.idf.size;
-  stats.innerHTML = [[`(${I.N.toLocaleString('en')}, ${V.toLocaleString('en')})`, 'X.shape'], [nnz.toLocaleString('en'), 'X.nnz'], [(100 * nnz / (I.N * V)).toFixed(2) + '%', 'non-zero (density)'], [(nnz / I.N).toFixed(1), 'terms per document']]
-    .map(([n, l]) => `<div class="stat"><span class="n">${n}</span><span class="l">${l}</span></div>`).join('');
-  const byIdf = [...S.idf].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
-  const byDf = [...S.df].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
-  const row = ([w]) => `<tr><td><code>${esc(w)}</code></td><td>${S.df.get(w)}</td><td>${f4(S.idf.get(w))}</td></tr>`;
-  const mid = byDf.find(([, d]) => d >= 90 && d <= 110) || byDf[Math.floor(byDf.length / 20)];
-  document.getElementById('sk-out').innerHTML = `<p class="big">IDF examples</p><div class="rr-tw"><table class="summary sc-small rr-num"><thead><tr><th>term</th><th>df</th><th>idf</th></tr></thead><tbody>${[byDf[0], mid, byIdf[0]].map(row).join('')}</tbody></table></div>` +
-    `<p class="big" style="margin-top:0.8rem;">Ten largest IDF values</p><p class="note">${S.df.size ? byIdf.filter(([, v]) => v === byIdf[0][1]).length.toLocaleString('en') : 0} terms share the maximum ${f4(byIdf[0][1])} (they occur in one document); in <code>get_feature_names_out()</code> order the first ten are:</p>` +
-    `<div class="chip-row">${byIdf.slice(0, 10).map(([w]) => `<span class="chip sc-chip">${esc(w)}</span>`).join('')}</div>`;
-  const q = document.getElementById('sk-q'), box = document.getElementById('sk-term');
-  function look() {
-    const w = q.value.trim().toLowerCase();
-    if (!w) { box.innerHTML = `<p class="note">The most common terms: ${byDf.slice(0, 12).map(([t, d]) => `<code>${esc(t)}</code> ${d}`).join(', ')}.</p>`; return; }
-    box.innerHTML = S.idf.has(w) ? `<p class="big"><code>${esc(w)}</code>: df = <b>${S.df.get(w)}</b>, idf = ln(1401 / ${S.df.get(w) + 1}) + 1 = <b>${f4(S.idf.get(w))}</b></p>` : `<p class="big"><code>${esc(w)}</code> is not in the vocabulary.</p>`;
-  }
-  q.addEventListener('input', look); look();
-}
-function resultRows(res, qid, withSnip) {
-  return res.map(r => `<details class="rr-res"><summary><span class="rr-rank">${r.rank}</span>${gradeBadge(qid ? grade(qid, r.doc_id) : null)}<span class="rr-doc">doc ${r.doc_id}</span><span class="rr-title">${esc(C.titles[r.i])}</span><span class="rr-score">${r.score.toFixed(4)}</span></summary>${withSnip ? `<p class="rr-snip">${esc(C.snip[r.i])}…</p>` : ''}</details>`).join('');
+function resultRows(res) {
+  return res.map(r => `<details class="rr-res"><summary><span class="rr-rank">${r.rank}</span><span class="rr-doc">doc ${r.doc_id}</span><span class="rr-title">${esc(C.titles[r.i] || '(empty document)')}</span><span class="rr-score">${r.score.toFixed(4)}</span></summary><p class="rr-snip">${esc(C.snip[r.i])}…</p></details>`).join('');
 }
 function initSearch() {
   const sel = document.getElementById('se-sel'), ta = document.getElementById('se-q'), out = document.getElementById('se-out');
   fillQuerySelect(sel, 0);
-  let qid = '1';
-  sel.addEventListener('change', () => { ta.value = C.queries[+sel.value]; qid = String(+sel.value + 1); render(); });
-  ta.addEventListener('input', () => { qid = C.queries.indexOf(ta.value.trim()) >= 0 ? String(C.queries.indexOf(ta.value.trim()) + 1) : null; render(); });
+  sel.addEventListener('change', () => { ta.value = C.queries[+sel.value]; render(); });
+  ta.addEventListener('input', render);
   ta.value = C.queries[0];
-  function render() {
-    const res = searchTfidf(ta.value, 10);
-    const judged = qid ? Object.keys(C.qrels[qid] || {}).length : 0;
-    out.innerHTML = `<p class="note">${qid ? `Query ${qid}: ${judged} judged documents.` : 'Your own query: no relevance judgments.'} Top 10 by TF-IDF cosine:</p><div class="rr-list">${resultRows(res, qid, true)}</div>`;
-  }
+  function render() { out.innerHTML = `<p class="note">Top 5 by TF-IDF cosine similarity:</p><div class="rr-list">${resultRows(searchTfidf(ta.value, 5))}</div>`; }
   render();
-}
-function initCompareTable() {
-  const t = document.getElementById('cmp-table');
-  const rows = C.queries.slice(0, 5).map((q, i) => { const a = searchTfidf(q, 10), b = searchBm25(q, 10); const ov = a.filter(r => b.some(s => s.doc_id === r.doc_id)).length; return { i, a, b, ov }; });
-  t.innerHTML = '<thead><tr><th>query</th><th>TF-IDF top-1</th><th>BM25 top-1</th><th>same?</th><th>top-10 overlap</th></tr></thead><tbody>' +
-    rows.map(r => `<tr><td><b>${r.i + 1}</b> <span class="note">${esc(C.queries[r.i].slice(0, 60))}…</span></td><td>${r.a[0].doc_id} ${gradeBadge(grade(String(r.i + 1), r.a[0].doc_id))}</td><td>${r.b[0].doc_id} ${gradeBadge(grade(String(r.i + 1), r.b[0].doc_id))}</td><td>${r.a[0].doc_id === r.b[0].doc_id ? 'yes' : '<b>no</b>'}</td><td>${r.ov} / 10</td></tr>`).join('') + '</tbody>';
-  // answer to exercise 9: over all 225 queries, how often the top result differs, and the smallest top-10 overlap
-  let worst = null, diffTop = 0;
-  C.queries.forEach((q, i) => {
-    const a = searchTfidf(q, 10), b = searchBm25(q, 10), ov = a.filter(r => b.some(s => s.doc_id === r.doc_id)).length;
-    if (a[0].doc_id !== b[0].doc_id) diffTop++;
-    if (!worst || ov < worst.ov) worst = { i, ov, a, b };
-  });
-  const w = worst, len = (r) => buildIndex().bmLen[r.i];
-  document.getElementById('cmp-sol').innerHTML = `<p>No. Over all 225 queries the top result differs for <b>${diffTop}</b> of them (${(100 * diffTop / 225).toFixed(0)}%). The largest difference is query <b>${w.i + 1}</b> (<i>${esc(C.queries[w.i])}</i>): only ${w.ov} of the 10 documents are shared. Select it in the widget below.</p>` +
-    `<p>TF-IDF's top 3: ${w.a.slice(0, 3).map(r => `doc ${r.doc_id} (${len(r)} tokens)`).join(', ')}; BM25's top 3: ${w.b.slice(0, 3).map(r => `doc ${r.doc_id} (${len(r)} tokens)`).join(', ')}; the average is ${buildIndex().avgdl.toFixed(1)} tokens. Compare the lengths and how often each document repeats the query terms: that is where saturation and length normalization act.</p>` +
-    (() => { const c = {}; queryTokens(C.queries[w.i]).forEach(t => { c[t] = (c[t] || 0) + 1; }); const rep = Object.keys(c).filter(t => c[t] > 1 && t.length > 1); return rep.length ? `<p>Also note that the query repeats ${rep.map(t => `<code>${esc(t)}</code>`).join(', ')}: the TF-IDF query vector counts ${rep.length > 1 ? 'each of them' : 'it'} twice, while <code>search_bm25</code> uses the set of query terms, so ${rep.length > 1 ? 'each counts' : 'it counts'} once.</p>` : ''; })();
-  return w.i;
 }
 function initCompare() {
   const sel = document.getElementById('cm-sel'), out = document.getElementById('cm-out'), k1s = document.getElementById('cm-k1'), bs = document.getElementById('cm-b');
   fillQuerySelect(sel, 0);
   function render() {
-    const i = +sel.value, q = C.queries[i], qid = String(i + 1), k1 = +k1s.value, b = +bs.value;
+    const q = C.queries[+sel.value], k1 = +k1s.value, b = +bs.value;
     document.getElementById('cm-k1-val').textContent = k1.toFixed(1); document.getElementById('cm-b-val').textContent = b.toFixed(2);
-    const A = searchTfidf(q, 10), Bm = searchBm25(q, 10, k1, b);
-    const ov = A.filter(r => Bm.some(s => s.doc_id === r.doc_id)).length;
-    const W = 760, rowH = 34, H = 30 + 10 * rowH, colW = 300;
+    const A = searchTfidf(q, 5), Bm = searchBm25(q, 5, k1, b);
+    const W = 760, rowH = 34, H = 30 + 5 * rowH, colW = 300;
     let s = `<svg class="ml-plot cm-svg" viewBox="0 0 ${W} ${H}" aria-label="TF-IDF and BM25 rankings side by side">`;
     s += `<text x="10" y="18" class="lbl">TF-IDF</text><text x="${W - 10}" y="18" class="lbl" text-anchor="end">BM25 (k1 = ${k1.toFixed(1)}, b = ${b.toFixed(2)})</text>`;
     A.forEach((r, k) => { const m = Bm.findIndex(x => x.doc_id === r.doc_id); if (m >= 0) s += `<path d="M${colW} ${36 + k * rowH} C ${W / 2} ${36 + k * rowH}, ${W / 2} ${36 + m * rowH}, ${W - colW} ${36 + m * rowH}" class="cm-link${k === m ? ' same' : ''}"/>`; });
-    const cell = (r, x, anchor) => { const g = grade(qid, r.doc_id), t = C.titles[r.i]; return `<g class="cm-row"><text x="${x}" y="${40 + (r.rank - 1) * rowH}" text-anchor="${anchor}" class="cm-t"><tspan class="cm-g g${g === null ? 'x' : g < 0 ? 'n' : g}">${g === null ? '–' : g}</tspan> <tspan class="cm-id">${r.rank}. doc ${r.doc_id}</tspan> ${esc(t.length > 26 ? t.slice(0, 25) + '…' : t)}</text></g>`; };
+    const cell = (r, x, anchor) => { const t = C.titles[r.i]; return `<text x="${x}" y="${40 + (r.rank - 1) * rowH}" text-anchor="${anchor}" class="cm-t"><tspan class="cm-id">${r.rank}. doc ${r.doc_id}</tspan> ${esc(t.length > 28 ? t.slice(0, 27) + '…' : t)}</text>`; };
     A.forEach(r => { s += cell(r, 10, 'start'); }); Bm.forEach(r => { s += cell(r, W - 10, 'end'); });
     s += '</svg>';
-    out.innerHTML = `<div class="fig-scroll">${s}</div><p class="note" style="margin-top:0.4rem;">Top-10 overlap: <b>${ov}</b> / 10 · top result ${A[0].doc_id === Bm[0].doc_id ? 'the same' : '<b>different</b>'} · grades: ${gradeBadge(4)} complete answer … ${gradeBadge(-1)} no interest, – not judged.</p>`;
+    out.innerHTML = `<div class="fig-scroll">${s}</div><p class="note" style="margin-top:0.4rem;">Shared documents: <b>${overlap(A, Bm)}</b> / 5 · same order: <b>${sameList(A, Bm) ? 'yes' : 'no'}</b> · top result ${A[0].doc_id === Bm[0].doc_id ? 'the same' : '<b>different</b>'}.</p>`;
   }
   [sel, k1s, bs].forEach(x => x.addEventListener('input', render));
   sel.addEventListener('change', render);
   render();
+}
+function initCompareTable() {
+  const t = document.getElementById('cmp-table');
+  t.innerHTML = '<thead><tr><th>query</th><th>TF-IDF top 5</th><th>BM25 top 5</th><th>shared</th><th>identical?</th></tr></thead><tbody>' +
+    C.queries.slice(0, 5).map((q, i) => { const a = searchTfidf(q, 5), b = searchBm25(q, 5); return `<tr><td><b>${i + 1}</b> <span class="note">${esc(q.slice(0, 48))}…</span></td><td>${a.map(r => r.doc_id).join(', ')}</td><td>${b.map(r => r.doc_id).join(', ')}</td><td>${overlap(a, b)} / 5</td><td>${sameList(a, b) ? 'yes' : '<b>no</b>'}</td></tr>`; }).join('') + '</tbody>';
+  let same = 0, top1 = 0;
+  C.queries.forEach(q => { const a = searchTfidf(q, 5), b = searchBm25(q, 5); if (sameList(a, b)) same++; if (a[0].doc_id === b[0].doc_id) top1++; });
+  document.getElementById('cmp-note').insertAdjacentHTML('beforebegin', `<p class="section-lede">Over all 225 queries, the two top-5 lists are identical ${same ? `for <b>${same}</b> queries` : 'for <b>none</b> of them'}; the top result is the same for ${top1} (${Math.round(100 * top1 / 225)}%).</p>`);
 }
 
 /* ---------- saturation ---------- */
@@ -412,58 +303,28 @@ function initSaturation() {
   render();
 }
 
-/* ---------- length normalization on a real term ---------- */
+/* ---------- length normalization on real documents ---------- */
 function initLengthNorm() {
-  const inp = document.getElementById('ln-term'), out = document.getElementById('ln-out'), I = buildIndex(), B = bm25Index();
+  const inp = document.getElementById('ln-term'), out = document.getElementById('ln-out'), O = okapiIndex();
   const PRE = ['flutter', 'boundary', 'heat', 'shock'];
   pills(document.getElementById('ln-presets'), PRE.map(p => [p, p]), PRE[0], k => { inp.value = k; render(); });
   inp.value = PRE[0];
   function render() {
-    const w = inp.value.trim().toLowerCase(), t = I.vocabId.get(w);
-    if (t === undefined) { out.innerHTML = `<p class="note"><code>${esc(w)}</code> is not in the Cranfield vocabulary.</p>`; return; }
-    const P = B.post.get(t), idf = bm25Idf(P.length, I.N);
-    const tfCount = {}; P.forEach(([, f]) => { tfCount[f] = (tfCount[f] || 0) + 1; });
-    const tf = +Object.keys(tfCount).sort((a, b) => tfCount[b] - tfCount[a] || a - b)[0];
-    const docs = P.filter(([, f]) => f === tf).map(([i]) => i).sort((a, b) => I.bmLen[a] - I.bmLen[b]);
+    const w = inp.value.trim().toLowerCase(), t = O.wid.get(w);
+    if (t === undefined) { out.innerHTML = `<p class="note"><code>${esc(w)}</code> is not a token of the Cranfield collection.</p>`; return; }
+    const P = O.post.get(t), cnt = {};
+    P.forEach(([, f]) => { cnt[f] = (cnt[f] || 0) + 1; });
+    const tf = +Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || a - b)[0];
+    const docs = P.filter(([, f]) => f === tf).map(([i]) => i).sort((a, b) => O.len[a] - O.len[b]);
     const pick = [...new Set([docs[0], docs[Math.floor(docs.length / 4)], docs[Math.floor(docs.length / 2)], docs[Math.floor(3 * docs.length / 4)], docs[docs.length - 1]])];
     const bs = [0, 0.5, 0.75, 1], k1 = 1.2;
-    const c = (i, b) => idf * tf * (k1 + 1) / (tf + k1 * (1 - b + b * I.bmLen[i] / I.avgdl));
-    out.innerHTML = `<p class="note"><code>${esc(w)}</code>: df = ${P.length}, BM25 idf = ${idf.toFixed(4)}. ${docs.length} documents contain it exactly <b>${tf}</b> time${tf > 1 ? 's' : ''}; five of them, from shortest to longest (avgdl = ${I.avgdl.toFixed(1)}):</p>` +
+    const c = (i, b) => tf * (k1 + 1) / (tf + k1 * (1 - b + b * O.len[i] / O.avgdl));
+    out.innerHTML = `<p class="note"><code>${esc(w)}</code> occurs in ${P.length} documents; ${docs.length} contain it exactly <b>${tf}</b> time${tf > 1 ? 's' : ''}. Five of them, from shortest to longest (average length ${O.avgdl.toFixed(1)} tokens):</p>` +
       `<div class="table-wrap"><table class="summary sc-small rr-num"><thead><tr><th>doc</th><th>|d|</th><th>|d| / avgdl</th>${bs.map(b => `<th>b = ${b}</th>`).join('')}</tr></thead><tbody>` +
-      pick.map(i => `<tr><td>doc ${C.ids[i]}</td><td>${I.bmLen[i]}</td><td>${(I.bmLen[i] / I.avgdl).toFixed(2)}</td>${bs.map(b => `<td class="${b === 0.75 ? 'hl' : ''}">${c(i, b).toFixed(4)}</td>`).join('')}</tr>`).join('') + '</tbody></table></div>' +
-      `<p class="note" style="margin-top:0.5rem;">With b = 0 every column value is the same. As b grows, the shortest document's contribution rises and the longest one's falls.</p>`;
+      pick.map(i => `<tr><td>doc ${C.ids[i]}</td><td>${O.len[i]}</td><td>${(O.len[i] / O.avgdl).toFixed(2)}</td>${bs.map(b => `<td class="${b === 0.75 ? 'hl' : ''}">${c(i, b).toFixed(3)}</td>`).join('')}</tr>`).join('') + '</tbody></table></div>' +
+      `<p class="note" style="margin-top:0.5rem;">With b = 0 every row is the same: length is ignored. As b grows, documents shorter than average gain and longer ones lose.</p>`;
   }
   inp.addEventListener('input', render);
-  render();
-}
-
-/* ---------- preprocessing comparison ---------- */
-function initPreproc() {
-  const t = document.getElementById('pp-table'), boxes = ['pp-stop', 'pp-stem', 'pp-num'].map(id => document.getElementById(id));
-  function render() {
-    const opts = { stop: boxes[0].checked, stem: boxes[1].checked, num: boxes[2].checked };
-    const S = tfidfSystem(opts);
-    t.innerHTML = `<thead><tr><th>query</th><th>original top-1</th><th>new top-1</th><th>top-10 overlap</th></tr></thead><tbody>` +
-      C.queries.slice(0, 5).map((q, i) => { const a = searchTfidf(q, 10), b = searchTfidf(q, 10, opts); const ov = a.filter(r => b.some(s => s.doc_id === r.doc_id)).length; return `<tr><td><b>${i + 1}</b> <span class="note">${esc(q.slice(0, 55))}…</span></td><td>${a[0].doc_id} ${gradeBadge(grade(String(i + 1), a[0].doc_id))}</td><td>${b[0].doc_id} ${gradeBadge(grade(String(i + 1), b[0].doc_id))}</td><td>${ov} / 10</td></tr>`; }).join('') +
-      `</tbody><tfoot><tr><td colspan="4" class="note">Vocabulary: ${tfidfSystem({}).idf.size.toLocaleString('en')} terms → ${S.idf.size.toLocaleString('en')}.</td></tr></tfoot>`;
-  }
-  boxes.forEach(b => b.addEventListener('change', render));
-  render();
-}
-
-/* ---------- TREC run files ---------- */
-function initRuns() {
-  const out = document.getElementById('run-out'), dl = document.getElementById('run-dl');
-  let sys = 'tfidf';
-  const lines = (s) => { const L = []; C.queries.forEach((q, i) => (s === 'tfidf' ? searchTfidf(q, 100) : searchBm25(q, 100)).forEach(r => L.push(`${i + 1} Q0 ${r.doc_id} ${r.rank} ${r.score.toFixed(8)} ${s}`))); return L; };
-  const cache = {};
-  function render() { cache[sys] = cache[sys] || lines(sys); out.textContent = cache[sys].slice(0, 12).join('\n') + `\n… (${cache[sys].length.toLocaleString('en')} lines in lab04_${sys}.run)`; }
-  pills(document.getElementById('run-sys'), [['tfidf', 'lab04_tfidf.run'], ['bm25', 'lab04_bm25.run']], sys, k => { sys = k; render(); });
-  dl.addEventListener('click', () => {
-    const blob = new Blob([cache[sys].join('\n') + '\n'], { type: 'text/plain' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `lab04_${sys}.run`; document.body.appendChild(a); a.click();
-    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
-  });
   render();
 }
 
@@ -477,13 +338,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initCosine();
   initSaturation();
   if (!C) return;
-  initCranStats();
-  initLengths();
-  initSklearnStats();
+  initDemoStats();
   initSearch();
-  initCompareTable();
-  initCompare();
   initLengthNorm();
-  initPreproc();
-  initRuns();
+  initCompare();
+  initCompareTable();
 });
