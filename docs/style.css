@@ -2489,3 +2489,28 @@ pre.pb-prompt { margin: 0; padding: 0.8rem 1rem; border-radius: var(--radius-sm)
 .dbg-n { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.2rem 0.8rem; padding: 0.4rem 0.7rem; border-radius: var(--radius-sm); border: 1px solid var(--line); font-size: 0.85rem; }
 .dbg-n.off { opacity: 0.38; } .dbg-n.yes { border-left: 4px solid var(--bfs); } .dbg-n.no { border-left: 4px solid #d9546e; background: color-mix(in srgb, #d9546e 9%, var(--surface)); } .dbg-n.ok { border-left: 4px solid var(--bfs); background: color-mix(in srgb, var(--bfs) 12%, var(--surface)); font-weight: 700; }
 .dbg-a { font-weight: 800; font-size: 0.8rem; } .dbg-n.yes .dbg-a { color: color-mix(in srgb, var(--bfs) 70%, var(--ink)); } .dbg-n.no .dbg-a { color: var(--red-ink); }
+
+/* ---- Lab 12 (IR): evaluating RAG systems ---- */
+.art-ev12 .hero-art .eh { fill: var(--ids); opacity: 0.12; } .art-ev12 .hero-art .eh.hit { fill: var(--bfs); opacity: 0.4; }
+.dbg-tree.ev-tree .dbg-n .dbg-a { color: var(--red-ink); }
+.er-list { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.4rem 0 0.8rem; }
+.er-chip { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem; border-radius: 8px; border: 1.5px dashed var(--line); font-weight: 700; font-size: 0.88rem; color: var(--ink-soft); }
+.er-chip small { font-size: 0.68rem; color: var(--ink-soft); font-weight: 600; }
+.er-chip.in { border-style: solid; border-color: var(--indigo); color: var(--ink); background: color-mix(in srgb, var(--indigo) 9%, var(--surface)); }
+.er-chip.gold { box-shadow: inset 0 -3px 0 var(--ucs); } .er-chip.gold.in { background: color-mix(in srgb, var(--bfs) 22%, var(--surface)); border-color: var(--bfs); }
+.fa-claims { display: grid; gap: 0.35rem; margin: 0.4rem 0 0.8rem; }
+.fa-claim { display: flex; align-items: center; gap: 0.6rem; text-align: left; font: inherit; font-size: 0.9rem; color: var(--ink); padding: 0.45rem 0.7rem; border: 1.5px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); cursor: pointer; }
+.fa-m { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: color-mix(in srgb, var(--ink) 7%, var(--surface)); font-weight: 800; flex: none; }
+.fa-claim.y { border-color: var(--bfs); } .fa-claim.y .fa-m { background: var(--bfs); color: #fff; } .fa-claim.n { border-color: #d9546e; } .fa-claim.n .fa-m { background: #d9546e; color: #fff; }
+.ci-ctx { padding: 0.6rem 0.9rem; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--ink) 4%, var(--surface)); font-size: 0.86rem; margin-bottom: 0.7rem; } .ci-ctx p { margin: 0.15rem 0; }
+.ci-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.8rem; padding: 0.35rem 0; font-size: 0.9rem; } .ci-row > span:first-child { flex: 1 1 16rem; } .ci-ok { font-size: 0.8rem; font-weight: 700; }
+.table-wrap .ev-set td { font-size: 0.8rem; vertical-align: top; }
+.cmp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; } @media (max-width: 760px) { .cmp-grid { grid-template-columns: minmax(0, 1fr); } }
+.cmp-sys { display: grid; gap: 0.4rem; } .cmp-sys label { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; font-size: 0.84rem; font-weight: 700; color: var(--ink-soft); } .cmp-sys select { max-width: 12rem; }
+.insp-c { padding: 0.35rem 0.55rem; margin-top: 0.3rem; border-left: 3px solid var(--line); font-size: 0.8rem; line-height: 1.45; } .insp-c.sup { border-left-color: var(--bfs); background: color-mix(in srgb, var(--bfs) 7%, var(--surface)); }
+.fd-l { display: inline-block; padding: 0 0.4rem; border-radius: 5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.66rem; font-weight: 700; background: color-mix(in srgb, var(--ink) 7%, var(--surface)); }
+.fd-l.ok { background: color-mix(in srgb, var(--bfs) 22%, var(--surface)); } .fd-l.bad { background: color-mix(in srgb, #d9546e 18%, var(--surface)); color: var(--red-ink); } .fd-l.corpus { background: color-mix(in srgb, var(--ucs) 25%, var(--surface)); }
+.cm-bar.fd-bar { grid-template-columns: 10.5rem 1fr 2rem; } .cm-bar.fd-bar i.ok { background: var(--bfs); } .cm-bar.fd-bar i.bad { background: #d9546e; } .cm-bar.fd-bar i.corpus { background: var(--ucs); }
+.fl-labels { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.rg-steps.course-steps span a { color: inherit; }
+.tf-input-l.ev-in { min-width: 0; } .tf-input-l.ev-in input { width: 0; }
