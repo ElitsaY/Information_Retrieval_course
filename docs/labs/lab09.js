@@ -25,6 +25,8 @@ function pills(box, items, cur, onPick) {
     box.appendChild(b);
   });
 }
+function mathIn(node) { if (typeof window !== 'undefined' && window.renderMathInElement) renderMathInElement(node, { delimiters: [{ left: '\\(', right: '\\)', display: false }], throwOnError: false }); }
+const big = (n) => n >= 1e12 ? (n / 1e12).toPrecision(3) + ' trillion' : n >= 1e9 ? (n / 1e9).toPrecision(3) + ' billion' : n >= 1e6 ? (n / 1e6).toPrecision(3) + ' million' : Math.round(n).toLocaleString('en');
 // categorical colours for up to 32 lists, avoiding purple hues
 const HUES = [205, 25, 150, 45, 185, 5, 95, 225];
 const listColor = (l, faded = false) => `hsl(${HUES[l % 8]} ${faded ? 12 : 55}% ${faded ? 72 : [48, 62, 38, 70][Math.floor(l / 8) % 4]}%)`;
@@ -33,6 +35,7 @@ const listColor = (l, faded = false) => `hsl(${HUES[l % 8]} ${faded ? 12 : 55}% 
 /* ====================== Cranfield IVF (pure; A = ANN from lab09-ann.js, C = CRAN) ====================== */
 const A = typeof ANN !== 'undefined' ? ANN : (typeof global !== 'undefined' && global.ANN) || null;
 const C = typeof CRAN !== 'undefined' ? CRAN : (typeof global !== 'undefined' && global.CRAN) || null;
+const V = typeof VDB !== 'undefined' ? VDB : (typeof global !== 'undefined' && global.VDB) || null;
 let RANK = null;
 function ranks() {   // 225 x 1400 exact ranking (IndexFlatIP order)
   if (RANK) return RANK;
@@ -75,7 +78,15 @@ function sweep() {   // for nprobe = 1..nlist: mean ANN recall@10, mean vectors 
   return (SWEEP = out);
 }
 
-if (typeof module !== 'undefined') module.exports = { sweep, ivfSearch, ranks };
+// filtered vector search over the VDB chunks: 'pre' = filter, then top k; 'post' = top k, then filter
+function vdbSearch(q, filt, mode, k = 3) {
+  const pass = (c) => Object.entries(filt).every(([f, v]) => v === 'all' || String(c[f]) === v);
+  const order = V.scores[q].map((s, i) => [s, i]).sort((a, b) => b[0] - a[0]).map(x => x[1]);
+  const allowed = order.filter(i => pass(V.chunks[i]));
+  return { order, allowed: new Set(allowed), returned: mode === 'pre' ? allowed.slice(0, k) : order.slice(0, k).filter(i => pass(V.chunks[i])), top: order.slice(0, k) };
+}
+
+if (typeof module !== 'undefined') module.exports = { sweep, ivfSearch, ranks, vdbSearch };
 if (typeof document !== 'undefined') {
 
 
@@ -116,7 +127,93 @@ function initHero() {
   P.forEach((p, i) => el('circle', { cx: p[0], cy: p[1], r: 5, fill: listColor(as[i]), class: 'hp' }, svg));
 }
 
-/* ---------- Part III: memory table ---------- */
+/* ---------- Cranfield helpers ---------- */
+const GRADE_DEF = { 4: 'complete answer', 3: 'high relevance', 2: 'useful', 1: 'minimum interest', '-1': 'no interest' };
+const gradeBadge = (g) => `<span class="rr-g ${g === null || g === undefined ? 'none' : 'g' + (g < 0 ? 'n' : g)}" title="${g === null || g === undefined ? 'not judged' : 'grade ' + g + ': ' + GRADE_DEF[g]}">${g === null || g === undefined ? '–' : g}</span>`;
+const qLabel = (i) => `${i + 1} · ${C.queries[i].length > 90 ? C.queries[i].slice(0, 88) + '…' : C.queries[i]}`;
+
+/* ---------- Part I: t-SNE map ---------- */
+function initTsne() {
+  const sel = document.getElementById('ts-sel'), svg = document.getElementById('ts-svg'), out = document.getElementById('ts-out');
+  sel.innerHTML = C.queries.map((_, i) => `<option value="${i}">${esc(qLabel(i))}</option>`).join('');
+  const P = A.tsne, xs = P.map(p => p[0]), ys = P.map(p => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const X = (v) => 12 + (v - x0) / (x1 - x0) * 416, Y = (v) => 428 - (v - y0) / (y1 - y0) * 416;
+  let clicked = null;
+  function render() {
+    const qi = +sel.value, J = C.qrels[String(qi + 1)], top = ranks()[qi].slice(0, 10), topSet = new Set(top);
+    svg.innerHTML = '';
+    const g0 = el('g', {}, svg);
+    for (let i = 0; i < 1400; i++) {
+      const rel = (J[C.ids[i]] ?? 0) >= 1, c = el('circle', { cx: X(P[i][0]), cy: Y(P[i][1]), r: rel || topSet.has(i) ? 4.2 : 2.4, class: 'ts-d' + (rel ? ' rel' : '') + (topSet.has(i) ? ' top' : '') + (clicked === i ? ' clk' : '') }, rel || topSet.has(i) ? svg : g0);
+      c.addEventListener('click', () => { clicked = i; render(); });
+    }
+    const [qx, qy] = P[1400 + qi];
+    el('circle', { cx: X(qx), cy: Y(qy), r: 8, class: 'ts-q' }, svg);
+    const nRel = relevantCount(J), found = top.filter(i => (J[C.ids[i]] ?? 0) >= 1).length;
+    out.innerHTML = `<p class="al-h">Query ${qi + 1}</p><p class="note">${esc(C.queries[qi])}</p><p>Relevant documents: <b>${nRel}</b>; in the dense top 10: <b>${found}</b>.</p>` +
+      (clicked !== null ? `<p>${gradeBadge(J[C.ids[clicked]])} <b>doc ${C.ids[clicked]}</b>: ${esc(C.titles[clicked])}${topSet.has(clicked) ? ` <span class="note">(dense rank ${top.indexOf(clicked) + 1})</span>` : ''}</p>` : '<p class="note">Click a dot to read its title.</p>') +
+      `<p class="rr-note">t-SNE keeps near neighbors near where it can, but distances between far-apart regions mean little; some of the ringed top 10 may lie away from the query in 2-D although they are its closest vectors in 384-D.</p>`;
+  }
+  sel.addEventListener('change', () => { clicked = null; render(); });
+  render();
+}
+
+/* ---------- Part II: easy and hard negatives ---------- */
+function initNegatives() {
+  const kinds = [['pos', 'positive \\(p^+\\)'], ['hard', 'hard negative'], ['easy', 'easy negative']];
+  const box = document.getElementById('neg-list');
+  box.innerHTML = kinds.map(([c, k], i) => `<div class="neg-row ${c}"><span class="neg-k">${k}</span><span class="neg-t">${esc(V.negTexts[i])}</span><span class="em-bar"><span style="width:${Math.max(0, V.neg[i]) * 100}%"></span></span><b>${f3(V.neg[i])}</b></div>`).join('');
+  mathIn(box);
+}
+
+/* ---------- Part III: similarity functions ---------- */
+function initSimFns() {
+  const L = document.getElementById('sf-len'), NM = document.getElementById('sf-norm'), svg = document.getElementById('sf-svg'), out = document.getElementById('sf-out');
+  const ang = (d) => d * Math.PI / 180;
+  function render() {
+    const len = +L.value, norm = NM.checked; document.getElementById('sf-len-val').textContent = len.toFixed(1);
+    let q = [Math.cos(ang(20)), Math.sin(ang(20))].map(x => x * 1.2);
+    let Vs = { A: [len * Math.cos(ang(55)), len * Math.sin(ang(55))], B: [1.0 * Math.cos(ang(28)), 1.0 * Math.sin(ang(28))], C: [0.8 * Math.cos(ang(-10)), 0.8 * Math.sin(ang(-10))] };
+    const unit = (v) => { const n = Math.hypot(...v); return v.map(x => x / n); };
+    if (norm) { q = unit(q); Object.keys(Vs).forEach(k => { Vs[k] = unit(Vs[k]); }); }
+    svg.innerHTML = '';
+    const O = [50, 290], sc = 85, P = (v) => [O[0] + v[0] * sc, O[1] - v[1] * sc];
+    const defs = el('defs', {}, svg);
+    ['q', 'd'].forEach(k => { const m = el('marker', { id: 'sf-a' + k, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, defs); el('path', { d: 'M0,0 L10,5 L0,10 z', class: 'sf-ah ' + k }, m); });
+    [1, 2, 3].forEach(rr => el('circle', { cx: O[0], cy: O[1], r: rr * sc, class: 'sf-ring' + (rr === 1 ? ' unit' : '') }, svg));
+    el('line', { x1: O[0], y1: O[1], x2: 350, y2: O[1], class: 'grid-line' }, svg); el('line', { x1: O[0], y1: O[1], x2: O[0], y2: 10, class: 'grid-line' }, svg);
+    Object.entries(Vs).forEach(([k, v]) => { const [x, y] = P(v); el('line', { x1: O[0], y1: O[1], x2: x, y2: y, class: 'sf-d', 'marker-end': 'url(#sf-ad)' }, svg); txt(svg, x + 6, y - 4, k, 'sf-l'); el('line', { x1: P(q)[0], y1: P(q)[1], x2: x, y2: y, class: 'sf-dist' }, svg); });
+    const [qx, qy] = P(q); el('line', { x1: O[0], y1: O[1], x2: qx, y2: qy, class: 'sf-q', 'marker-end': 'url(#sf-aq)' }, svg); txt(svg, qx + 6, qy + 12, 'q', 'sf-l q');
+    const rows = Object.entries(Vs).map(([k, v]) => { const dot = q[0] * v[0] + q[1] * v[1]; return { k, dot, cos: dot / (Math.hypot(...q) * Math.hypot(...v)), eu: Math.hypot(q[0] - v[0], q[1] - v[1]), len: Math.hypot(...v) }; });
+    const order = (key, asc) => rows.slice().sort((a, b) => asc ? a[key] - b[key] : b[key] - a[key]).map(r => r.k).join(' > ');
+    const same = order('cos') === order('dot') && order('cos') === order('eu', true);
+    out.innerHTML = `<div class="table-wrap"><table class="summary sc-small rr-num"><thead><tr><th>doc</th><th>length</th><th>cosine</th><th>dot</th><th>distance</th></tr></thead><tbody>` +
+      rows.map(r => `<tr><td><b>${r.k}</b></td><td>${f3(r.len)}</td><td>${f3(r.cos)}</td><td>${f3(r.dot)}</td><td>${f3(r.eu)}</td></tr>`).join('') + '</tbody></table></div>' +
+      `<p>Ranking by cosine: <b>${order('cos')}</b><br>by dot product: <b>${order('dot')}</b><br>by distance: <b>${order('eu', true)}</b></p>` +
+      `<p class="note">${same ? (norm ? 'Normalized: the three rankings are identical, as they must be.' : 'All three agree at this length. Stretch A.') : '❗ The rankings disagree: the dot product rewards the long vector A, although its direction is the furthest from q.'}</p>`;
+  }
+  L.addEventListener('input', render); NM.addEventListener('change', render);
+  render();
+}
+
+/* ---------- Part IV: brute force cost ---------- */
+function initBruteForce() {
+  const N = document.getElementById('bf-n'), out = document.getElementById('bf-out');
+  let d = 384;
+  pills(document.getElementById('bf-d'), [[384, 'd = 384 (MiniLM)'], [768, 'd = 768'], [1024, 'd = 1024']], d, (k) => { d = +k; render(); });
+  function render() {
+    const n = Math.round(Math.pow(10, +N.value)); document.getElementById('bf-n-val').textContent = big(n);
+    const ops = n * d, bytes = ops * 4, sec = ops / 1e10;
+    const mem = bytes < 1e6 ? (bytes / 1e3).toPrecision(3) + ' kB' : bytes < 1e9 ? (bytes / 1e6).toPrecision(3) + ' MB' : bytes < 1e12 ? (bytes / 1e9).toPrecision(3) + ' GB' : (bytes / 1e12).toPrecision(3) + ' TB';
+    const tm = sec < 1e-3 ? (sec * 1e6).toPrecision(3) + ' µs' : sec < 1 ? (sec * 1e3).toPrecision(3) + ' ms' : sec.toPrecision(3) + ' s';
+    out.innerHTML = `<div class="stat-strip"><div class="stat"><span class="n">${big(ops)}</span><span class="l">multiply-adds per query</span></div><div class="stat"><span class="n">${mem}</span><span class="l">vectors in memory (float32)</span></div><div class="stat"><span class="n">${tm}</span><span class="l">per query, brute force</span></div><div class="stat"><span class="n">${sec > 0 ? Math.max(1, Math.floor(1 / sec)).toLocaleString('en') : '–'}</span><span class="l">queries per second</span></div></div>` +
+      `<p class="rr-note">${n <= 2000 ? 'Cranfield (1,400 abstracts): brute force is instant.' : n >= 5e7 ? '❗ Seconds per query and hundreds of gigabytes: this is where an ANN index becomes necessary.' : 'Still feasible on one machine, but every extra query costs a full scan.'}</p>`;
+  }
+  N.addEventListener('input', render);
+  render();
+}
+
+/* ---------- Part IV: memory table ---------- */
 function initMemory() {
   const t = document.getElementById('mm-table'), note = document.getElementById('mm-note');
   const B = { f32: [4, 'float32 (4 bytes)'], f16: [2, 'float16 (2 bytes)'], i8: [1, 'int8 (1 byte)'] };
@@ -193,7 +290,33 @@ function initGraphToy() {
   render();
 }
 
-/* ---------- Part VII: nprobe on Cranfield ---------- */
+/* ---------- Part VII: filtered semantic search ---------- */
+function initVdb() {
+  const out = document.getElementById('vd-out'), sels = { department: 'vd-dep', year: 'vd-year', type: 'vd-type' };
+  let q = 0, mode = 'pre';
+  const filt = { department: 'all', year: 'all', type: 'all' };
+  Object.entries(sels).forEach(([f, id]) => {
+    const vals = [...new Set(V.chunks.map(c => String(c[f])))].sort((a, b) => f === 'year' ? b - a : a.localeCompare(b));
+    const s = document.getElementById(id);
+    s.innerHTML = `<option value="all">any</option>` + vals.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+    s.addEventListener('change', () => { filt[f] = s.value; render(); });
+  });
+  pills(document.getElementById('vd-q'), V.queries.map((x, i) => [i, x]), 0, (i) => { q = +i; render(); });
+  pills(document.getElementById('vd-mode'), [['pre', 'filter, then search'], ['post', 'search top 3, then filter']], mode, (m) => { mode = m; render(); });
+  function render() {
+    const r = vdbSearch(q, filt, mode), ret = new Set(r.returned), anyFilter = Object.values(filt).some(v => v !== 'all');
+    const pre = vdbSearch(q, filt, 'pre');
+    out.innerHTML = `<div class="table-wrap"><table class="summary sc-small rr-num vd-table"><thead><tr><th>#</th><th>cosine</th><th>chunk</th><th>metadata</th><th></th></tr></thead><tbody>` +
+      r.order.map((i, k) => { const c = V.chunks[i], ok = r.allowed.has(i), inTop = r.top.includes(i);
+        const status = ret.has(i) ? '<span class="vd-s ret">returned</span>' : !ok ? '<span class="vd-s off">filtered out</span>' : mode === 'post' && !inTop ? '<span class="vd-s">not in top 3</span>' : '';
+        return `<tr class="${ret.has(i) ? 'vd-ret' : ok ? '' : 'vd-off'}${mode === 'post' && inTop ? ' vd-top' : ''}"><td>${k + 1}</td><td><span class="fl-bar"><span style="width:${Math.max(0, V.scores[q][i]) * 100}%"></span></span>${f3(V.scores[q][i])}</td><td>${esc(c.text)}<br><small class="vd-doc">${esc(c.id)} · ${esc(c.document)}, p. ${c.page}</small></td><td><span class="vd-tag">${esc(c.department)}</span><span class="vd-tag">${c.year}</span><span class="vd-tag">${esc(c.type)}</span></td><td>${status}</td></tr>`; }).join('') + '</tbody></table></div>' +
+      `<p class="big">Returned <b>${r.returned.length}</b> of 3${r.returned.length ? ': ' + r.returned.map(i => V.chunks[i].id).join(', ') : ''}.</p>` +
+      `<p class="rr-note">${!anyFilter ? 'No filter: plain semantic search over all twelve chunks. Choose a department, year or type.' : mode === 'post' && r.returned.length < pre.returned.length ? `❗ Filtering after the search lost results: the filter removed ${3 - r.returned.length} of the top 3 (shaded), although ${pre.returned.length - r.returned.length} more matching chunk${pre.returned.length - r.returned.length === 1 ? '' : 's'} exist${pre.returned.length - r.returned.length === 1 ? 's' : ''} further down.` : mode === 'post' ? 'Search, then filter: here the top 3 happened to survive the filter.' : 'Filter, then search: the top 3 among the chunks that satisfy the filter.'}</p>`;
+  }
+  render();
+}
+
+/* ---------- Part VIII: nprobe on Cranfield ---------- */
 function initNprobe() {
   const S = sweep(), Pr = document.getElementById('nv-p'), svg = document.getElementById('nv-svg'), out = document.getElementById('nv-out'), table = document.getElementById('nv-table');
   const exact = S[S.length - 1];
@@ -219,7 +342,7 @@ function initNprobe() {
   render();
 }
 
-/* ---------- Part VII: one query on the map ---------- */
+/* ---------- Part VIII: one query on the map ---------- */
 function initNprobeMap() {
   const sel = document.getElementById('nq-sel'), svg = document.getElementById('nq-svg'), out = document.getElementById('nq-out'), Pr = document.getElementById('nv-p');
   sel.innerHTML = C.queries.map((q, i) => `<option value="${i}">${esc(`${i + 1} · ${q.length > 90 ? q.slice(0, 88) + '…' : q}`)}</option>`).join('');
@@ -250,9 +373,14 @@ function initNprobeMap() {
 document.addEventListener('DOMContentLoaded', () => {
   initMath();
   initHero();
+  if (A && C) initTsne();
+  if (V) initNegatives();
+  initSimFns();
+  initBruteForce();
   initMemory();
   initIvfToy();
   initGraphToy();
+  if (V) initVdb();
   if (A && C) { initNprobeMap(); initNprobe(); }
 });
 

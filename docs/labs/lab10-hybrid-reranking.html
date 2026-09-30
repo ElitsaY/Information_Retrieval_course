@@ -35,8 +35,8 @@
       <li><a href="lab05-evaluation.html"><span class="lm-n">05</span>Evaluating IR Systems</a></li>
       <li><a href="lab06-crawling-pagerank.html"><span class="lm-n">06</span>Web Crawling and PageRank</a></li>
       <li><a href="lab07-query-expansion-lm.html"><span class="lm-n">07</span>Query Expansion and Language Models</a></li>
-      <li><a href="lab08-dense-retrieval.html"><span class="lm-n">08</span>Embeddings and Dense Retrieval</a></li>
-      <li><a href="lab09-ann-faiss.html"><span class="lm-n">09</span>Vector Indexes, ANN and FAISS</a></li>
+      <li><a href="lab08-dense-retrieval.html"><span class="lm-n">08</span>Neural Text Representations</a></li>
+      <li><a href="lab09-ann-faiss.html"><span class="lm-n">09</span>Dense Retrieval and Vector Databases</a></li>
       <li><a href="lab10-hybrid-reranking.html" aria-current="page"><span class="lm-n">10</span>Hybrid Retrieval and Reranking</a></li>
     </ol>
     </div>
@@ -281,7 +281,7 @@ reranker.predict([(query, "therapy after a heart attack"),
   <section class="block algo-section bfs" id="hybrid">
     <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Part VI</span>
     <h2 class="section-title">Hybrid retrieval on Cranfield</h2>
-    <p class="section-lede">Reuse the systems of earlier labs: BM25 (Lab 04) and dense retrieval with <code>all-MiniLM-L6-v2</code> (Lab 08), each returning <code>(doc_id, title, score)</code>.</p>
+    <p class="section-lede">Reuse the systems of earlier labs: BM25 (Lab 04) and dense retrieval with <code>all-MiniLM-L6-v2</code> (<a href="lab09-ann-faiss.html#retrieval">Lab 09</a>), each returning <code>(doc_id, title, score)</code>.</p>
     <details class="code-card" open>
       <summary>
         <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -361,7 +361,7 @@ reranker.predict([(query, "therapy after a heart attack"),
     <div class="table-wrap"><table class="summary sc-small rr-num" id="ab-table"></table></div>
     <p class="rr-note" id="ab-note" style="margin-top:0.5rem;"></p>
     <ul class="concept-list" style="margin-top:1rem;">
-      <li><b>Reranking the hybrid does not help on Cranfield</b>: nDCG@10 drops from 0.3545 to 0.3515. The reranker learned relevance from MS MARCO web questions, not from aeronautics abstracts: a domain mismatch, like Lab 08's.</li>
+      <li><b>Reranking the hybrid does not help on Cranfield</b>: nDCG@10 drops from 0.3545 to 0.3515. The reranker learned relevance from MS MARCO web questions, not from aeronautics abstracts: a domain shift, one of the embedding failures listed in <a href="lab08-dense-retrieval.html#fail">Lab 08</a>.</li>
       <li><b>Reranking BM25 helps a lot</b> (nDCG@10 0.2822 → 0.3356): the stronger the first stage, the less room the reranker has, and the more its own mistakes show.</li>
       <li>Only evaluation tells which components earn their cost.</li>
     </ul>

@@ -2305,9 +2305,28 @@ table.summary.rr-num td.gt-bad { background: color-mix(in srgb, #d9546e 16%, var
 .ml-plot .qc-bm { stroke: var(--dfs); stroke-width: 2; stroke-dasharray: 6 4; } .ml-plot .qc-tf { stroke: var(--indigo); stroke-width: 2; stroke-dasharray: 6 4; }
 .art-lm7 ~ .wrap .section-lede code, .art-lm7 ~ .wrap .concept-list code { overflow-wrap: anywhere; }
 
-/* ---- Lab 08 (IR): embeddings, semantic search, dense retrieval ---- */
-.art-dr8 .hero-art .hp { opacity: 0.3; } .art-dr8 .hero-art .hp.c0 { fill: var(--ids); } .art-dr8 .hero-art .hp.c1 { fill: var(--bfs); } .art-dr8 .hero-art .hp.c2 { fill: var(--ucs); }
-.art-dr8 .hero-art .hl { stroke: var(--dfs); stroke-width: 2; stroke-dasharray: 5 4; opacity: 0.45; } .art-dr8 .hero-art .hq { fill: var(--dfs); opacity: 0.55; }
+/* ---- Lab 08 (IR): neural text representations, embeddings, semantic search ---- */
+.art-dr8 .hero-art .tok { fill: var(--surface); stroke: var(--ids); stroke-width: 2; opacity: 0.45; } .art-dr8 .hero-art .tok.hi { stroke: var(--dfs); opacity: 0.6; }
+.art-dr8 .hero-art .arc { fill: none; stroke: var(--ids); stroke-width: 2; opacity: 0.22; }
+.tk-id-chip { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.2; } .tk-id-chip small { font-size: 0.66rem; font-weight: 500; color: var(--ink-soft); }
+.aw-toks { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.4rem 0 0.9rem; }
+.aw-tok { font: inherit; font-size: 0.9rem; font-weight: 600; color: var(--ink); padding: 0.25rem 0.55rem; border: 1.5px solid var(--line); border-radius: 7px; cursor: pointer; }
+.aw-tok.sel { border-color: var(--dfs); box-shadow: 0 0 0 2px var(--dfs); }
+.cm-bar.aw-bar { grid-template-columns: 6.2rem 1fr 3rem; }
+.hm.bk-hm td { width: 2.6rem; cursor: default; } .hm.bk-hm td.same { font-weight: 800; }
+.hm.bk-hm thead th { height: auto; padding: 0.2rem; font-weight: 800; } .hm.bk-hm th.bk-r { text-align: left; font-weight: 500; white-space: normal; min-width: 14rem; max-width: 20rem; padding: 0.2rem 0.6rem 0.2rem 0; }
+.bk-tag { display: inline-block; min-width: 1.7rem; margin-right: 0.4rem; padding: 0 0.25rem; border-radius: 5px; font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 0.72rem; text-align: center; }
+.bk-r.river .bk-tag { background: color-mix(in srgb, var(--bfs) 25%, var(--surface)); } .bk-r.money .bk-tag { background: color-mix(in srgb, var(--ucs) 30%, var(--surface)); }
+.ly-fig { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.2rem; align-items: center; padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.ly-col, .ly-in { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; min-width: 0; text-align: center; }
+.ly-stack { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.5rem; border: 1.5px dashed var(--line); border-radius: 10px; } .ly-dots { color: var(--ink-soft); font-weight: 800; line-height: 1; }
+.ly-in { padding: 0.8rem; border-radius: 10px; background: color-mix(in srgb, var(--ucs) 7%, var(--surface)); } .ly-in .al-h { margin: 0 0 0.3rem; }
+@media (max-width: 620px) { .ly-fig { grid-template-columns: minmax(0, 1fr); } }
+.ml-plot .hm-l.mk-off { opacity: 0.35; } .ml-plot .hm-w.mk-fut { fill: var(--bfs); }
+.pl-strips { overflow: hidden; } .ml-plot.pl-svg { max-width: 640px; }
+.ml-plot .pl-l { font-size: 11px; font-weight: 700; fill: var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.ml-plot .pl-row.off { opacity: 0.18; } .ml-plot .pl-row.pooled .pl-l { fill: var(--dfs); font-weight: 800; }
+.tq-row.gm-row { grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) 3rem; font-size: 0.82rem; }
 .sd-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.2rem; }
 @media (max-width: 760px) { .sd-grid { grid-template-columns: minmax(0, 1fr); } }
 .sd-sparse { display: flex; flex-wrap: wrap; gap: 3px; }
@@ -2367,7 +2386,7 @@ table.summary.rr-num td.gt-bad { background: color-mix(in srgb, #d9546e 16%, var
 @media (max-width: 760px) { .pg-grid.sf-grid { grid-template-columns: minmax(0, 1fr); } }
 #sf-out table.summary th, #sf-out table.summary td { padding: 0.35rem 0.5rem; font-size: 0.82rem; }
 
-/* ---- Lab 09 (IR): vector indexes, ANN, FAISS ---- */
+/* ---- Lab 09 (IR): dense retrieval, vector indexes, ANN, FAISS, vector databases ---- */
 .art-an9 .hero-art .he { stroke: var(--ink-soft); stroke-width: 1.4; opacity: 0.18; } .art-an9 .hero-art .hp { opacity: 0.35; }
 .neg-list { display: grid; gap: 0.4rem; }
 .neg-row { display: grid; grid-template-columns: 8.5rem minmax(0, 1.4fr) minmax(0, 1fr) 3rem; gap: 0.6rem; align-items: center; padding: 0.45rem 0.7rem; border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: 8px; font-size: 0.88rem; }
@@ -2392,6 +2411,13 @@ table.summary td.mm-big { background: color-mix(in srgb, var(--ucs) 18%, var(--s
 .nq-l { display: inline-grid; place-items: center; min-width: 1.4rem; height: 1.3rem; padding: 0 0.2rem; border-radius: 5px; color: #fff; font-family: 'Poppins', sans-serif; font-size: 0.72rem; font-weight: 800; }
 .nq-miss { margin: 0.3rem 0 0; padding-left: 0; list-style: none; font-size: 0.8rem; display: grid; gap: 0.25rem; }
 #nv-table th, #nv-table td { padding: 0.35rem 0.45rem; font-size: 0.8rem; }
+.vd-filters { gap: 0.6rem 1rem; } .vd-f { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.84rem; font-weight: 700; color: var(--ink-soft); } .vd-f select { max-width: 11rem; }
+.vd-table td { font-size: 0.8rem; vertical-align: top; } .vd-table td:nth-child(2) { white-space: nowrap; }
+.vd-table tr.vd-ret td { background: color-mix(in srgb, var(--bfs) 13%, var(--surface)); } .vd-table tr.vd-off td { opacity: 0.45; }
+.vd-table tr.vd-top td:first-child { box-shadow: inset 4px 0 0 var(--ucs); }
+.vd-doc { color: var(--ink-soft); font-size: 0.72rem; }
+.vd-tag { display: inline-block; margin: 0 0.2rem 0.2rem 0; padding: 0 0.4rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700; background: color-mix(in srgb, var(--ink) 6%, var(--surface)); white-space: nowrap; }
+.vd-s { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: var(--ink-soft); white-space: nowrap; } .vd-s.ret { color: color-mix(in srgb, var(--bfs) 70%, var(--ink)); } .vd-s.off { color: var(--red-ink); }
 
 /* ---- Lab 05 (IR): precision and recall widgets ---- */
 .pc-list { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; }

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lab 09 — Scaling Dense Retrieval: Vector Indexes, ANN and FAISS | Class Notes</title>
-<meta name="description" content="Interactive notes on Dense Passage Retrieval, passages and hard negatives, exact nearest-neighbor search and its cost, approximate nearest neighbors (IVF and graph-based HNSW), FAISS, ANN recall vs IR recall, and recall–latency–memory trade-offs on Cranfield.">
+<title>Lab 09 — Dense Retrieval, Vector Indexes and Vector Databases | Class Notes</title>
+<meta name="description" content="Interactive notes on dense retrieval: bi-encoders and Dense Passage Retrieval, hard negatives, cosine vs dot product, exact nearest-neighbor search and its cost, approximate search with IVF and HNSW, FAISS, vector databases and metadata filtering, ANN recall vs IR recall, on real Cranfield embeddings.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
@@ -35,8 +35,8 @@
       <li><a href="lab05-evaluation.html"><span class="lm-n">05</span>Evaluating IR Systems</a></li>
       <li><a href="lab06-crawling-pagerank.html"><span class="lm-n">06</span>Web Crawling and PageRank</a></li>
       <li><a href="lab07-query-expansion-lm.html"><span class="lm-n">07</span>Query Expansion and Language Models</a></li>
-      <li><a href="lab08-dense-retrieval.html"><span class="lm-n">08</span>Embeddings and Dense Retrieval</a></li>
-      <li><a href="lab09-ann-faiss.html" aria-current="page"><span class="lm-n">09</span>Vector Indexes, ANN and FAISS</a></li>
+      <li><a href="lab08-dense-retrieval.html"><span class="lm-n">08</span>Neural Text Representations</a></li>
+      <li><a href="lab09-ann-faiss.html" aria-current="page"><span class="lm-n">09</span>Dense Retrieval and Vector Databases</a></li>
       <li><a href="lab10-hybrid-reranking.html"><span class="lm-n">10</span>Hybrid Retrieval and Reranking</a></li>
     </ol>
     </div>
@@ -54,12 +54,12 @@
   <svg id="an-hero-bg" class="hero-art" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
   <div class="wrap">
     <p class="eyebrow">Lab 09</p>
-    <h1>Scaling Dense Retrieval: Vector Indexes, ANN and FAISS</h1>
+    <h1>Dense Retrieval, Semantic Search, Vector Indexes and Vector Databases</h1>
     <div class="badges">
       <span class="badge ids">DPR</span>
       <span class="badge dfs">Exact search</span>
-      <span class="badge bfs">ANN</span>
-      <span class="badge ucs">FAISS</span>
+      <span class="badge bfs">ANN and FAISS</span>
+      <span class="badge ucs">Vector databases</span>
     </div>
   </div>
 </section>
@@ -72,63 +72,145 @@
   <!-- ===== OVERVIEW ===== -->
   <section class="block" id="overview">
     <h2 class="section-title">Overview of the lab</h2>
-    <p class="section-lede">In <a href="lab08-dense-retrieval.html">Lab 08</a> dense retrieval looked simple: encode the documents and store the vectors; encode the query, compare it against every document vector, return the nearest. That works perfectly well for 1,400 documents. But with 1 million documents? 100 million? 1 billion passages? The retrieval problem changes: the embedding model is only one part of a dense retrieval system; we also need an <b>efficient way to search the vector collection</b>.</p>
-    <div class="rr-pipe">dense embeddings → exact nearest-neighbor search → scaling problem → vector indexes → approximate nearest-neighbor search → latency / memory / recall trade-offs</div>
-    <ol class="concept-list" style="margin-top:1.2rem;">
-      <li><a href="#recap">What a dense retriever contains</a>: representation vs search.</li>
-      <li><a href="#dpr">Dense Passage Retrieval</a>: passages, training, hard negatives.</li>
-      <li><a href="#exact">Exact nearest-neighbor search</a> and its memory cost.</li>
-      <li><a href="#brute">Why brute force becomes a problem</a>.</li>
-      <li><a href="#ann">Approximate nearest-neighbor search</a>: two kinds of recall, partitions and graphs.</li>
-      <li><a href="#faiss">FAISS</a>: flat and approximate indexes, IVF, HNSW.</li>
+    <p class="section-lede"><a href="lab08-dense-retrieval.html">Lab 08</a> answered: <b>where does a dense text vector come from?</b> This lab asks: <b>how do we use those vectors to retrieve documents efficiently?</b></p>
+    <div class="rr-pipe">documents → encoder → document vectors → vector index &nbsp;|&nbsp; query → encoder → query vector → nearest-neighbor search → top-k documents</div>
+    <p class="section-lede" style="margin-top:1rem;">It deliberately separates <b>representation quality</b> from <b>search / index quality</b>: they are different problems.</p>
+    <ol class="concept-list">
+      <li><a href="#retrieval">From embeddings to retrieval</a>, and dense retrieval on Cranfield.</li>
+      <li><a href="#dpr">Bi-encoders and Dense Passage Retrieval</a>: passages, training, hard negatives.</li>
+      <li><a href="#sim">Similarity functions</a>: cosine, dot product, Euclidean distance.</li>
+      <li><a href="#exact">Exact nearest-neighbor search</a>: cost and memory at scale.</li>
+      <li><a href="#ann">Approximate nearest-neighbor search</a>: partitions and graphs, two kinds of recall.</li>
+      <li><a href="#faiss">FAISS</a>: exact and approximate indexes.</li>
+      <li><a href="#vdb">What is a vector database?</a> Metadata and filtering.</li>
       <li><a href="#demo">Exact vs ANN on Cranfield</a>.</li>
-      <li><a href="#quality">Three notions of quality</a> and the recall–latency–memory trade-off.</li>
-      <li><a href="#rag">Hybrid retrieval and RAG</a>, the <a href="#summary">summary</a> and optional exercises.</li>
+      <li><a href="#quality">Three levels of quality</a>, the <a href="#summary">summary</a> and an optional exercise.</li>
     </ol>
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Learning objectives</h3>
     <p class="section-lede">By the end you should be able to explain:</p>
     <ul class="concept-list">
-      <li>what dense passage retrieval is, and the difference between embedding generation and vector search;</li>
-      <li>why brute-force dense retrieval does not scale indefinitely, and what exact and approximate nearest-neighbor search mean;</li>
-      <li>why ANN deliberately trades exactness for speed, and the difference between IR relevance recall and ANN recall;</li>
-      <li>the basic role of FAISS, and the difference between a flat index and an approximate index;</li>
-      <li>the intuition behind partitioning- and graph-based ANN methods;</li>
-      <li>how indexing choices affect latency, memory and retrieval quality, and how vector indexes fit into a RAG pipeline.</li>
+      <li>how bi-encoder retrieval works, and how Dense Passage Retrieval fits the bi-encoder pattern;</li>
+      <li>why passages are often indexed instead of entire long documents;</li>
+      <li>cosine similarity and dot-product scoring;</li>
+      <li>what exact nearest-neighbor search means, and why brute-force dense search becomes expensive at scale;</li>
+      <li>the role of a vector index; what approximate nearest-neighbor search means, and why ANN trades some exactness for speed;</li>
+      <li>the difference between IR Recall@k and ANN recall;</li>
+      <li>the role of FAISS, what a vector database adds, and how vector search fits into a RAG system.</li>
     </ul>
   </section>
 
   <!-- ===== PART I ===== -->
-  <section class="block algo-section ids" id="recap">
+  <section class="block algo-section ids" id="retrieval">
     <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part I</span>
-    <h2 class="section-title">What a dense retriever actually contains</h2>
-    <div class="rr-pipe">documents → encoder → document embeddings → vector collection &nbsp;|&nbsp; query → encoder → query embedding → similarity search → top-k documents</div>
-    <p class="section-lede" style="margin-top:1rem;">There are <b>two separate problems</b>, and they are easily mixed together:</p>
+    <h2 class="section-title">From embeddings to retrieval</h2>
+    <p class="section-lede">From Lab 08:</p>
+    <div class="rr-pipe">text → tokenizer → Transformer encoder → contextual token vectors → pooling → text embedding</div>
+    <p class="section-lede" style="margin-top:1rem;">Now suppose every document has a vector. Retrieval becomes: <b>find the document vectors that are closest to the query vector</b>.</p>
+    <div class="math-block">\[ \operatorname{top-k}_{d \in D}\; sim\big(E_q(q), E_d(d)\big) \]</div>
+    <div class="table-wrap">
+      <table class="summary sc-small">
+        <thead><tr><th></th><th>Work</th><th>When</th></tr></thead>
+        <tbody>
+          <tr data-s="ids"><td><b>Offline</b></td><td>documents → document encoder → document vectors → store / index</td><td>once</td></tr>
+          <tr data-s="ids"><td><b>Online</b></td><td>query → query encoder → query vector → search the index → top-k documents</td><td>for every query</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="section-lede" style="margin-top:1rem;">The document side can be precomputed: that is what makes bi-encoder retrieval practical. And a dense retriever contains <b>two separate problems</b>, easily mixed together:</p>
     <div class="vs-two">
       <div class="vs-card"><p class="al-h">1. Representation</p><p>How do we map text to vectors?</p><p class="rr-note">SentenceTransformer, the DPR encoders, E5, BGE: <b>representation models</b>.</p></div>
       <div class="vs-card"><p class="al-h">2. Search</p><p>How do we efficiently find the nearest vectors?</p><p class="rr-note">FAISS, HNSW, vector database indexes: <b>search / indexing technologies</b>.</p></div>
     </div>
-    <p class="section-lede" style="margin-top:1rem;">A better embedding model does not automatically make nearest-neighbor search faster. A better index does not automatically make the embeddings semantically better.</p>
+    <p class="section-lede" style="margin-top:1rem;">A better embedding model does not make nearest-neighbor search faster; a better index does not make the embeddings semantically better.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Dense retrieval on Cranfield</h3>
+    <p class="section-lede">The Cranfield collection again, encoded with the model of Lab 08, so that the retrieval methods stay comparable across labs.</p>
+    <details class="code-card">
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">encode_cranfield.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py"># pip install sentence-transformers ir_datasets numpy faiss-cpu
+import ir_datasets
+from sentence_transformers import SentenceTransformer
+
+model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+dataset = ir_datasets.load("cranfield")
+docs = list(dataset.docs_iter())
+queries = list(dataset.queries_iter())
+
+doc_ids = [doc.doc_id for doc in docs]
+titles = [doc.title for doc in docs]
+texts = [f"{doc.title}. {doc.text}" for doc in docs]
+
+doc_embeddings = model.encode(texts, batch_size=32, normalize_embeddings=True,
+                              show_progress_bar=True)       # the expensive offline step
+doc_embeddings.shape
+# (1400, 384)</code></pre>
+    </details>
+    <details class="code-card" open>
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">search_dense.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py">import numpy as np
+
+def search_dense(query, k=5):
+    q = model.encode([query], normalize_embeddings=True)[0]
+    scores = doc_embeddings @ q           # one dot product per document
+    top = np.argsort(scores)[::-1][:k]
+    return [(doc_ids[i], titles[i], float(scores[i])) for i in top]
+
+q = queries[0].text
+print(q)
+for result in search_dense(q):
+    print(result)
+# what similarity laws must be obeyed when constructing aeroelastic models
+# of heated high speed aircraft .
+# ('486', 'similarity laws for aerothermoelastic testing .', 0.718813419342041)
+# ('184', 'scale models for thermo-aeroelastic research .', 0.6493932008743286)
+# ('13', 'similarity laws for stressing heated wings .', 0.6335977911949158)
+# ('51', 'theory of aircraft structural models subjected to aerodynamic\nheating and external loads .', 0.6116987466812134)
+# ('12', 'some structural and aerelastic considerations of high\nspeed flight .', 0.5942484140396118)</code></pre>
+    </details>
     <ul class="concept-list">
-      <li><b>Small scale</b>: \(N = 1{,}400\) documents, \(d = 384\) dimensions. For one query, brute force computes one similarity per document: trivial.</li>
-      <li><b>Large scale</b>: \(N = 100{,}000{,}000\) documents, \(d = 768\). Comparing the query with every vector becomes much more expensive. This motivates specialized indexing.</li>
+      <li><b>Cost</b>: encoding the 1,400 abstracts took 4.5 seconds here on a laptop. For a large collection, the document vectors are computed once, stored and indexed.</li>
+      <li>❗ <b>Truncation</b>: 418 of the 1,400 abstracts (30%) are longer than the model's 256 word pieces (the longest has 808). Everything after the limit is silently ignored. Real systems split long documents into passages (Part II).</li>
     </ul>
+    <h4 style="margin:1.4rem 0 0.4rem;">See it: Cranfield in embedding space</h4>
+    <p class="section-lede">All 1,400 abstracts and 225 queries, projected to 2-D with t-SNE. Choose a query: its dense top 10 are ringed, its relevant documents are green. Click a dot to read its title.</p>
+    <div class="playground">
+      <div class="pg-controls"><select id="ts-sel" class="ii-select" aria-label="Cranfield query" style="max-width:100%;"></select></div>
+      <div class="pg-grid">
+        <svg id="ts-svg" class="ml-plot ts-svg" viewBox="0 0 440 440" aria-label="t-SNE map of Cranfield"></svg>
+        <div class="al-out" id="ts-out"></div>
+      </div>
+      <p class="bt-legend" style="margin:0.4rem 0 0;"><span class="k" style="background:var(--dfs);"></span> query &nbsp; <span class="k ts-k-top"></span> dense top 10 &nbsp; <span class="k" style="background:var(--bfs);"></span> relevant (grade ≥ 1)</p>
+    </div>
   </section>
 
   <!-- ===== PART II ===== -->
   <section class="block algo-section bfs" id="dpr">
     <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Part II</span>
-    <h2 class="section-title">Dense Passage Retrieval</h2>
-    <p class="section-lede">One influential dense-retrieval architecture: <b>Dense Passage Retrieval (DPR)</b> (<a href="https://arxiv.org/abs/2004.04906" target="_blank" rel="noopener">Karpukhin et al., EMNLP 2020</a>) uses <b>separate encoders</b> for questions and passages: question → question encoder → \(q\); passage → passage encoder → \(p\); then</p>
-    <div class="math-block">\[ score(q, p) = q^\top p \]</div>
+    <h2 class="section-title">Bi-encoders and Dense Passage Retrieval</h2>
+    <p class="section-lede">A bi-encoder uses independent representations for the query and the passage, then a vector similarity:</p>
+    <div class="math-block">\[ \vec{q} = E_q(q) \qquad \vec{p} = E_p(p) \qquad score(q, p) = \vec{q}^{\top}\vec{p} \]</div>
+    <p class="section-lede"><b>Dense Passage Retrieval (DPR)</b> (<a href="https://arxiv.org/abs/2004.04906" target="_blank" rel="noopener">Karpukhin et al., EMNLP 2020</a>) is an influential example. Its core idea is simple: question → question encoder → question vector; passage → passage encoder → passage vector; relevant question–passage pairs should receive higher similarity than irrelevant pairs.</p>
     <ul class="concept-list">
       <li>Both encoders are BERT-base networks; the vector is the output at the [CLS] token, \(d = 768\).</li>
       <li>Wikipedia is split into disjoint blocks of <b>100 words</b>: 21,015,324 passages.</li>
       <li>DPR beat a strong Lucene-BM25 system by 9–19 points (absolute) of top-20 passage retrieval accuracy across open-domain QA datasets.</li>
-      <li>Search runs on a FAISS <b>HNSW</b> index (Part VI): 995 questions per second, top 100 passages each, against 23.7 per second per CPU thread for BM25/Lucene, as reported in the paper.</li>
+      <li>Search runs on a FAISS <b>HNSW</b> index (Part V): 995 questions per second, top 100 passages each, against 23.7 per second per CPU thread for BM25/Lucene, as reported in the paper.</li>
     </ul>
 
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Why passage retrieval?</h3>
-    <p class="section-lede">A long document may contain many topics, many sections, and only one relevant paragraph. A single vector for the whole document can <b>blur</b> the relevant information. Take a 20-page technical report whose answer is one paragraph on page 14: if we embed the entire report, one vector must summarize everything; if we embed passages, the relevant paragraph gets its own vector. So modern retrieval often indexes <b>passages, chunks, sections</b> instead of whole documents, which usually gives finer retrieval granularity. This becomes critical for RAG.</p>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Why passages?</h3>
+    <p class="section-lede">Take a 50-page report where only one paragraph answers the query. One vector for the whole document must compress many topics. Instead, document → passages → <b>one vector per passage</b> gives finer retrieval granularity. This will matter again in RAG.</p>
     <details class="code-card">
       <summary>
         <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -137,10 +219,7 @@
         <button type="button" class="code-copy">Copy</button>
         <span class="code-chevron" aria-hidden="true">▾</span>
       </summary>
-      <pre class="code-body"><code class="lang-py"># docs, queries, model, doc_ids: as in Lab 08
-import numpy as np
-
-def passages(doc, size=100, stride=50):          # overlapping 100-word windows
+      <pre class="code-body"><code class="lang-py">def passages(doc, size=100, stride=50):          # overlapping 100-word windows
     words = f"{doc.title}. {doc.text}".split()
     if len(words) &lt;= size:
         return [" ".join(words)]
@@ -156,33 +235,55 @@ passage_emb = model.encode(passage_texts, batch_size=32, normalize_embeddings=Tr
 len(passage_texts)
 # 4238
 
+query_embeddings = model.encode([q.text for q in queries], normalize_embeddings=True)
 scores = query_embeddings @ passage_emb.T       # 225 x 4238
 doc_scores = np.full((len(queries), len(docs)), -np.inf)
 for qi in range(len(queries)):                  # a document scores as its best passage (MaxP)
     np.maximum.at(doc_scores[qi], passage_doc, scores[qi])
-# evaluated like Lab 08: MAP 0.3094, nDCG@10 0.3440   (whole abstracts: 0.3207, 0.3555)</code></pre>
+# evaluated with ir_measures: MAP 0.3094, nDCG@10 0.3440   (whole abstracts: 0.3207, 0.3555)</code></pre>
     </details>
-    <p class="caption-note">💡 On Cranfield, passages do <b>not</b> help: the abstracts are short (median 156 words; the model reads 256 word pieces), and a query is about the topic of the whole abstract. Splitting pays off when documents are long and the answer is local, the DPR setting of Wikipedia articles and 20-page reports.</p>
+    <p class="caption-note">💡 On Cranfield, passages do <b>not</b> help: the abstracts are short (median 156 words; the model reads 256 word pieces), and a query is about the topic of the whole abstract. Splitting pays off when documents are long and the answer is local, the DPR setting of Wikipedia articles and 50-page reports.</p>
 
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Training intuition: positives and negatives</h3>
-    <p class="section-lede">A dense retriever is often trained with triples (query, positive passage, negative passage). The model should make</p>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Training intuition</h3>
+    <p class="section-lede">A dense retriever often sees a <b>query</b>, a <b>positive passage</b> and a <b>negative passage</b>. The objective encourages</p>
     <div class="math-block">\[ score(q, p^+) > score(q, p^-) \]</div>
-    <p class="section-lede">where \(p^+\) is relevant and \(p^-\) is not: the training objective pushes relevant query–passage pairs closer together. DPR's best model used the positives of the <i>other</i> questions in the same mini-batch as negatives ("in-batch negatives") plus one BM25 passage that matches the question but does not contain the answer.</p>
+    <p class="section-lede">DPR's best model used the positives of the <i>other</i> questions in the same mini-batch as negatives ("in-batch negatives") plus one BM25 passage that matches the question but does not contain the answer.</p>
     <h4 style="margin:1.4rem 0 0.4rem;">See it: easy and hard negatives</h4>
-    <p class="section-lede">The query <i>symptoms of influenza</i> and the outline's three passages, scored by <code>all-MiniLM-L6-v2</code> (real cosines):</p>
-    <div class="neg-list">
-      <div class="neg-row pos"><span class="neg-k">positive \(p^+\)</span><span class="neg-t">influenza commonly causes fever, cough, and fatigue</span><span class="em-bar"><span style="width:77.3%"></span></span><b>0.773</b></div>
-      <div class="neg-row hard"><span class="neg-k">hard negative</span><span class="neg-t">common symptoms of the common cold include coughing and fatigue</span><span class="em-bar"><span style="width:59.9%"></span></span><b>0.599</b></div>
-      <div class="neg-row easy"><span class="neg-k">easy negative</span><span class="neg-t">history of medieval architecture</span><span class="em-bar"><span style="width:1.5%"></span></span><b>0.015</b></div>
-    </div>
-    <p class="section-lede" style="margin-top:1rem;">The easy negative is already 0.76 below the positive: the model has nothing left to learn from it. The hard negative is only 0.17 below: it is the one that teaches the model to tell influenza from a cold. This is why <b>negative mining</b> matters in dense retrieval.</p>
+    <p class="section-lede">The query <i>symptoms of influenza</i> and three passages, scored by <code>all-MiniLM-L6-v2</code> (real cosines):</p>
+    <div class="neg-list" id="neg-list"></div>
+    <p class="section-lede" style="margin-top:1rem;">The easy negative (<i>medieval architecture</i>) is so far below the positive that the model has nothing left to learn from it. The hard negative shares the symptoms and differs only in the disease: it is the one that forces the model to learn finer distinctions. This is why <b>negative mining</b> matters in dense retrieval.</p>
   </section>
 
   <!-- ===== PART III ===== -->
+  <section class="block algo-section ucs" id="sim">
+    <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Part III</span>
+    <h2 class="section-title">Similarity functions</h2>
+    <p class="section-lede">Common choices: cosine similarity, dot product, Euclidean distance.</p>
+    <div class="definition-box">
+      <div class="dbox-label">📐 Three similarity functions</div>
+      <div class="math-block">\[ \cos(q, d) = \frac{q \cdot d}{\|q\|\,\|d\|} \qquad score(q, d) = q^\top d \qquad \|q - d\|_2 \ \text{(smaller = closer)} \]</div>
+      <p>If the vectors are <b>unit-normalized</b>, \(q^\top d = \cos(q, d)\) (and \(\|q - d\|^2 = 2 - 2\cos(q, d)\)): all three give the same ranking. This lets us use <b>fast inner-product search while preserving the cosine ranking</b>.</p>
+    </div>
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: when the three disagree</h4>
+    <p class="section-lede">A query \(q\) and three documents in 2-D (invented). Stretch document A without turning it: its cosine does not change, but its dot product grows and its distance changes. Tick "normalize" to put every vector on the unit circle.</p>
+    <div class="playground">
+      <div class="pg-controls">
+        <div class="beam-control show" style="margin:0;"><label for="sf-len">length of A</label><input type="range" id="sf-len" min="0.3" max="3" value="2.2" step="0.1"><span class="val" id="sf-len-val"></span></div>
+        <label class="ii-check"><input type="checkbox" id="sf-norm"> normalize all vectors</label>
+      </div>
+      <div class="pg-grid sf-grid">
+        <svg id="sf-svg" class="ml-plot" viewBox="0 0 360 330" aria-label="Query and document vectors"></svg>
+        <div class="al-out" id="sf-out"></div>
+      </div>
+    </div>
+    <p class="section-lede" style="margin-top:1rem;">❗ <b>Match the model's training setup.</b> Do not choose a metric arbitrarily: a retrieval model may have been trained for dot product or for cosine similarity, and the search metric should match the representation model's intended use. (<code>all-MiniLM-L6-v2</code>: cosine, so we normalize and use the inner product.)</p>
+  </section>
+
+  <!-- ===== PART IV ===== -->
   <section class="block algo-section dfs" id="exact">
-    <span class="badge dfs" style="margin-bottom:0.6rem; display:inline-block;">Part III</span>
+    <span class="badge dfs" style="margin-bottom:0.6rem; display:inline-block;">Part IV</span>
     <h2 class="section-title">Exact nearest-neighbor search</h2>
-    <p class="section-lede">Once the vectors exist, we need \(\operatorname{top-k}_{d \in D}\, sim(q, d)\). The most straightforward approach is exhaustive search:</p>
+    <p class="section-lede">For a small collection, retrieval can be brute force:</p>
     <details class="code-card" open>
       <summary>
         <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -191,33 +292,36 @@ for qi in range(len(queries)):                  # a document scores as its best 
         <button type="button" class="code-copy">Copy</button>
         <span class="code-chevron" aria-hidden="true">▾</span>
       </summary>
-      <pre class="code-body"><code class="lang-py"># normalized vectors: inner product = cosine
-scores = doc_embeddings @ query_embedding
-top_k = scores.argsort()[::-1][:k]</code></pre>
+      <pre class="code-body"><code class="lang-py">scores = doc_embeddings @ query_embedding    # normalized vectors: inner product = cosine
+top = scores.argsort()[::-1][:10]</code></pre>
     </details>
     <ul class="concept-list">
-      <li><b>Why is it exact?</b> Every document is considered: if the highest-scoring document exists in the collection, brute force finds it. Ignoring numerical issues, there is no approximation in the search layer.</li>
-      <li><b>Cost</b>: work proportional to \(O(Nd)\) per query: <b>cost grows linearly with collection size</b>.</li>
-      <li><b>Memory</b>: dense vectors must be stored. 100 million vectors × 768 dimensions × 4 bytes (float32) = 307 GB, hundreds of gigabytes before any index overhead. A simpler board calculation: 1 million × 384 × 4 bytes ≈ 1.5 GB. Dense retrieval involves both <b>search complexity</b> and <b>memory complexity</b>: vector storage becomes a systems issue.</li>
+      <li><b>Why exact?</b> Every vector is considered, every candidate is scored. Ignoring numerical precision, the true top vectors cannot be missed by the search procedure.</li>
+      <li><b>Complexity</b>: for \(N\) document vectors of \(d\) dimensions, brute-force work grows as \(O(Nd)\) per query. Doubling the collection roughly doubles the vector comparison work.</li>
+      <li><b>Small collection</b>: \(N = 1{,}400\); Cranfield is trivial. <b>Large collection</b>: \(N = 100{,}000{,}000\); repeatedly scanning the whole collection becomes expensive: <b>latency, throughput, memory bandwidth, compute cost</b>.</li>
     </ul>
-    <h4 style="margin:1.4rem 0 0.4rem;">Try it: raw vector memory</h4>
-    <p class="section-lede">The optional scaling calculation, \(memory = N \times d \times\) bytes per number. Production systems reduce it with float16, quantization, compressed indexes and sharding across machines.</p>
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: the cost of brute force</h4>
+    <p class="section-lede">One query against \(N\) stored vectors of dimension \(d\): \(N \cdot d\) multiply-adds, and the vectors must be in memory (4 bytes per number). The time assumes \(10^{10}\) multiply-adds per second, a rough order of magnitude for one fast CPU.</p>
+    <div class="playground">
+      <div class="pg-controls">
+        <div class="beam-control show" style="margin:0;"><label for="bf-n">documents \(N\)</label><input type="range" id="bf-n" min="3" max="9.5" value="3.146" step="0.001"><span class="val" id="bf-n-val"></span></div>
+        <div class="strategy-pick" id="bf-d"></div>
+      </div>
+      <div id="bf-out"></div>
+    </div>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Memory calculation</h3>
+    <p class="section-lede">1,000,000 vectors × 384 dimensions × 4 bytes (float32):</p>
+    <div class="math-block">\[ 1{,}000{,}000 \times 384 \times 4 \approx 1.5\ \text{GB} \]</div>
+    <p class="section-lede">At 100 million vectors, raw storage becomes a major systems concern. Production systems reduce it with float16, quantization, compressed indexes and sharding across machines.</p>
     <div class="playground">
       <div class="pg-controls"><div class="strategy-pick" id="mm-t"></div></div>
       <div class="table-wrap"><table class="summary sc-small rr-num" id="mm-table"></table></div>
       <p class="rr-note" id="mm-note" style="margin-top:0.5rem;"></p>
     </div>
-  </section>
-
-  <!-- ===== PART IV ===== -->
-  <section class="block algo-section ucs" id="brute">
-    <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Part IV</span>
-    <h2 class="section-title">Why brute force becomes a problem</h2>
-    <p class="section-lede">A service handling <b>10 queries per second</b> over <b>100 million passage vectors</b> (768-d) must compare every query against the whole collection: \(10 \times 10^8 \times 768 \approx 7.7 \times 10^{11}\) multiply-adds every second, streaming 307 GB of vectors through memory for each query. The result: high latency, high compute cost, large memory bandwidth, poor throughput. This motivates <b>indexing</b>.</p>
-    <p class="section-lede"><b>The search-engine analogy</b>: classical lexical retrieval does not scan every document either; it builds an <a href="lab01-inverted-index.html">inverted index</a>. Dense retrieval also needs data structures that avoid unnecessary comparisons; the index is different because the objects are <b>continuous vectors</b> rather than discrete terms.</p>
+    <p class="section-lede" style="margin-top:1rem;"><b>The search-engine analogy</b>: lexical retrieval does not scan every document either; it builds an <a href="lab01-inverted-index.html">inverted index</a>. Dense retrieval also needs data structures that avoid unnecessary comparisons; the index is different because the objects are <b>continuous vectors</b> rather than discrete terms.</p>
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">First-half recap</h3>
-    <div class="rr-pipe">embedding model → good representation &nbsp;&nbsp;but&nbsp;&nbsp; 100M vectors → brute force expensive → need a vector index</div>
-    <p class="section-lede" style="margin-top:1rem;">Must we always find the mathematically <b>exact</b> nearest neighbors? For many applications: not necessarily. If we can retrieve almost the same neighbors much faster, the trade-off may be worthwhile. That leads to ANN.</p>
+    <div class="rr-pipe">good encoder → good vectors &nbsp;&nbsp;but&nbsp;&nbsp; many vectors → brute-force search expensive → need a vector index</div>
+    <p class="section-lede" style="margin-top:1rem;">Do we always need the mathematically <b>exact</b> nearest neighbors? Often, no. That leads to approximate nearest-neighbor search.</p>
   </section>
 
   <!-- ===== PART V ===== -->
@@ -226,35 +330,22 @@ top_k = scores.argsort()[::-1][:k]</code></pre>
     <h2 class="section-title">Approximate nearest-neighbor search</h2>
     <div class="definition-box">
       <div class="dbox-label">📐 Approximate nearest-neighbor (ANN) search</div>
-      <p>Find vectors that are <b>very likely</b> to be among the nearest neighbors <b>without exhaustively comparing against every vector</b>. The index may occasionally miss a true nearest neighbor; in exchange, retrieval can become much faster.</p>
+      <p>Find very close vectors <b>without scanning the whole collection</b>. The trade-off is explicit: faster search in exchange for possibly missed true neighbors.</p>
     </div>
     <div class="table-wrap" style="margin-top:1rem;">
       <table class="summary sc-small">
-        <thead><tr><th></th><th>Search accuracy</th><th>Cost</th></tr></thead>
+        <thead><tr><th></th><th>What is compared</th><th>Search accuracy</th><th>Cost</th></tr></thead>
         <tbody>
-          <tr data-s="ids"><td><b>Exact search</b></td><td>high</td><td>higher</td></tr>
-          <tr data-s="ids"><td><b>Approximate search</b></td><td>slightly lower</td><td>much lower</td></tr>
+          <tr data-s="ids"><td><b>Exact</b></td><td>every vector</td><td>maximum</td><td>higher</td></tr>
+          <tr data-s="ids"><td><b>Approximate</b></td><td>only promising parts of the index</td><td>may miss some exact neighbors</td><td>much lower</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="section-lede" style="margin-top:1rem;">The appropriate balance depends on the application.</p>
 
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Do not confuse two kinds of recall</h3>
-    <div class="vs-two">
-      <div class="vs-card"><p class="al-h">IR recall (<a href="lab05-evaluation.html">Lab 05</a>)</p><div class="math-block">\[ Recall@k = \frac{|\text{relevant} \cap \text{top-}k|}{|\text{relevant}|} \]</div><p class="rr-note">Measures relevance to the user, against human judgments.</p></div>
-      <div class="vs-card"><p class="al-h">ANN recall</p><div class="math-block">\[ \text{ANN recall}@k = \frac{|E_k \cap A_k|}{k} \]</div><p class="rr-note">\(E_k\): the exact top \(k\); \(A_k\): the ANN top \(k\). Measures whether the index reproduces the neighbors of exact vector search. No human judgments involved.</p></div>
-    </div>
-    <p class="section-lede" style="margin-top:1rem;">Exact top 10 <b>A B C D E F G H I J</b>, ANN top 10 <b>A B C D E F G H X Y</b>: 8 of the exact top 10 were recovered, ANN recall@10 = 8/10 = 0.8. This does <b>not</b> tell us whether those documents are relevant to the user's information need.</p>
-    <ul class="concept-list">
-      <li><b>Embedding failure</b>: the relevant document has a bad vector score.</li>
-      <li><b>Index failure</b>: a relevant, high-scoring vector exists, but the ANN search fails to retrieve it.</li>
-      <li>This separation of two independent failure sources is extremely useful for debugging.</li>
-    </ul>
-
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Two broad ANN ideas</h3>
-    <p class="section-lede">Many ANN methods use structures that avoid examining all vectors. Two common families: <b>partition-based</b> methods and <b>graph-based</b> methods. Both in 2-D below, on 240 invented points (distance = Euclidean, so the picture is honest).</p>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Two broad ideas</h3>
+    <p class="section-lede">Many ANN methods can be understood through two high-level families: <b>partition-based</b> (divide the vector space into regions; for a query, identify the promising regions and search only the vectors in them) and <b>graph-based</b> (connect nearby vectors in a graph; start somewhere, move to a better neighbor, again, until you arrive near the query). Both in 2-D below, on 240 invented points (distance = Euclidean, so the picture is honest). No algorithmic derivation is needed.</p>
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: partitions (the IVF idea)</h4>
-    <p class="section-lede">Divide the space into regions (k-means cells); for a query, <b>search only the most promising regions</b>, those with the nearest centroids. <b>Click the plot</b> to move the query. Rings: the exact 5 nearest; filled: what the index returns.</p>
+    <p class="section-lede">Regions are k-means cells; the promising regions are those with the nearest centroids. <b>Click the plot</b> to move the query. Rings: the exact 5 nearest; filled: what the index returns.</p>
     <div class="playground">
       <div class="pg-controls">
         <div class="beam-control show" style="margin:0;"><label for="iv-n">regions (nlist)</label><input type="range" id="iv-n" min="2" max="24" value="12" step="1"><span class="val" id="iv-n-val">12</span></div>
@@ -266,7 +357,7 @@ top_k = scores.argsort()[::-1][:k]</code></pre>
       </div>
     </div>
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: a proximity graph (the HNSW idea)</h4>
-    <p class="section-lede">Connect each point to its nearest neighbors. Search starts at an entry point and <b>greedily moves to the neighbor closest to the query</b> until no neighbor is closer: start → better neighbor → better neighbor → near the query. <b>Click the plot</b> to move the query.</p>
+    <p class="section-lede">Each point is connected to its nearest neighbors. Search starts at an entry point and <b>greedily moves to the neighbor closest to the query</b> until no neighbor is closer. <b>Click the plot</b> to move the query.</p>
     <div class="playground">
       <div class="pg-controls">
         <div class="beam-control show" style="margin:0;"><label for="gr-k">edges per point</label><input type="range" id="gr-k" min="2" max="8" value="3" step="1"><span class="val" id="gr-k-val">3</span></div>
@@ -277,14 +368,28 @@ top_k = scores.argsort()[::-1][:k]</code></pre>
         <div class="al-out" id="gr-out"></div>
       </div>
     </div>
-    <p class="caption-note">💡 With few edges, greedy search can stop at a <b>local minimum</b>: a point none of whose neighbors is closer, though it is not the nearest one. HNSW (Hierarchical Navigable Small World, Malkov &amp; Yashunin) avoids this with long-range links on sparse upper layers for quick navigation, and by keeping a list of several candidates (<code>efSearch</code>) instead of only the best one. More edges: better search, more memory.</p>
+    <p class="caption-note">💡 With few edges, greedy search can stop at a <b>local minimum</b>: a point none of whose neighbors is closer, though it is not the nearest one. HNSW (Hierarchical Navigable Small World, Malkov &amp; Yashunin) is a well-known graph-based approach: it avoids this with long-range links on sparse upper layers for quick navigation, and by keeping a list of several candidates (<code>efSearch</code>) instead of only the best one. More edges: better search, more memory.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Do not confuse two kinds of recall</h3>
+    <div class="vs-two">
+      <div class="vs-card"><p class="al-h">IR Recall@k (<a href="lab05-evaluation.html">Lab 05</a>)</p><div class="math-block">\[ Recall@k = \frac{\text{relevant items retrieved}}{\text{all relevant items}} \]</div><p class="rr-note">Measures usefulness relative to relevance judgments.</p></div>
+      <div class="vs-card"><p class="al-h">ANN recall</p><div class="math-block">\[ \text{ANN recall}@k = \frac{|E_k \cap A_k|}{k} \]</div><p class="rr-note">Did approximate search recover the same nearest neighbors as exact vector search? \(E_k\): the exact top \(k\), \(A_k\): the ANN top \(k\). No human judgments involved.</p></div>
+    </div>
+    <p class="section-lede" style="margin-top:1rem;">Exact top 10 <b>A B C D E F G H I J</b>, ANN top 10 <b>A B C D E F G H X Y</b>: overlap 8 / 10, ANN recall@10 = 0.8. These are different metrics.</p>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Two different failure sources</h3>
+    <ul class="concept-list">
+      <li><b>Representation failure</b>: the relevant item has a poor embedding score.</li>
+      <li><b>Index failure</b>: a relevant, high-scoring vector exists, but ANN search misses it.</li>
+      <li>This distinction is important for debugging.</li>
+    </ul>
   </section>
 
   <!-- ===== PART VI ===== -->
   <section class="block algo-section bfs" id="faiss">
     <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Part VI</span>
     <h2 class="section-title">FAISS</h2>
-    <p class="section-lede"><a href="https://faiss.ai/" target="_blank" rel="noopener">FAISS</a> (<a href="https://github.com/facebookresearch/faiss" target="_blank" rel="noopener">GitHub</a>) is a library for efficient similarity search over dense vectors. It supports many index types; what matters here is the contrast <b>flat exact index vs approximate index</b>.</p>
+    <p class="section-lede"><a href="https://faiss.ai/" target="_blank" rel="noopener">FAISS</a> (<a href="https://github.com/facebookresearch/faiss" target="_blank" rel="noopener">GitHub</a>) is a library for efficient dense-vector similarity search. It supports both <b>exact</b> and <b>approximate</b> search: FAISS does not automatically imply approximation.</p>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Exact flat index</h3>
     <details class="code-card" open>
       <summary>
         <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -297,7 +402,7 @@ top_k = scores.argsort()[::-1][:k]</code></pre>
 import faiss
 import numpy as np
 
-vectors = np.asarray(doc_embeddings, dtype="float32")    # normalized, from Lab 08
+vectors = np.asarray(doc_embeddings, dtype="float32")    # normalized, from Part I
 d = vectors.shape[1]
 
 flat = faiss.IndexFlatIP(d)          # exact inner-product search
@@ -306,10 +411,10 @@ flat.add(vectors)
 query_vector = model.encode([query], normalize_embeddings=True).astype("float32")
 scores, ids = flat.search(query_vector, 10)   # scores and document-vector positions</code></pre>
     </details>
-    <p class="section-lede">❗ <code>IndexFlatIP</code> is still <b>exhaustive</b>. FAISS does not automatically mean approximate search: it can perform both, and that distinction matters.</p>
+    <p class="section-lede">❗ <code>IndexFlatIP</code> still checks every vector. <b>It is exact.</b></p>
 
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">An approximate index: IVF</h3>
-    <p class="section-lede">An IVF (inverted file) index partitions the vectors into coarse clusters, like the regions above. At query time: query → find the promising clusters → search the vectors only inside some clusters. <b>nlist</b> = the number of coarse regions; <b>nprobe</b> = how many regions are searched. Search more regions: higher recall, higher latency; fewer: lower latency, potentially lower recall.</p>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">IVF: an approximate index</h3>
+    <p class="section-lede">An inverted-file-style vector index partitions the vectors into coarse regions: all vectors → coarse clusters → the query searches only selected clusters (the partitions widget above).</p>
     <details class="code-card" open>
       <summary>
         <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -318,50 +423,117 @@ scores, ids = flat.search(query_vector, 10)   # scores and document-vector posit
         <button type="button" class="code-copy">Copy</button>
         <span class="code-chevron" aria-hidden="true">▾</span>
       </summary>
-      <pre class="code-body"><code class="lang-py">query_vectors = model.encode([q.text for q in queries[:20]],
-                             normalize_embeddings=True).astype("float32")
-exact_scores, exact_ids = flat.search(query_vectors, 10)
-
-nlist = 32
+      <pre class="code-body"><code class="lang-py">nlist = 32
 quantizer = faiss.IndexFlatIP(d)                     # compares the query with the 32 centroids
 ivf = faiss.IndexIVFFlat(quantizer, d, nlist, faiss.METRIC_INNER_PRODUCT)
 ivf.train(vectors)                                   # k-means: learn the 32 regions
 ivf.add(vectors)                                     # put each vector in its region's list
-ivf.nprobe = 2
+ivf.nprobe = 4
 
-ann_scores, ann_ids = ivf.search(query_vectors, 10)
-
-def ann_recall_at_k(exact_ids, approx_ids, k=10):
-    recalls = []
-    for exact, approx in zip(exact_ids, approx_ids):
-        recalls.append(len(set(exact[:k]) &amp; set(approx[:k])) / k)
-    return sum(recalls) / len(recalls)
-
-print(ann_recall_at_k(exact_ids, ann_ids, k=10))
-# 0.6849999999999999</code></pre>
+scores, ids = ivf.search(query_vector, 10)</code></pre>
     </details>
     <ul class="concept-list">
-      <li><b>Why training?</b> Some vector indexes need a training step to learn their partitioning structure (here, k-means for the 32 centroids). This is different from training the embedding model: <b>embedding-model training ≠ vector-index training</b>.</li>
-      <li><b>HNSW at a high level</b>: a navigable proximity graph: vectors become graph nodes, nearby vectors become connected, search traverses the graph (the widget above). It gives strong speed/recall trade-offs and is widely used in vector-search systems; in FAISS, <code>faiss.IndexHNSWFlat(d, 32)</code>.</li>
+      <li><b>nlist</b>: the number of coarse partitions. <b>nprobe</b>: the number of partitions searched per query. More nprobe usually means <b>higher ANN recall</b> and <b>higher query cost</b>.</li>
+      <li>❗ <b>Index training is not model training.</b> Training the encoder learns text representations; training an IVF index learns a partitioning of the vector collection (here k-means for the 32 centroids). They solve different problems.</li>
+      <li><b>HNSW</b> is also available: <code>faiss.IndexHNSWFlat(d, 32, faiss.METRIC_INNER_PRODUCT)</code>, no training step (<a href="#quality">Part IX</a> measures it).</li>
     </ul>
   </section>
 
   <!-- ===== PART VII ===== -->
+  <section class="block algo-section ucs" id="vdb">
+    <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Part VII</span>
+    <h2 class="section-title">What is a vector database?</h2>
+    <p class="section-lede">A vector index and a vector database are related, but they are <b>not the same thing</b>.</p>
+    <div class="vs-two">
+      <div class="vs-card"><p class="al-h">Vector index</p><p>Primarily a <b>data structure</b> for efficient similarity search. It answers: given this query vector, which stored vectors are nearest?</p><p class="rr-note">Index ideas: flat exact search, IVF, HNSW, product quantization. FAISS provides vector-indexing and similarity-search algorithms.</p></div>
+      <div class="vs-card"><p class="al-h">Vector database</p><p>Wraps vector search inside a broader <b>data-management system</b>. It stores, per record: an ID, the embedding vector, metadata, the original text or a pointer to it.</p><p class="rr-note">Supports similarity search, metadata filtering, persistence, updates, deletion, index management, distributed storage.</p></div>
+    </div>
+    <details class="code-card" open style="margin-top:1rem;">
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">record.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py">{
+    "id": "chunk_0011",
+    "vector": [-0.079, 0.008, 0.002, ...],     # its all-MiniLM-L6-v2 embedding, 384 numbers
+    "text": "The master's thesis is worth 30 ECTS credits.",
+    "metadata": {
+        "document": "programme_rules.pdf",
+        "page": 14,
+        "section": "Thesis"
+    }
+}</code></pre>
+    </details>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Why metadata matters</h3>
+    <p class="section-lede">The query <i>What is the vacation policy?</i> against a collection that mixes HR documents, engineering manuals, legal contracts and student regulations. We may want <b>semantic similarity + a metadata filter</b> such as <code>department = "HR"</code>, <code>year = 2026</code>, <code>document_type = "policy"</code>:</p>
+    <div class="math-block">\[ \text{similarity}(q, d) \quad \text{subject to metadata constraints} \]</div>
+    <p class="section-lede">This is extremely common in practical RAG systems.</p>
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: filtered semantic search</h4>
+    <p class="section-lede">Twelve chunks with invented metadata; the scores are real <code>all-MiniLM-L6-v2</code> cosines. Choose a query and filters; the top \(k = 3\) are returned. Compare the two ways of combining the filter with the vector search.</p>
+    <div class="playground">
+      <div class="pg-controls"><div class="strategy-pick" id="vd-q"></div></div>
+      <div class="pg-controls vd-filters">
+        <label class="vd-f">department <select id="vd-dep" class="ii-select"></select></label>
+        <label class="vd-f">year <select id="vd-year" class="ii-select"></select></label>
+        <label class="vd-f">type <select id="vd-type" class="ii-select"></select></label>
+      </div>
+      <div class="pg-controls"><div class="strategy-pick" id="vd-mode"></div></div>
+      <div id="vd-out"></div>
+    </div>
+    <p class="caption-note">💡 For <i>How many vacation days do employees get?</i> the outdated 2024 handbook scores 0.803 and the current one 0.804: the embedding cannot tell which year you need, a metadata filter can. With <b>search, then filter</b> (take the top 3, then drop what fails the filter), <i>What is the vacation policy?</i> filtered to the Student office returns <b>nothing</b>, although a matching chunk exists: the filter must be applied <b>during</b> the search, which is what vector databases do.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Vector database vs relational database, vs FAISS</h3>
+    <div class="table-wrap">
+      <table class="summary sc-small">
+        <thead><tr><th></th><th>Designed around</th></tr></thead>
+        <tbody>
+          <tr data-s="ucs"><td><b>Relational database</b></td><td>exact equality, ranges, joins, structured fields</td></tr>
+          <tr data-s="ucs"><td><b>Vector database</b></td><td>adds nearest-neighbor search in high-dimensional space; does not necessarily replace relational storage (many real systems use both)</td></tr>
+          <tr data-s="ucs"><td><b>FAISS</b></td><td>a similarity-search library / vector-index toolkit</td></tr>
+          <tr data-s="ucs"><td><b>Vector database</b></td><td>a persistent data system that may use ANN indexes internally, and adds storage, metadata, filtering, APIs, index lifecycle, replication / sharding</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Semantic search with a vector database</h3>
+    <div class="rr-pipe">documents → encoder → embeddings → vector database &nbsp;|&nbsp; query → encoder → query embedding (+ metadata conditions) → filtered similarity search → nearest chunks</div>
+    <p class="section-lede" style="margin-top:1rem;">In a RAG system, those nearest chunks are what the language model gets to read.</p>
+    <ul class="concept-list">
+      <li>❗ <b>What the vector database does NOT do</b>: create semantic meaning. It does not replace the embedding model; bad embeddings stored in an excellent vector database are still bad embeddings. Keep the layers separate: <b>encoder</b> → representation quality; <b>vector index / database</b> → storage + retrieval efficiency; <b>reranker</b> → final ordering quality.</li>
+      <li><b>Common operations</b>: insert / upsert vectors, search nearest neighbors, filter by metadata, delete stale vectors, update embeddings, persist the index, partition or shard the collection.</li>
+      <li><b>When do we actually need one?</b> For a teaching dataset such as Cranfield, <b>NumPy + FAISS</b> is enough. A vector database becomes useful with persistent collections, frequent updates, metadata filters, multiple users, large-scale serving, operational APIs, distributed storage. Do not introduce one merely because RAG tutorials use one: the underlying retrieval concepts come first.</li>
+    </ul>
+  </section>
+
+  <!-- ===== PART VIII ===== -->
   <section class="block algo-section dfs" id="demo">
-    <span class="badge dfs" style="margin-bottom:0.6rem; display:inline-block;">Part VII</span>
+    <span class="badge dfs" style="margin-bottom:0.6rem; display:inline-block;">Part VIII</span>
     <h2 class="section-title">Exact vs ANN on Cranfield</h2>
-    <p class="section-lede">The Cranfield embeddings of Lab 08. Cranfield is small, so ANN is unnecessary; that is precisely why it is useful here: we can compute the exact neighbors and treat them as <b>ground truth for the search layer</b>.</p>
+    <p class="section-lede">The Cranfield embeddings of Part I. Cranfield is small enough that ANN is unnecessary; that is pedagogically useful, because <b>exact search can act as the reference</b>.</p>
     <details class="code-card">
       <summary>
         <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="code-file">nprobe_sweep.py</span>
+        <span class="code-file">exact_vs_ivf.py</span>
         <span class="code-lang">Python</span>
         <button type="button" class="code-copy">Copy</button>
         <span class="code-chevron" aria-hidden="true">▾</span>
       </summary>
       <pre class="code-body"><code class="lang-py">import time
-faiss.omp_set_num_threads(1)          # time one CPU thread
+query_vectors = model.encode([q.text for q in queries[:20]],
+                             normalize_embeddings=True).astype("float32")
+exact_scores, exact_ids = flat.search(query_vectors, 10)
 
+def ann_recall_at_k(exact_ids, approx_ids, k=10):
+    values = []
+    for exact, approx in zip(exact_ids, approx_ids):
+        values.append(len(set(exact[:k]) &amp; set(approx[:k])) / k)
+    return sum(values) / len(values)
+
+faiss.omp_set_num_threads(1)          # time one CPU thread
 def us_per_query(index, qv, reps=200):
     t = time.perf_counter()
     for _ in range(reps):
@@ -381,7 +553,7 @@ for nprobe in [1, 2, 4, 8, 16, 32]:
 # 16  0.990  17.5 µs
 # 32  1.000  33.4 µs</code></pre>
     </details>
-    <p class="section-lede">Measured on a laptop (Apple M-series), one thread; the exact numbers depend on data and hardware. The pattern is the expected one: <b>more clusters searched → higher chance of recovering the exact neighbors → higher ANN recall → more computation</b>. And one more lesson: with all 32 lists (33.4 µs) the IVF index is <b>slower</b> than the flat index (27.5 µs). At 1,400 vectors an index is pure overhead.</p>
+    <p class="section-lede">Measured on a laptop (Apple M-series), one thread; exact numbers depend on data and hardware. The pattern is the typical one: <b>nprobe ↑ → more search work → ANN recall ↑ → latency ↑</b>. And one more lesson: with all 32 lists (33.4 µs) the IVF index is <b>slower</b> than the flat index (27.5 µs). At 1,400 vectors an index is pure overhead.</p>
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: nprobe on all 225 queries</h4>
     <p class="section-lede">The same FAISS index (<code>nlist = 32</code>), reproduced in your browser from its lists; checked to return exactly FAISS's results for every query. Move <b>nprobe</b>: the plot shows ANN recall@10 against the fraction of vectors compared, the table the relevance metrics against Cranfield's judgments.</p>
@@ -399,7 +571,7 @@ for nprobe in [1, 2, 4, 8, 16, 32]:
       <div class="table-wrap" style="margin-top:0.8rem;"><table class="summary sc-small rr-num" id="nv-table"></table></div>
     </div>
     <h4 style="margin:1.4rem 0 0.4rem;">See it: one query, its lists and its neighbors</h4>
-    <p class="section-lede">The t-SNE map of Lab 08, each abstract colored by its IVF list. With the current nprobe, the probed lists are bright, the rest faded. Rings: the exact top 10; green: found by IVF; red: missed.</p>
+    <p class="section-lede">The t-SNE map of Part I, each abstract colored by its IVF list. With the current nprobe, the probed lists are bright, the rest faded. Rings: the exact top 10; green: found by IVF; red: missed.</p>
     <div class="playground">
       <div class="pg-controls"><select id="nq-sel" class="ii-select" aria-label="Cranfield query" style="max-width:100%;"></select></div>
       <div class="pg-grid">
@@ -415,29 +587,29 @@ for nprobe in [1, 2, 4, 8, 16, 32]:
     </div>
   </section>
 
-  <!-- ===== PART VIII ===== -->
+  <!-- ===== PART IX ===== -->
   <section class="block algo-section ucs" id="quality">
-    <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Part VIII</span>
-    <h2 class="section-title">Three different notions of quality</h2>
+    <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Part IX</span>
+    <h2 class="section-title">Three levels of quality</h2>
     <div class="table-wrap">
       <table class="summary sc-small">
-        <thead><tr><th>Layer</th><th>Question</th><th>Measure</th></tr></thead>
+        <thead><tr><th>Level</th><th>Question</th><th>Measure</th></tr></thead>
         <tbody>
-          <tr data-s="ucs"><td><b>1. Embedding quality</b></td><td>Does the representation rank semantically relevant documents highly?</td><td>nDCG, MRR, Recall@k, MAP, against relevance judgments</td></tr>
-          <tr data-s="ucs"><td><b>2. ANN quality</b></td><td>Does the approximate index recover the neighbors that exact vector search would return?</td><td>ANN recall@k, relative to exact search</td></tr>
+          <tr data-s="ucs"><td><b>1. Representation quality</b></td><td>Are relevant documents close to the query in embedding space?</td><td>Recall@k, MRR, MAP, nDCG, against relevance judgments</td></tr>
+          <tr data-s="ucs"><td><b>2. Index quality</b></td><td>Does ANN recover what exact vector search would have returned?</td><td>ANN recall@k</td></tr>
           <tr data-s="ucs"><td><b>3. Systems quality</b></td><td>How expensive is retrieval?</td><td>latency, queries per second, memory, index size, build time</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="section-lede" style="margin-top:1rem;">Related but distinct. A diagnosis table that is extremely useful later:</p>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Diagnostic table</h3>
     <div class="table-wrap">
       <table class="summary sc-small">
-        <thead><tr><th>Symptom</th><th>Possible cause</th></tr></thead>
+        <thead><tr><th>Symptom</th><th>Likely layer</th></tr></thead>
         <tbody>
-          <tr data-s="ucs"><td>Exact dense search has poor nDCG</td><td>embedding / retrieval model problem</td></tr>
-          <tr data-s="ucs"><td>Exact dense search is good, but ANN is worse</td><td>vector-index problem</td></tr>
-          <tr data-s="ucs"><td>Retrieval quality is good, but too slow</td><td>systems / index configuration problem</td></tr>
-          <tr data-s="ucs"><td>Good dense retrieval, but a weak final answer</td><td>downstream RAG / generation problem</td></tr>
+          <tr data-s="ucs"><td>Exact dense search has poor nDCG</td><td>representation / retriever</td></tr>
+          <tr data-s="ucs"><td>Exact dense search good, ANN worse</td><td>vector index</td></tr>
+          <tr data-s="ucs"><td>Quality good, latency too high</td><td>systems / index settings</td></tr>
+          <tr data-s="ucs"><td>Retrieval good, final answer bad</td><td>downstream RAG / generation</td></tr>
         </tbody>
       </table>
     </div>
@@ -453,8 +625,8 @@ for nprobe in [1, 2, 4, 8, 16, 32]:
       </summary>
       <pre class="code-body"><code class="lang-py">hnsw = faiss.IndexHNSWFlat(d, 32, faiss.METRIC_INNER_PRODUCT)   # 32 edges per node
 hnsw.add(vectors)                                                  # no training step; 42 ms here
-all_queries = query_embeddings.astype("float32")                   # all 225
-_, exact_all = flat.search(all_queries, 10)
+all_queries = model.encode([q.text for q in queries], normalize_embeddings=True).astype("float32")
+_, exact_all = flat.search(all_queries, 10)                        # all 225 queries
 for ef in [16, 32, 64]:
     hnsw.hnsw.efSearch = ef                # candidates kept during the graph walk
     _, ids = hnsw.search(all_queries, 10)
@@ -463,38 +635,31 @@ for ef in [16, 32, 64]:
 # 32  0.9982  17.9 µs
 # 64  0.9996  29.1 µs</code></pre>
     </details>
-    <p class="section-lede">The engineering question is not "<b>which index is best?</b>" but "<b>which operating point satisfies our quality and resource requirements?</b>"</p>
-  </section>
-
-  <!-- ===== PART IX ===== -->
-  <section class="block algo-section ids" id="rag">
-    <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part IX</span>
-    <h2 class="section-title">Connection to hybrid retrieval and RAG</h2>
-    <p class="section-lede">Dense retrieval now has a complete architecture:</p>
-    <div class="rr-pipe">documents → chunk → embed → vector index → ANN search → top-k candidates</div>
-    <p class="section-lede" style="margin-top:1rem;">But Lab 08 showed that dense retrieval has weaknesses, and BM25 has different ones. This suggests <b>hybrid retrieval</b>: BM25 + dense retrieval → combine the candidates → rerank.</p>
-    <p class="section-lede">A practical RAG retriever might look like:</p>
-    <div class="rr-pipe">user question → query embedding → ANN vector search → top 50 candidates → reranking → top 5 chunks → LLM</div>
-    <p class="section-lede" style="margin-top:1rem;">The vector index is therefore not merely an implementation detail: <b>it directly affects what evidence the LLM can access</b>.</p>
+    <p class="section-lede">The engineering question is not "<b>which index is best?</b>" but "<b>which operating point satisfies our quality and resource requirements?</b>" And vector-index design affects not only latency: it can change <b>which evidence reaches the later RAG stages</b>.</p>
   </section>
 
   <!-- ===== SUMMARY ===== -->
   <section class="block" id="summary">
     <h2 class="section-title">Summary: key takeaways</h2>
-    <div class="rr-pipe">Lab 08: embeddings → dense similarity &nbsp;|&nbsp; Lab 09: scale dense similarity → exact search → ANN → vector indexes → FAISS → recall / latency / memory trade-offs</div>
-    <ol class="concept-list" style="margin-top:1.2rem;">
-      <li>The embedding model and the vector index solve different problems.</li>
-      <li>Exact dense search compares against every vector; ANN avoids many comparisons.</li>
-      <li>ANN deliberately trades some search accuracy for speed.</li>
-      <li>ANN recall is not the same as IR Recall@k.</li>
-      <li>Large-scale RAG depends on both good embeddings and good vector-search infrastructure.</li>
+    <ol class="concept-list">
+      <li>A dense retriever has both a representation model and a search / index layer.</li>
+      <li>Bi-encoders make retrieval efficient because document vectors can be precomputed.</li>
+      <li>Exact search evaluates every vector; ANN avoids much of that work.</li>
+      <li>ANN recall and IR Recall@k measure different things.</li>
+      <li>A vector database adds persistence, metadata, filtering and operational data management around vector search.</li>
+      <li>Vector-index design affects latency and can affect which evidence reaches later RAG stages.</li>
     </ol>
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Optional exercises</h3>
-    <ul class="concept-list">
-      <li><b>Exact vs IVF.</b> With the Cranfield embeddings: build an exact <code>IndexFlatIP</code> and an <code>IndexIVFFlat</code>; search the same 20 queries with both; for nprobe = 1, 2, 4, 8, 16 record ANN recall@10 and the mean query time; plot recall (y) against time (x) and explain the trade-off. (<code>nprobe_sweep.py</code> above has one run.)</li>
-      <li><b>Retrieval quality.</b> Do not stop at ANN recall: for each configuration, evaluate the retrieved documents with Recall@10, MRR, MAP, nDCG@10, and compare with ANN recall. (The <a href="#nv">nprobe widget</a> does it for all 225 queries; exercises 1–2 above discuss the result.)</li>
-      <li><b>Scaling calculation.</b> Raw vector storage for 1, 10 and 100 million vectors at 384 and 768 dimensions in float32 (the <a href="#mm-table">memory table</a>), and why production systems use float16, quantization, compressed indexes and sharding.</li>
-    </ul>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Optional exercise</h3>
+    <p class="section-lede">Using the Cranfield embeddings:</p>
+    <ol class="concept-list">
+      <li>build an exact <code>IndexFlatIP</code>;</li>
+      <li>build an <code>IndexIVFFlat</code>;</li>
+      <li>vary <code>nprobe</code>;</li>
+      <li>measure ANN recall@10;</li>
+      <li>measure the mean query latency;</li>
+      <li>evaluate the retrieved documents with nDCG@10.</li>
+    </ol>
+    <p class="section-lede">Compare <b>vector-search fidelity</b> with <b>user-facing IR quality</b>: they are related, but not identical. (<code>exact_vs_ivf.py</code> has steps 1–5; the <a href="#nv">nprobe widget</a> does 4 and 6 for all 225 queries, and exercises 1–2 of Part VIII discuss the result.)</p>
   </section>
 
 </div>
