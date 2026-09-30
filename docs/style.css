@@ -2411,3 +2411,9 @@ table.summary td.mm-big { background: color-mix(in srgb, var(--ucs) 18%, var(--s
 .rc-doc.miss { border: 2px dashed #d9546e; background: color-mix(in srgb, #d9546e 14%, var(--surface)); color: var(--red-ink); }
 .bt-legend .k.rc-k-ret { background: none; border: 2.5px solid var(--indigo); box-sizing: border-box; } .bt-legend .k.rc-k-miss { background: none; border: 2px dashed #d9546e; box-sizing: border-box; }
 @media (max-width: 520px) { .pc-doc { min-width: 3.4rem; padding: 0.3rem; } .rc-doc { height: 1.7rem; font-size: 0.62rem; } }
+.ac-sl { gap: 0.4rem 1.2rem; }
+table.summary.cm-live td.tp { background: color-mix(in srgb, var(--bfs) 22%, var(--surface)); font-weight: 800; }
+table.summary.cm-live td.fp, table.summary.cm-live td.fn { background: color-mix(in srgb, #d9546e 14%, var(--surface)); }
+table.summary.cm-live td.tn { background: color-mix(in srgb, var(--ink) 6%, var(--surface)); color: var(--ink-soft); }
+.toy-tab .tk-r, .toy-tab .tk-n { display: inline-block; padding: 0.1rem 0.45rem; border-radius: 6px; font-weight: 800; font-size: 0.8rem; }
+.toy-tab .tk-r { background: var(--bfs); color: #fff; } .toy-tab .tk-n { border: 1.5px solid var(--line); color: var(--ink-soft); }

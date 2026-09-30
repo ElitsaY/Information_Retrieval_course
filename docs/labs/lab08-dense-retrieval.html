@@ -477,7 +477,7 @@ ir_measures.calc_aggregate([P(rel=1)@10, Recall(rel=1)@10, Recall(rel=1)@100,
     <h2 class="section-title">Connection to RAG</h2>
     <p class="section-lede">Dense retrieval is one of the standard building blocks of RAG:</p>
     <div class="rr-pipe">documents → chunk → embed → vector index &nbsp;|&nbsp; user query → embed → nearest-neighbor search → top-k chunks → LLM</div>
-    <p class="section-lede" style="margin-top:1rem;">This is why dense retrieval must be understood before RAG frameworks: <b>the framework is not the retrieval concept</b>. And the failure mode of <a href="lab05-evaluation.html#rag">Lab 05</a> is unchanged: if the answer is in chunk D17, dense retrieval ranks it 12th, and the LLM receives the top 5, the generation model never sees the evidence. <b>The retrieval problem comes first.</b></p>
+    <p class="section-lede" style="margin-top:1rem;">This is why dense retrieval must be understood before RAG frameworks: <b>the framework is not the retrieval concept</b>. And the classic failure mode applies: if the answer is in chunk D17, dense retrieval ranks it 12th, and the LLM receives the top 5, the generation model never sees the evidence. <b>The retrieval problem comes first.</b></p>
     <h4 style="margin:1.4rem 0 0.4rem;">See it: how much evidence reaches the model</h4>
     <div class="playground">
       <div class="pg-controls">

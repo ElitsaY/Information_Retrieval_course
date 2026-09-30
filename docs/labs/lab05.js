@@ -161,6 +161,31 @@ function initWhich() {
   render();
 }
 
+/* ---------- Part II: accuracy vs precision and recall ---------- */
+function initAccuracy() {
+  const $ = (id) => document.getElementById(id), Ns = $('ac-n'), Rs = $('ac-r'), Ks = $('ac-k'), Ts = $('ac-t'), cm = $('ac-cm'), out = $('ac-out');
+  const PRE = { cran: ['A Cranfield query', 3.146, 7, 10, 4], none: ['Return nothing', 3.146, 7, 0, 0], all: ['Return everything', 1.5, 7, 32, 7], web: ['Web scale', 9, 7, 10, 4] };
+  pills($('ac-pre'), Object.entries(PRE).map(([k, v]) => [k, v[0]]), 'cran', (k) => { const p = PRE[k]; Ks.max = 50; Ts.max = 30; Ns.value = p[1]; Rs.value = p[2]; Ks.value = p[3]; Ts.value = p[4]; render(); });
+  const pct = (v) => (100 * v).toFixed(v > 0.9999 && v < 1 ? 7 : 1) + '%';
+  function render() {
+    const N = Math.max(30, Math.round(Math.pow(10, +Ns.value)));
+    Ks.max = Math.min(50, N); if (+Ks.value > N) Ks.value = N;
+    const R = +Rs.value, k = +Ks.value; Ts.max = Math.min(R, k); if (+Ts.value > Math.min(R, k)) Ts.value = Math.min(R, k);
+    const TP = +Ts.value, FP = k - TP, FN = R - TP, TN = N - k - FN;
+    $('ac-n-val').textContent = N.toLocaleString('en'); $('ac-r-val').textContent = R; $('ac-k-val').textContent = k; $('ac-t-val').textContent = TP;
+    cm.innerHTML = `<div class="table-wrap"><table class="summary sc-small rr-num cm-live"><thead><tr><th></th><th>relevant</th><th>not relevant</th></tr></thead><tbody>` +
+      `<tr><td><b>retrieved</b></td><td class="tp">TP = ${TP}</td><td class="fp">FP = ${FP}</td></tr><tr><td><b>not retrieved</b></td><td class="fn">FN = ${FN}</td><td class="tn">TN = ${TN.toLocaleString('en')}</td></tr></tbody></table></div>`;
+    const acc = (TP + TN) / N, prec = k ? TP / k : null, rec = TP / R;
+    out.innerHTML = `<p class="big">Accuracy \\(= \\frac{${TP} + ${TN.toLocaleString('en').replace(/,/g, '{,}')}}{${N.toLocaleString('en').replace(/,/g, '{,}')}}\\) = <b>${pct(acc)}</b></p>` +
+      `<p class="big">Precision \\(= \\frac{${TP}}{${TP} + ${FP}}\\) = <b>${prec === null ? 'undefined (nothing retrieved)' : pct(prec)}</b></p>` +
+      `<p class="big">Recall \\(= \\frac{${TP}}{${TP} + ${FN}}\\) = <b>${pct(rec)}</b></p>` +
+      `<p class="note">${k === 0 ? '❗ The empty result is useless, yet its accuracy is almost perfect: every true negative counts as a correct decision.' : acc > 0.99 ? '❗ Accuracy stays above 99% whatever the system does with its few results; precision and recall are what change.' : 'In a small collection the true negatives weigh less, and accuracy starts to move.'}</p>`;
+    mathIn(out);
+  }
+  [Ns, Rs, Ks, Ts].forEach(e => e.addEventListener('input', render));
+  render();
+}
+
 /* ---------- Part II: precision at k ---------- */
 function initPrecision() {
   const K = document.getElementById('pc-k'), list = document.getElementById('pc-list'), out = document.getElementById('pc-out');
@@ -334,40 +359,15 @@ function initPerQuery() {
   render();
 }
 
-/* ---------- Part VII: RAG and Recall@k ---------- */
-function initRag() {
-  const ks = document.getElementById('rg-k'), ps = document.getElementById('rg-pos'), box = document.getElementById('rg-box'), svg = document.getElementById('rg-svg'), out = document.getElementById('rg-out');
-  const E = C ? evaluate() : null;
-  function render() {
-    const k = +ks.value, pos = +ps.value;
-    document.getElementById('rg-k-val').textContent = k; document.getElementById('rg-pos-val').textContent = pos;
-    box.innerHTML = Array.from({ length: 15 }, (_, i) => `<span class="rg-p${i < k ? ' in' : ''}${i + 1 === pos ? ' ev' : ''}">${i + 1 === pos ? '★' : i + 1}</span>`).join('') +
-      `<p class="note" style="margin:0.5rem 0 0;">${pos <= k ? `The evidence is at rank ${pos}, inside the top ${k}: the LLM can use it.` : `❗ The evidence is at rank ${pos}, but the LLM only receives the top ${k}: it never sees it.`}</p>`;
-    if (!E) return;
-    svg.innerHTML = '';
-    const W = 460, H = 250, L = 40, R = 12, T = 12, B = 36, K = 50, x = (v) => L + (v - 1) / (K - 1) * (W - L - R), y = (v) => H - B - v * (H - B - T);
-    [0, 0.25, 0.5, 0.75].forEach(v => { el('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), class: 'grid-line' }, svg); txt(svg, L - 6, y(v) + 4, v, 'tick', 'end'); });
-    [1, 10, 20, 30, 40, 50].forEach(v => txt(svg, x(v), H - B + 16, v, 'tick', 'middle'));
-    const curve = (s) => Array.from({ length: K }, (_, i) => E.sys[s].reduce((acc, run, q) => acc + recallAt(run, C.qrels[String(q + 1)], i + 1), 0) / E.sys[s].length);
-    const cT = curve('tfidf'), cB = curve('bm25');
-    [[cT, 'rg-tf'], [cB, 'rg-bm']].forEach(([c, cls]) => el('polyline', { points: c.map((v, i) => `${x(i + 1)},${y(v)}`).join(' '), class: cls }, svg));
-    el('line', { x1: x(Math.min(k, K)), x2: x(Math.min(k, K)), y1: T, y2: H - B, class: 'rg-k' }, svg);
-    txt(svg, L + (W - L - R) / 2, H - 4, 'k (passages given to the model)', 'tick', 'middle');
-    out.innerHTML = `<p class="big">Cranfield, mean Recall@${k}: TF-IDF <b>${cT[k - 1].toFixed(3)}</b>, BM25 <b>${cB[k - 1].toFixed(3)}</b></p><p class="note">With the top ${k} documents as context, on average ${(100 * cT[k - 1]).toFixed(0)}% (TF-IDF) of the relevant documents of a query would reach the model.</p>`;
-  }
-  [ks, ps].forEach(s => s.addEventListener('input', render));
-  render();
-}
-
 /* ---------- init ---------- */
 document.addEventListener('DOMContentLoaded', () => {
   initMath();
   initHero();
   initWhich();
+  initAccuracy();
   initPrecision();
   initRecall();
   initPlayground();
   initDcg();
   if (C) { initGrades(); initEvalTable(); initPerQuery(); }
-  initRag();
 });

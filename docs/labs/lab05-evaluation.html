@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lab 05 — Evaluating Information Retrieval Systems | Class Notes</title>
-<meta name="description" content="Interactive notes on IR evaluation: relevance judgments, precision and recall, reciprocal rank and MRR, average precision and MAP, DCG and nDCG, per-query analysis and Recall@k for RAG, with TF-IDF and BM25 evaluated on Cranfield.">
+<meta name="description" content="Interactive notes on IR evaluation: relevance judgments, why accuracy is not enough, precision and recall, reciprocal rank and MRR, average precision and MAP, DCG and nDCG, and per-query analysis, with TF-IDF and BM25 evaluated on Cranfield.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
@@ -58,7 +58,7 @@
       <span class="badge ids">Precision &amp; Recall</span>
       <span class="badge bfs">MRR &amp; MAP</span>
       <span class="badge dfs">nDCG</span>
-      <span class="badge ucs">RAG</span>
+      <span class="badge ucs">Cranfield</span>
     </div>
   </div>
 </section>
@@ -75,23 +75,22 @@
     <div class="rr-pipe">queries + system rankings + relevance judgments → metrics</div>
     <ol class="concept-list" style="margin-top:1.2rem;">
       <li><a href="#why">Why evaluation?</a> Relevance judgments and the offline setup.</li>
-      <li><a href="#pr">Precision and Recall</a>, at a cutoff \(k\).</li>
+      <li><a href="#pr">Accuracy, Precision and Recall</a>: why accuracy is not enough, and precision and recall at a cutoff \(k\).</li>
       <li><a href="#rank">Why rank position matters</a>: RR and MRR, AP and MAP.</li>
       <li><a href="#graded">Graded relevance</a>: DCG and nDCG.</li>
       <li><a href="#cranfield">Live evaluation on Cranfield</a> with <code>ir_measures</code>.</li>
       <li><a href="#disagree">Different metrics can disagree</a>: metric choice and per-query analysis.</li>
-      <li><a href="#rag">Connection to RAG</a>: why Recall@k matters.</li>
       <li><a href="#summary">Summary</a>, and an optional exercise.</li>
     </ol>
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Learning objectives</h3>
     <p class="section-lede">By the end you should be able to explain:</p>
     <ul class="concept-list">
       <li>why retrieval evaluation requires relevance judgments;</li>
+      <li>why accuracy is not a useful measure for retrieval;</li>
       <li>the difference between Precision and Recall, and why rank-aware metrics are needed;</li>
       <li>the meaning of Reciprocal Rank and MRR, and of Average Precision and MAP;</li>
       <li>how graded relevance leads to DCG and nDCG;</li>
       <li>why different metrics can produce different conclusions;</li>
-      <li>why Recall@k is especially important in RAG-style retrieval.</li>
     </ul>
   </section>
 
@@ -130,20 +129,60 @@
   <!-- ===== PART II: PRECISION AND RECALL ===== -->
   <section class="block algo-section bfs" id="pr">
     <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Part II</span>
-    <h2 class="section-title">Precision and Recall</h2>
+    <h2 class="section-title">Accuracy, Precision and Recall</h2>
+    <p class="section-lede">For one query, every document in the collection falls into one of four cells: the system retrieved it or not, and it is relevant or not.</p>
+    <div class="table-wrap">
+      <table class="summary sc-small cm-tab">
+        <thead><tr><th></th><th>relevant</th><th>not relevant</th></tr></thead>
+        <tbody>
+          <tr data-s="bfs"><td><b>retrieved</b></td><td><b>TP</b>, true positive: a hit</td><td><b>FP</b>, false positive: noise the user reads</td></tr>
+          <tr data-s="bfs"><td><b>not retrieved</b></td><td><b>FN</b>, false negative: a miss</td><td><b>TN</b>, true negative: correctly left out</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.4rem;">Accuracy, and why it is not enough</h3>
+    <div class="definition-box">
+      <div class="dbox-label">📐 Accuracy</div>
+      <div class="math-block">\[ \text{Accuracy} = \frac{TP + TN}{TP + FP + FN + TN} = \frac{\text{correct decisions}}{\text{all documents}} \]</div>
+      <p>The share of documents the system classified correctly, as retrieved-and-relevant or left-out-and-not-relevant. It is the natural measure for classification, where the classes are of similar size.</p>
+    </div>
+    <ul class="concept-list" style="margin-top:1rem;">
+      <li>❗ <b>In retrieval, almost every document is not relevant.</b> A Cranfield query has on average 7.2 relevant documents among 1,400 (1,612 relevant judgments for 225 queries). For a query with 7 relevant documents, a system that <b>returns nothing</b> leaves the other 1,393 correctly out and gets accuracy \(1393 / 1400 = 99.5\%\).</li>
+      <li>On the Web, with billions of pages and a handful of relevant ones, the useless empty system scores 99.9999…%. Accuracy is dominated by the true negatives, which the user never sees and does not care about.</li>
+      <li>So retrieval evaluation ignores TN and looks only at what the user sees (TP, FP) and what the user needs (TP, FN): <b>precision</b> and <b>recall</b>.</li>
+    </ul>
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: accuracy vs precision and recall</h4>
+    <p class="section-lede">One query: set the collection size, how many documents are relevant, how many the system retrieves and how many of those are relevant.</p>
+    <div class="playground">
+      <div class="pg-controls"><div class="strategy-pick" id="ac-pre"></div></div>
+      <div class="pg-controls ac-sl">
+        <div class="beam-control show" style="margin:0;"><label for="ac-n">collection size \(N\)</label><input type="range" id="ac-n" min="1.5" max="9" value="3.146" step="0.001"><span class="val" id="ac-n-val"></span></div>
+        <div class="beam-control show" style="margin:0;"><label for="ac-r">relevant documents</label><input type="range" id="ac-r" min="1" max="30" value="7" step="1"><span class="val" id="ac-r-val"></span></div>
+        <div class="beam-control show" style="margin:0;"><label for="ac-k">retrieved</label><input type="range" id="ac-k" min="0" max="50" value="10" step="1"><span class="val" id="ac-k-val"></span></div>
+        <div class="beam-control show" style="margin:0;"><label for="ac-t">relevant among them</label><input type="range" id="ac-t" min="0" max="30" value="4" step="1"><span class="val" id="ac-t-val"></span></div>
+      </div>
+      <div class="pg-grid">
+        <div id="ac-cm"></div>
+        <div class="al-out" id="ac-out"></div>
+      </div>
+    </div>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">A toy ranking</h3>
     <p class="section-lede">A toy ranking used throughout: D1 (relevant), D2 (not), D3 (relevant), D4 (not), D5 (relevant), written <b>R N R N R</b>. The collection contains exactly these three relevant documents: D1, D3, D5. For ranked retrieval both measures are computed at a <b>cutoff</b> \(k\): we look only at the top \(k\) results (P@1, P@5, P@10, …).</p>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.4rem;">Precision</h3>
     <div class="definition-box">
       <div class="dbox-label">📐 Precision</div>
-      <div class="math-block">\[ \text{Precision} = \frac{\text{relevant retrieved}}{\text{retrieved}} \qquad P@k = \frac{\text{relevant in the top } k}{k} \]</div>
+      <div class="math-block">\[ \text{Precision} = \frac{\text{relevant retrieved}}{\text{retrieved}} = \frac{TP}{TP + FP} \qquad P@k = \frac{\text{relevant in the top } k}{k} \]</div>
       <p><b>Of the documents we retrieved, how many are relevant?</b> Precision looks only at what the system returned: how clean is the result list?</p>
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
       <li><b>Example</b>: a search engine shows 10 results and 4 of them are relevant: \(P@10 = 4/10 = 0.4\). Six of the ten results the user reads are wasted.</li>
-      <li><b>Toy ranking R N R N R</b>: \(P@1 = 1/1 = 1.0\), \(P@2 = 1/2\), \(P@3 = 2/3\), \(P@5 = 3/5 = 0.6\).</li>
       <li>Documents below the cutoff do not matter for P@k, and neither do relevant documents the system never returned.</li>
     </ul>
+    <p class="section-lede" style="margin-top:0.8rem;"><b>The toy ranking R N R N R</b>, precision at every cutoff:</p>
+    <div class="table-wrap"><table class="summary sc-small rr-num toy-tab"><thead><tr><th>rank \(k\)</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr></thead><tbody><tr><td><b>document</b></td><td><span class="tk-r">D1 R</span></td><td><span class="tk-n">D2 N</span></td><td><span class="tk-r">D3 R</span></td><td><span class="tk-n">D4 N</span></td><td><span class="tk-r">D5 R</span></td></tr><tr><td><b>relevant in top \(k\)</b></td><td>1</td><td>1</td><td>2</td><td>2</td><td>3</td></tr><tr><td><b>\(P@k\)</b></td><td>1/1 = 1.00</td><td>1/2 = 0.50</td><td>2/3 = 0.67</td><td>2/4 = 0.50</td><td>3/5 = 0.60</td></tr></tbody></table></div>
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: precision at k</h4>
     <p class="section-lede">Move the cutoff \(k\): the bracket marks the retrieved set, the documents the user sees. Click a document to switch it between relevant and not relevant.</p>
     <div class="playground">
@@ -157,14 +196,15 @@
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Recall</h3>
     <div class="definition-box">
       <div class="dbox-label">📐 Recall</div>
-      <div class="math-block">\[ \text{Recall} = \frac{\text{relevant retrieved}}{\text{all relevant}} \qquad Recall@k = \frac{\text{relevant in the top } k}{\text{all relevant}} \]</div>
+      <div class="math-block">\[ \text{Recall} = \frac{\text{relevant retrieved}}{\text{all relevant}} = \frac{TP}{TP + FN} \qquad Recall@k = \frac{\text{relevant in the top } k}{\text{all relevant}} \]</div>
       <p><b>Of all relevant documents that exist, how many did we retrieve?</b> Recall looks at the whole collection: how much of what the user needs did we find? Its denominator counts relevant documents the system <b>never showed</b>, which is why it needs relevance judgments beyond the returned list.</p>
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
       <li><b>Example</b>: a lawyer needs every court decision on a topic. The archive holds 50 relevant decisions and the search finds 40 of them: \(Recall = 40/50 = 0.8\), however many irrelevant ones came along.</li>
-      <li><b>Toy ranking R N R N R</b>, with 3 relevant documents in the collection: \(Recall@1 = 1/3\), \(Recall@3 = 2/3\) (2 of the 3 found), \(Recall@5 = 3/3 = 1.0\).</li>
       <li>If the collection held 2 more relevant documents that the ranking never reaches, the same ranking would only get \(Recall@5 = 3/5\): nothing about the list changed, only the denominator.</li>
     </ul>
+    <p class="section-lede" style="margin-top:0.8rem;"><b>The toy ranking R N R N R</b>, with 3 relevant documents in the collection:</p>
+    <div class="table-wrap"><table class="summary sc-small rr-num toy-tab"><thead><tr><th>rank \(k\)</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr></thead><tbody><tr><td><b>document</b></td><td><span class="tk-r">D1 R</span></td><td><span class="tk-n">D2 N</span></td><td><span class="tk-r">D3 R</span></td><td><span class="tk-n">D4 N</span></td><td><span class="tk-r">D5 R</span></td></tr><tr><td><b>relevant in top \(k\)</b></td><td>1</td><td>1</td><td>2</td><td>2</td><td>3</td></tr><tr><td><b>\(Recall@k\)</b></td><td>1/3 = 0.33</td><td>1/3 = 0.33</td><td>2/3 = 0.67</td><td>2/3 = 0.67</td><td>3/3 = 1.00</td></tr></tbody></table></div>
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: recall at k</h4>
     <p class="section-lede">The whole collection of 30 documents; the toy ranking returns D1–D5 in order. Move \(k\) to retrieve more of the ranking, and add relevant documents that the ranking never reaches.</p>
     <div class="playground">
@@ -248,15 +288,37 @@
   <section class="block algo-section ucs" id="graded">
     <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Part IV</span>
     <h2 class="section-title">Graded relevance: DCG and nDCG</h2>
-    <p class="section-lede">Cranfield has graded relevance: a document may be of minimum interest, useful, highly relevant, or a complete answer. Binary metrics collapse all of these into "relevant", which loses information. This motivates DCG and nDCG.</p>
+    <p class="section-lede">Cranfield has graded relevance: a document may be of minimum interest, useful, highly relevant, or a complete answer. Binary metrics collapse all of these into "relevant", which loses information: a ranking that puts a complete answer first and one that puts a document of minimum interest first get the same P@1. DCG (Järvelin &amp; Kekäläinen, 2002) measures a graded ranking by imagining a user who reads the list from the top.</p>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.4rem;">Three ideas in one formula</h3>
+    <ol class="concept-list">
+      <li><b>Gain</b>: each document is worth something to the user, and more if its grade is higher. With the gain \(2^{rel} - 1\): grade 0 → 0, 1 → 1, 2 → 3, 3 → 7, 4 → 15. The exponent makes one highly relevant document worth more than several marginal ones: a grade-3 document (7) is worth more than two grade-2 documents (3 + 3).</li>
+      <li><b>Discount</b>: the user reads from the top, and every rank further down is less likely to be read. So the gain at rank \(i\) is divided by \(\log_2(i + 1)\): rank 1 by 1 (full value), rank 2 by 1.58, rank 3 by 2, rank 4 by 2.32, rank 10 by 3.46. The logarithm makes the penalty grow slowly: a document at rank 10 still keeps 29% of its value.</li>
+      <li><b>Cumulative</b>: add up the discounted gains of the top \(k\) documents. The total is the value the user collects by reading the top \(k\).</li>
+    </ol>
     <div class="definition-box">
       <div class="dbox-label">📐 Discounted Cumulative Gain</div>
       <div class="math-block">\[ DCG@k = \sum_{i=1}^{k} \frac{2^{rel_i} - 1}{\log_2(i + 1)} \qquad nDCG@k = \frac{DCG@k}{IDCG@k} \]</div>
-      <p>Two ideas. <b>Gain</b>: higher grades give larger gains, \(2^{rel} - 1\): grade 0 → 0, 1 → 1, 2 → 3, 3 → 7, 4 → 15, so highly relevant documents matter more. <b>Discount</b>: lower ranks get less credit, dividing by \(\log_2(i + 1)\). High relevance near the top is rewarded most.</p>
+      <p>\(rel_i\) is the grade of the document at rank \(i\); \(IDCG@k\) is the DCG@k of the <b>ideal</b> ranking, all judged documents sorted by grade, highest first.</p>
+    </div>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">A worked example</h3>
+    <p class="section-lede">The system ranks four documents with grades <b>[3, 0, 2, 1]</b>.</p>
+    <div class="table-wrap">
+      <table class="summary sc-small rr-num">
+        <thead><tr><th>rank \(i\)</th><th>grade</th><th>gain \(2^{rel} - 1\)</th><th>discount \(\log_2(i+1)\)</th><th>gain / discount</th></tr></thead>
+        <tbody>
+          <tr data-s="ucs"><td>1</td><td>3</td><td>7</td><td>1.000</td><td>7.000</td></tr>
+          <tr data-s="ucs"><td>2</td><td>0</td><td>0</td><td>1.585</td><td>0.000</td></tr>
+          <tr data-s="ucs"><td>3</td><td>2</td><td>3</td><td>2.000</td><td>1.500</td></tr>
+          <tr data-s="ucs"><td>4</td><td>1</td><td>1</td><td>2.322</td><td>0.431</td></tr>
+          <tr data-s="ucs"><td colspan="4"><b>DCG@4</b></td><td><b>8.931</b></td></tr>
+        </tbody>
+      </table>
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
-      <li><b>Why normalize?</b> Raw DCG depends on how much relevance a query has: a query with many highly relevant documents can reach a larger DCG. So we compute the <b>ideal</b> ranking (highest grade first, then the next highest, …), its \(IDCG@k\), and divide. A perfect ranking has \(nDCG@k = 1\).</li>
-      <li><b>Small example</b>: the system ranks grades <b>[3, 0, 2, 1]</b>; the ideal order is <b>[3, 2, 1, 0]</b>. The system's DCG is lower because the grade-2 and grade-1 documents appear too late.</li>
+      <li><b>Is 8.931 good?</b> A raw DCG cannot tell: it depends on how much relevant material the query has. Ten grade-3 documents give \(DCG@10 = 31.8\); a query with a single grade-1 document can never exceed 1.</li>
+      <li><b>So normalize</b>: the best possible order of the same documents is <b>[3, 2, 1, 0]</b>, with \(IDCG@4 = 7 + 3/1.585 + 1/2 + 0 = 9.393\). Then \(nDCG@4 = 8.931 / 9.393 = 0.951\): 95% of the best achievable. The system lost a little because the grade-2 and grade-1 documents came one rank too late.</li>
+      <li><b>The same documents in the worst order</b>, [0, 1, 2, 3]: \(DCG@4 = 0 + 1/1.585 + 3/2 + 7/2.322 = 5.146\), \(nDCG@4 = 0.548\). Same documents, same precision, very different nDCG: the order of the grades is what it measures.</li>
+      <li>\(nDCG@k\) is always between 0 and 1, and 1 exactly for an ideal ranking; after normalization it can be averaged over queries.</li>
     </ul>
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: compute nDCG</h4>
@@ -392,33 +454,6 @@ print(bm25_scores)
     </div>
   </section>
 
-  <!-- ===== PART VII: RAG ===== -->
-  <section class="block algo-section dfs" id="rag">
-    <span class="badge dfs" style="margin-bottom:0.6rem; display:inline-block;">Part VII</span>
-    <h2 class="section-title">Connection to RAG</h2>
-    <p class="section-lede">A retrieval-augmented generation pipeline: <b>question → retriever → top-k passages → LLM → answer</b>. Suppose the correct passage is ranked 7th, but the LLM receives only the top 5: the generation model never sees the evidence. This makes \(Recall@k\) especially important for RAG retrieval.</p>
-    <div class="playground">
-      <div class="pg-controls">
-        <div class="beam-control show" style="margin:0;"><label for="rg-k">passages given, \(k\)</label><input type="range" id="rg-k" min="1" max="15" value="5" step="1"><span class="val" id="rg-k-val">5</span></div>
-        <div class="beam-control show" style="margin:0;"><label for="rg-pos">rank of the evidence</label><input type="range" id="rg-pos" min="1" max="15" value="7" step="1"><span class="val" id="rg-pos-val">7</span></div>
-      </div>
-      <div id="rg-box" class="rg-box"></div>
-      <div class="pg-grid" style="margin-top:1rem;">
-        <div>
-          <svg id="rg-svg" class="ml-plot" viewBox="0 0 460 250" aria-label="Mean Recall at k on Cranfield"></svg>
-          <p class="bt-legend" style="margin:0.2rem 0 0;"><span class="k ln" style="background:var(--indigo);"></span> TF-IDF &nbsp; <span class="k ln" style="background:var(--dfs);"></span> BM25 &nbsp; mean Recall@k over the 225 Cranfield queries</p>
-        </div>
-        <div class="al-out" id="rg-out"></div>
-      </div>
-    </div>
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Two different RAG failures</h3>
-    <ul class="concept-list">
-      <li><b>Retrieval failure</b>: the correct evidence was not retrieved (or not within the top \(k\)).</li>
-      <li><b>Generation failure</b>: the correct evidence was retrieved, but the model still produced a poor answer.</li>
-      <li>Later in the course we diagnose these two separately.</li>
-    </ul>
-  </section>
-
   <!-- ===== SUMMARY ===== -->
   <section class="block" id="summary">
     <h2 class="section-title">Summary: key takeaways</h2>
@@ -437,10 +472,9 @@ print(bm25_scores)
     <div class="rr-pipe" style="margin-top:1.2rem;">Lab 04: build a ranking → Lab 05: evaluate the ranking → later labs: replace the retriever, keep the evaluation framework</div>
     <ol class="concept-list" style="margin-top:1.2rem;">
       <li>A retrieval score is meaningless without an evaluation setup.</li>
-      <li>Precision and Recall measure different retrieval goals.</li>
+      <li>Accuracy is useless for retrieval: almost every document is not relevant. Precision and Recall measure different retrieval goals.</li>
       <li>Rank position matters.</li>
       <li>Different metrics encode different assumptions about user needs.</li>
-      <li>RAG does not eliminate retrieval evaluation; it makes it even more important.</li>
     </ol>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Optional exercise</h3>
