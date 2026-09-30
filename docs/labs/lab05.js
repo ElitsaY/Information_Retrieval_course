@@ -161,6 +161,48 @@ function initWhich() {
   render();
 }
 
+/* ---------- Part II: precision at k ---------- */
+function initPrecision() {
+  const K = document.getElementById('pc-k'), list = document.getElementById('pc-list'), out = document.getElementById('pc-out');
+  const L = [true, false, true, false, true];
+  function render() {
+    const k = +K.value; document.getElementById('pc-k-val').textContent = k;
+    const card = (x, i) => `<button type="button" class="pc-doc${x ? ' rel' : ''}${i < k ? '' : ' out'}" data-i="${i}"><small>rank ${i + 1}</small><b>D${i + 1}</b><span>${x ? 'relevant' : 'not relevant'}</span></button>`;
+    list.innerHTML = `<div class="pc-ret"><span class="pc-lab">retrieved: top ${k}</span><div class="pc-row">${L.slice(0, k).map(card).join('')}</div></div>` +
+      (k < L.length ? `<div class="pc-rest"><span class="pc-lab">not retrieved</span><div class="pc-row">${L.slice(k).map((x, j) => card(x, k + j)).join('')}</div></div>` : '');
+    list.querySelectorAll('.pc-doc').forEach(b => b.addEventListener('click', () => { L[+b.dataset.i] = !L[+b.dataset.i]; render(); }));
+    const r = L.slice(0, k).filter(Boolean).length, P = L.map((_, j) => L.slice(0, j + 1).filter(Boolean).length / (j + 1));
+    out.innerHTML = `<p class="big">\\(P@${k} = \\dfrac{\\text{relevant in the top ${k}}}{${k}} = \\dfrac{${r}}{${k}} = \\) <b>${(r / k).toFixed(3)}</b></p>` +
+      `<div class="pc-bar">${L.slice(0, k).map(x => `<span class="${x ? 'rel' : ''}"></span>`).join('')}</div>` +
+      `<div class="rr-tw" style="margin-top:0.7rem;"><table class="summary sc-small rr-num"><thead><tr><th>k</th>${P.map((_, j) => `<th>${j + 1}</th>`).join('')}</tr></thead><tbody><tr><td>P@k</td>${P.map((v, j) => `<td class="${j === k - 1 ? 'hl' : ''}">${v.toFixed(2)}</td>`).join('')}</tr></tbody></table></div>` +
+      `<p class="note">${k < L.length && L.slice(k).some(Boolean) ? `The relevant document${L.slice(k).filter(Boolean).length > 1 ? 's' : ''} below the cutoff do${L.slice(k).filter(Boolean).length > 1 ? '' : 'es'} not count: precision only judges what was retrieved.` : 'Precision only judges what was retrieved.'}</p>`;
+    mathIn(out);
+  }
+  K.addEventListener('input', render);
+  render();
+}
+
+/* ---------- Part II: recall at k ---------- */
+function initRecall() {
+  const K = document.getElementById('rc-k'), Xs = document.getElementById('rc-x'), grid = document.getElementById('rc-grid'), out = document.getElementById('rc-out');
+  const ranked = [1, 2, 3, 4, 5], relInRanking = [1, 3, 5], outside = [12, 19, 24, 29];
+  function render() {
+    const k = +K.value, x = +Xs.value;
+    document.getElementById('rc-k-val').textContent = k; document.getElementById('rc-x-val').textContent = x;
+    const rel = new Set([...relInRanking, ...outside.slice(0, x)]), ret = new Set(ranked.slice(0, k));
+    grid.innerHTML = Array.from({ length: 30 }, (_, i) => {
+      const d = i + 1, r = rel.has(d), t = ret.has(d);
+      return `<span class="rc-doc${t ? ' ret' : ''}${r ? (t ? ' found' : ' miss') : ''}" title="D${d}${r ? ', relevant' : ''}${t ? ', retrieved' : ''}">D${d}</span>`;
+    }).join('');
+    const found = [...rel].filter(d => ret.has(d)).length, R = rel.size, missed = [...rel].filter(d => !ret.has(d));
+    out.innerHTML = `<p class="big">\\(Recall@${k} = \\dfrac{\\text{relevant in the top ${k}}}{\\text{all relevant}} = \\dfrac{${found}}{${R}} = \\) <b>${(found / R).toFixed(3)}</b></p>` +
+      `<p class="note">Missed: ${missed.length ? missed.map(d => 'D' + d).join(', ') : 'none'}. ${x ? `${x} relevant document${x > 1 ? 's lie' : ' lies'} outside the ranking: no cutoff can find ${x > 1 ? 'them' : 'it'}, so even Recall@5 is only 3/${R}.` : 'Every relevant document is in the ranking, so Recall@5 = 1.'} For comparison, \\(P@${k} = ${found}/${k}\\) ignores the missed ones.</p>`;
+    mathIn(out);
+  }
+  [K, Xs].forEach(e => e.addEventListener('input', render));
+  render();
+}
+
 /* ---------- Parts II–III: a binary ranking playground ---------- */
 function initPlayground() {
   const box = document.getElementById('pg-rank'), rIn = document.getElementById('pg-R'), svg = document.getElementById('pg-svg'), out = document.getElementById('pg-out');
@@ -322,6 +364,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initMath();
   initHero();
   initWhich();
+  initPrecision();
+  initRecall();
   initPlayground();
   initDcg();
   if (C) { initGrades(); initEvalTable(); initPerQuery(); }

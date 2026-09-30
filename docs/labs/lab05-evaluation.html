@@ -131,19 +131,59 @@
   <section class="block algo-section bfs" id="pr">
     <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Part II</span>
     <h2 class="section-title">Precision and Recall</h2>
-    <p class="section-lede">A toy ranking used throughout: D1 (relevant), D2 (not), D3 (relevant), D4 (not), D5 (relevant), written <b>R N R N R</b>. The collection contains exactly these three relevant documents: D1, D3, D5.</p>
+    <p class="section-lede">A toy ranking used throughout: D1 (relevant), D2 (not), D3 (relevant), D4 (not), D5 (relevant), written <b>R N R N R</b>. The collection contains exactly these three relevant documents: D1, D3, D5. For ranked retrieval both measures are computed at a <b>cutoff</b> \(k\): we look only at the top \(k\) results (P@1, P@5, P@10, …).</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.4rem;">Precision</h3>
     <div class="definition-box">
-      <div class="dbox-label">📐 Precision and Recall</div>
-      <div class="math-block">\[ \text{Precision} = \frac{\text{relevant retrieved}}{\text{retrieved}} \qquad \text{Recall} = \frac{\text{relevant retrieved}}{\text{all relevant}} \]</div>
-      <p><b>Precision</b>: of the documents we retrieved, how many are relevant? <b>Recall</b>: of all relevant documents that exist, how many did we retrieve? For ranked retrieval we compute them at a <b>cutoff</b> \(k\): P@1, P@5, P@10, …</p>
+      <div class="dbox-label">📐 Precision</div>
+      <div class="math-block">\[ \text{Precision} = \frac{\text{relevant retrieved}}{\text{retrieved}} \qquad P@k = \frac{\text{relevant in the top } k}{k} \]</div>
+      <p><b>Of the documents we retrieved, how many are relevant?</b> Precision looks only at what the system returned: how clean is the result list?</p>
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
-      <li><b>Toy ranking</b>: \(P@1 = 1/1 = 1.0\), \(P@3 = 2/3\), \(P@5 = 3/5 = 0.6\). \(Recall@3 = 2/3\) (2 of the 3 relevant documents found), \(Recall@5 = 1.0\).</li>
+      <li><b>Example</b>: a search engine shows 10 results and 4 of them are relevant: \(P@10 = 4/10 = 0.4\). Six of the ten results the user reads are wasted.</li>
+      <li><b>Toy ranking R N R N R</b>: \(P@1 = 1/1 = 1.0\), \(P@2 = 1/2\), \(P@3 = 2/3\), \(P@5 = 3/5 = 0.6\).</li>
+      <li>Documents below the cutoff do not matter for P@k, and neither do relevant documents the system never returned.</li>
+    </ul>
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: precision at k</h4>
+    <p class="section-lede">Move the cutoff \(k\): the bracket marks the retrieved set, the documents the user sees. Click a document to switch it between relevant and not relevant.</p>
+    <div class="playground">
+      <div class="pg-controls">
+        <div class="beam-control show" style="margin:0;"><label for="pc-k">cutoff \(k\)</label><input type="range" id="pc-k" min="1" max="5" value="3" step="1"><span class="val" id="pc-k-val">3</span></div>
+      </div>
+      <div class="pc-list" id="pc-list"></div>
+      <div id="pc-out" style="margin-top:0.9rem;"></div>
+    </div>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Recall</h3>
+    <div class="definition-box">
+      <div class="dbox-label">📐 Recall</div>
+      <div class="math-block">\[ \text{Recall} = \frac{\text{relevant retrieved}}{\text{all relevant}} \qquad Recall@k = \frac{\text{relevant in the top } k}{\text{all relevant}} \]</div>
+      <p><b>Of all relevant documents that exist, how many did we retrieve?</b> Recall looks at the whole collection: how much of what the user needs did we find? Its denominator counts relevant documents the system <b>never showed</b>, which is why it needs relevance judgments beyond the returned list.</p>
+    </div>
+    <ul class="concept-list" style="margin-top:1rem;">
+      <li><b>Example</b>: a lawyer needs every court decision on a topic. The archive holds 50 relevant decisions and the search finds 40 of them: \(Recall = 40/50 = 0.8\), however many irrelevant ones came along.</li>
+      <li><b>Toy ranking R N R N R</b>, with 3 relevant documents in the collection: \(Recall@1 = 1/3\), \(Recall@3 = 2/3\) (2 of the 3 found), \(Recall@5 = 3/3 = 1.0\).</li>
+      <li>If the collection held 2 more relevant documents that the ranking never reaches, the same ranking would only get \(Recall@5 = 3/5\): nothing about the list changed, only the denominator.</li>
+    </ul>
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: recall at k</h4>
+    <p class="section-lede">The whole collection of 30 documents; the toy ranking returns D1–D5 in order. Move \(k\) to retrieve more of the ranking, and add relevant documents that the ranking never reaches.</p>
+    <div class="playground">
+      <div class="pg-controls">
+        <div class="beam-control show" style="margin:0;"><label for="rc-k">cutoff \(k\)</label><input type="range" id="rc-k" min="1" max="5" value="3" step="1"><span class="val" id="rc-k-val">3</span></div>
+        <div class="beam-control show" style="margin:0;"><label for="rc-x">relevant documents outside the ranking</label><input type="range" id="rc-x" min="0" max="4" value="0" step="1"><span class="val" id="rc-x-val">0</span></div>
+      </div>
+      <div class="rc-grid" id="rc-grid"></div>
+      <p class="bt-legend" style="margin:0.5rem 0 0;"><span class="k rc-k-ret"></span> retrieved (top \(k\)) &nbsp; <span class="k" style="background:var(--bfs);"></span> relevant, found &nbsp; <span class="k rc-k-miss"></span> relevant, missed</p>
+      <div id="rc-out" style="margin-top:0.9rem;"></div>
+    </div>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Precision vs recall</h3>
+    <ul class="concept-list">
       <li><b>They answer different questions.</b> With 10 relevant documents: system A retrieves 2, both relevant: Precision 1.0, Recall 0.2. System B retrieves 100, 10 of them relevant: Precision 0.1, Recall 1.0. Neither measure is universally more important.</li>
       <li><b>Retrieval depth</b>: as we retrieve more and more documents, recall tends to increase and precision often decreases. This is a tendency, not a guarantee for every single step: a relevant document at rank \(k\) raises P@k.</li>
     </ul>
 
-    <h4 style="margin:1.4rem 0 0.4rem;">Try it: a ranking playground</h4>
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: both on one ranking</h4>
     <p class="section-lede">Click a rank to switch it between relevant (R) and not relevant (N); use + and − to change the length, and set how many relevant documents exist in total. The plot shows P@k and Recall@k; the shaded columns are relevant ranks. The same playground computes RR and AP, used in Part III.</p>
     <div class="playground">
       <div class="pg-controls"><div class="strategy-pick" id="pg-presets"></div></div>

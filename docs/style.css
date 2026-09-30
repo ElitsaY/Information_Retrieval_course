@@ -2392,3 +2392,22 @@ table.summary td.mm-big { background: color-mix(in srgb, var(--ucs) 18%, var(--s
 .nq-l { display: inline-grid; place-items: center; min-width: 1.4rem; height: 1.3rem; padding: 0 0.2rem; border-radius: 5px; color: #fff; font-family: 'Poppins', sans-serif; font-size: 0.72rem; font-weight: 800; }
 .nq-miss { margin: 0.3rem 0 0; padding-left: 0; list-style: none; font-size: 0.8rem; display: grid; gap: 0.25rem; }
 #nv-table th, #nv-table td { padding: 0.35rem 0.45rem; font-size: 0.8rem; }
+
+/* ---- Lab 05 (IR): precision and recall widgets ---- */
+.pc-list { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; }
+.pc-ret, .pc-rest { padding: 0.5rem; border-radius: var(--radius-sm); }
+.pc-ret { border: 2px solid var(--indigo); background: color-mix(in srgb, var(--indigo) 6%, var(--surface)); } .pc-rest { border: 2px dashed var(--line); }
+.pc-lab { display: block; margin-bottom: 0.35rem; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--indigo); } .pc-rest .pc-lab { color: var(--ink-soft); }
+.pc-row { display: flex; gap: 0.35rem; }
+.pc-doc { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; min-width: 4.6rem; padding: 0.4rem 0.5rem; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }
+.pc-doc small { font-size: 0.64rem; color: var(--ink-soft); } .pc-doc b { font-family: 'Poppins', sans-serif; } .pc-doc span { font-size: 0.66rem; color: var(--ink-soft); }
+.pc-doc.rel { background: var(--bfs); border-color: var(--bfs); color: #fff; } .pc-doc.rel small, .pc-doc.rel span { color: #fff; }
+.pc-doc.out { opacity: 0.55; }
+.pc-bar { display: flex; gap: 3px; max-width: 22rem; } .pc-bar span { flex: 1; height: 14px; border-radius: 3px; background: color-mix(in srgb, #d9546e 45%, var(--surface)); } .pc-bar span.rel { background: var(--bfs); }
+.rc-grid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; max-width: 34rem; }
+.rc-doc { display: grid; place-items: center; height: 2rem; border: 1.5px solid var(--line); border-radius: 6px; font-size: 0.72rem; font-weight: 700; color: var(--ink-soft); background: var(--surface); }
+.rc-doc.ret { border: 2.5px solid var(--indigo); color: var(--ink); }
+.rc-doc.found { background: var(--bfs); border-color: var(--bfs); color: #fff; box-shadow: 0 0 0 2.5px var(--indigo); }
+.rc-doc.miss { border: 2px dashed #d9546e; background: color-mix(in srgb, #d9546e 14%, var(--surface)); color: var(--red-ink); }
+.bt-legend .k.rc-k-ret { background: none; border: 2.5px solid var(--indigo); box-sizing: border-box; } .bt-legend .k.rc-k-miss { background: none; border: 2px dashed #d9546e; box-sizing: border-box; }
+@media (max-width: 520px) { .pc-doc { min-width: 3.4rem; padding: 0.3rem; } .rc-doc { height: 1.7rem; font-size: 0.62rem; } }
