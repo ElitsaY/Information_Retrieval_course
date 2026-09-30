@@ -299,7 +299,7 @@ reranker.predict([(query, "therapy after a heart attack"),
     return fused[:k]</code></pre>
     </details>
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: BM25, dense and hybrid, side by side</h4>
-    <p class="section-lede">For one query, the three top-10 lists with their relevance grades; the hybrid list marks where each document came from (<span class="hy-src both">B+D</span> both, <span class="hy-src b">B</span> BM25 only, <span class="hy-src d">D</span> dense only). The table evaluates all 225 queries with the current depth and \(k\), in your browser.</p>
+    <p class="section-lede">For one query, the three top-10 lists with their relevance grades; the hybrid list marks where each document came from (<span class="hy-src both">B+D</span> both, <span class="hy-src b">B</span> BM25 only, <span class="hy-src d">D</span> dense only). The table evaluates all 225 queries with the current number of candidates from each retriever and \(k\), in your browser.</p>
     <div class="playground">
       <div class="pg-controls"><select id="hy-sel" class="ii-select" aria-label="Cranfield query" style="max-width:100%;"></select></div>
       <div class="pg-controls">
