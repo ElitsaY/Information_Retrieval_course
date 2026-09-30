@@ -2094,3 +2094,38 @@ table.summary.rr-num td.hl { background: color-mix(in srgb, var(--ucs) 16%, var(
 .rr-pipe { padding: 0.8rem 1rem; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--ids) 9%, var(--surface)); border-left: 4px solid var(--ids); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.86rem; overflow-wrap: anywhere; }
 .rr-tw { overflow-x: auto; max-width: 100%; border-radius: var(--radius-sm); }
 .rr-tw table.summary { width: 100%; }
+
+/* ---- Lab 05 (IR): evaluation ---- */
+.art-ev5 .hero-art .bar { fill: color-mix(in srgb, #d9546e 55%, var(--surface)); opacity: 0.22; }
+.art-ev5 .hero-art .bar.rel { fill: var(--bfs); opacity: 0.35; }
+.wh-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin-bottom: 0.7rem; }
+.wh-name { width: 5.4rem; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
+.wh-doc, .pg-cell { display: inline-flex; flex-direction: column; align-items: center; min-width: 2.7rem; padding: 0.25rem 0.4rem; border-radius: 8px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 0.86rem; cursor: pointer; line-height: 1.2; }
+.wh-doc small, .pg-cell small { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.62rem; color: var(--ink-soft); }
+.wh-doc.rel, .pg-cell.rel { background: var(--bfs); border-color: var(--bfs); color: #fff; } .wh-doc.rel small, .pg-cell.rel small { color: #fff; }
+.wh-doc:hover, .pg-cell:hover { border-color: var(--bfs); }
+table.summary td.win { background: color-mix(in srgb, var(--bfs) 18%, var(--surface)); font-weight: 800; }
+.pg-rank { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.pg-add { min-width: 2rem; border-radius: 8px; border: 1.5px dashed var(--line); background: none; color: var(--ink-soft); font: inherit; font-weight: 800; cursor: pointer; }
+.ml-plot .pg-p { fill: none; stroke: var(--indigo); stroke-width: 2.6; } .ml-plot .pg-p-d { fill: var(--indigo); }
+.ml-plot .pg-r { fill: none; stroke: var(--bfs); stroke-width: 2.6; stroke-dasharray: 6 4; } .ml-plot .pg-r-d { fill: var(--bfs); }
+.ml-plot .pg-relband { fill: color-mix(in srgb, var(--bfs) 12%, transparent); }
+.ev5-table td.note { font-size: 0.8rem; }
+.pq-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 1.2rem; align-items: start; }
+@media (max-width: 760px) { .pq-grid { grid-template-columns: minmax(0, 1fr); } }
+.ml-plot .pq-diag { stroke: var(--ink); stroke-width: 1.4; stroke-dasharray: 5 4; opacity: 0.6; }
+.ml-plot .pq-pt { fill: var(--ink-soft); opacity: 0.55; cursor: pointer; } .ml-plot .pq-pt.bm { fill: var(--dfs); opacity: 0.8; } .ml-plot .pq-pt.tf { fill: var(--indigo); opacity: 0.8; }
+.ml-plot .pq-pt.cur { stroke: var(--ink); stroke-width: 2.5; opacity: 1; }
+.pq-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; }
+@media (max-width: 520px) { .pq-two { grid-template-columns: minmax(0, 1fr); } }
+.pq-two .al-h span { display: block; margin: 0.2rem 0 0; text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--ink-soft); }
+.pq-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.25rem; font-size: 0.8rem; counter-reset: pq; }
+.pq-list li { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 0.35rem; align-items: center; }
+.pq-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rg-box { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
+.rg-p { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border-radius: 8px; border: 1.5px solid var(--line); font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 0.8rem; color: var(--ink-soft); }
+.rg-p.in { background: color-mix(in srgb, var(--indigo) 16%, var(--surface)); border-color: var(--indigo); color: var(--ink); }
+.rg-p.ev { background: var(--ucs); border-color: var(--ucs); color: #fff; } .rg-p.ev.in { background: var(--bfs); border-color: var(--bfs); }
+.rg-box .note { flex-basis: 100%; }
+.ml-plot .rg-tf { fill: none; stroke: var(--indigo); stroke-width: 2.6; } .ml-plot .rg-bm { fill: none; stroke: var(--dfs); stroke-width: 2.6; }
+.ml-plot .rg-k { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 5 4; }
