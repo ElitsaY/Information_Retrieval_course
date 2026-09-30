@@ -92,37 +92,6 @@ function initToy() {
   render();
 }
 
-/* ---------- IDF curves ---------- */
-function initIdf() {
-  const s = document.getElementById('idf-n'), svg = document.getElementById('idf-svg'), out = document.getElementById('idf-out');
-  const QT = [['retrieval', 2], ['relevant', 1], ['documents', 4]];
-  const F = { ln: (N, d) => Math.log(N / d), sk: (N, d) => Math.log((1 + N) / (1 + d)) + 1, bm: (N, d) => Math.log(1 + (N - d + 0.5) / (d + 0.5)) };
-  function render() {
-    const N = +s.value; document.getElementById('idf-n-val').textContent = N;
-    svg.innerHTML = '';
-    const W = 460, H = 290, L = 40, R = 14, T = 12, B = 40, ymax = Math.ceil(F.sk(N, 1) + 0.2);
-    const x = (d) => L + (d - 1) / Math.max(1, N - 1) * (W - L - R), y = (v) => H - B - v / ymax * (H - B - T);
-    for (let v = 0; v <= ymax; v++) { el('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), class: 'grid-line' }, svg); txt(svg, L - 6, y(v) + 4, v, 'tick', 'end'); }
-    el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), class: 'axis' }, svg);
-    [1, Math.round(N / 4), Math.round(N / 2), Math.round(3 * N / 4), N].filter((v, i, a) => v >= 1 && a.indexOf(v) === i).forEach(d => txt(svg, x(d), H - B + 16, d, 'tick', 'middle'));
-    txt(svg, L + (W - L - R) / 2, H - 6, 'document frequency df', 'tick', 'middle');
-    [['ln', 'idf-ln'], ['sk', 'idf-sk'], ['bm', 'idf-bm']].forEach(([k, cls]) => {
-      const pts = []; for (let i = 0; i <= 120; i++) { const d = 1 + i / 120 * (N - 1); pts.push(`${x(d).toFixed(1)},${y(F[k](N, d)).toFixed(1)}`); }
-      el('polyline', { points: pts.join(' '), class: cls }, svg);
-    });
-    QT.forEach(([w, d]) => {
-      el('circle', { cx: x(d), cy: y(F.ln(N, d)), r: 5.5, class: 'idf-dot' }, svg);
-      txt(svg, x(d) + 8, y(F.ln(N, d)) - 7, w, 'lbl');
-    });
-    out.innerHTML = `<div class="rr-tw"><table class="summary sc-small rr-num"><thead><tr><th>term</th><th>df</th><th>ln(N/df)</th><th>sklearn</th><th>BM25</th></tr></thead><tbody>` +
-      QT.map(([w, d]) => `<tr><td><code>${w}</code></td><td>${d}</td><td><b>${f4(F.ln(N, d))}</b></td><td>${f4(F.sk(N, d))}</td><td>${f4(F.bm(N, d))}</td></tr>`).join('') + '</tbody></table></div>' +
-      `<p class="note" style="margin-top:0.6rem;">At \\(N = 5\\): <code>relevant</code> gets \\(\\ln 5 = 1.6094\\), <code>documents</code> only \\(\\ln(5/4) = 0.2231\\). A term in all ${N} documents gets 0 with \\(\\ln(N/df)\\) but ${f4(F.sk(N, N))} with scikit-learn's formula.</p>`;
-    mathIn(out);
-  }
-  s.addEventListener('input', render);
-  render();
-}
-
 /* ---------- TF-IDF matrix ---------- */
 function initTfidfMatrix() {
   const table = document.getElementById('tv-table'), note = document.getElementById('tv-note');
@@ -333,7 +302,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initMath();
   initHero();
   initToy();
-  initIdf();
   initTfidfMatrix();
   initCosine();
   initSaturation();

@@ -2056,10 +2056,6 @@ table.summary.rr-num td.hl { background: color-mix(in srgb, var(--ucs) 16%, var(
 .rr-mat tr.qt th { color: var(--indigo); } .rr-mat tr.qt th::before { content: '▸ '; }
 .rr-mat tr.nr td, .rr-mat tr.nr th { border-top: 2px solid var(--line); color: var(--ink); font-weight: 800; }
 .rr-note { font-size: 0.82rem; color: var(--ink-soft); margin: 0.6rem 0 0; }
-.ml-plot .idf-ln { fill: none; stroke: var(--indigo); stroke-width: 2.6; }
-.ml-plot .idf-sk { fill: none; stroke: #d9546e; stroke-width: 2.2; stroke-dasharray: 6 4; }
-.ml-plot .idf-bm { fill: none; stroke: var(--ucs); stroke-width: 2.2; }
-.ml-plot .idf-dot { fill: var(--indigo); stroke: var(--surface); stroke-width: 2; }
 .ml-plot .cs-track { fill: color-mix(in srgb, var(--ink) 5%, var(--surface)); }
 .ml-plot .cs-bar { fill: color-mix(in srgb, var(--ucs) 70%, var(--surface)); } .ml-plot .cs-bar.top { fill: var(--bfs); }
 .ml-plot .cs-v { font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 800; fill: var(--ink); font-variant-numeric: tabular-nums; }

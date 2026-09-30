@@ -156,18 +156,6 @@
     </div>
     <p class="section-lede" style="margin-top:1rem;">The intuition: a term is useful for retrieval when it helps distinguish documents. Common terms carry less information; rare terms carry more. For \(N = 5\): <code>retrieval</code> gets \(\log(5/2)\), <code>relevant</code> \(\log(5/1)\), <code>documents</code> \(\log(5/4)\). The exact digits matter less than the ordering: <b><code>relevant</code> &gt; <code>retrieval</code> &gt; <code>documents</code></b>.</p>
 
-    <h4 style="margin:1.4rem 0 0.4rem;">See it: IDF as a function of document frequency</h4>
-    <p class="section-lede">The dots are the three query terms, with natural logarithms. Move \(N\) to see how the same \(df\) means something different in a bigger collection. The other two curves are the IDF variants used by scikit-learn and by BM25, which appear later in the lab.</p>
-    <div class="playground">
-      <div class="beam-control show" style="margin:0 0 0.8rem;"><label for="idf-n">\(N\)</label><input type="range" id="idf-n" min="5" max="100" value="5" step="1"><span class="val" id="idf-n-val">5</span></div>
-      <div class="pg-grid">
-        <div>
-          <svg id="idf-svg" class="ml-plot" viewBox="0 0 460 290" aria-label="IDF against document frequency"></svg>
-          <p class="bt-legend" style="margin:0.2rem 0 0;"><span class="k ln" style="background:var(--indigo);"></span> \(\ln(N/df)\) &nbsp; <span class="k ln" style="background:#d9546e;"></span> scikit-learn smoothed &nbsp; <span class="k ln" style="background:var(--ucs);"></span> BM25</p>
-        </div>
-        <div class="al-out" id="idf-out"></div>
-      </div>
-    </div>
   </section>
 
   <!-- ===== PART III: TF-IDF ===== -->
