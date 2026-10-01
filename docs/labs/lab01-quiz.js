@@ -4,11 +4,29 @@ const LAB = 'lab01-inverted-index.html';
 const code = (s) => `<pre class="qz-code">${s}</pre>`;
 // a Python code card, styled and highlighted by code-cards.js (loaded after quiz.js)
 const pyCard = (file, src) => `<details class="code-card" open><summary><span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="code-file">${file}</span><span class="code-lang">Python</span><button type="button" class="code-copy">Copy</button><span class="code-chevron" aria-hidden="true">▾</span></summary><pre class="code-body"><code class="lang-py">${src}</code></pre></details>`;
-// documents as cards of token chips, one colour per distinct term
-const docs = (rows) => {
-  const terms = [...new Set(rows.flatMap(r => r[1]))];
-  return '<div class="qz-docs">' + rows.map(([id, toks]) => `<div class="qz-doc"><span class="qz-doc-id">${id}</span><span class="qz-doc-toks">${toks.map(t => `<span class="qz-tok t${terms.indexOf(t) % 4}">${t}</span>`).join('')}</span></div>`).join('') + '</div>';
-};
+// ---------- visual helpers (styles: "Lab 01 (IR) quiz visuals" in style.css) ----------
+// documents as small sheets of paper
+const papers = (rows) => `<div class="qz-papers" style="grid-template-columns: repeat(${rows.length}, minmax(0, 9.5rem))">` + rows.map(([id, text]) => `<div class="qz-paper"><span class="qz-paper-id">${id}</span><p>${text}</p></div>`).join('') + '</div>';
+// a chip, optionally with a small caption under it
+const chip = (t, cap = '', cls = '') => `<span class="qz-chip ${cls}"><b>${t}</b>${cap ? `<small>${cap}</small>` : ''}</span>`;
+// a left → right flow of chip groups
+const flow = (...groups) => '<div class="qz-flow">' + groups.map(g => `<div class="qz-flow-g">${g}</div>`).join('<span class="qz-flow-ar">→</span>') + '</div>';
+// postings lists as linked boxes
+const postings = (rows) => '<div class="qz-pls">' + rows.map(([name, ids]) => `<div class="qz-pl"><span class="qz-pl-name">${name}</span><span class="qz-pl-ids">${ids.map(d => `<b>${d}</b>`).join('<i>→</i>')}</span></div>`).join('') + '</div>';
+// horizontal bars, e.g. document frequencies
+const bars = (rows, max) => '<div class="qz-bars">' + rows.map(([lab, v]) => `<div class="qz-bar-row"><span>${lab}</span><div><i style="width:${(100 * v / max).toFixed(1)}%"></i></div><b>${v}</b></div>`).join('') + '</div>';
+// a postings list with one skip pointer, and the other list's current document
+function skipFig(ids, from, to, curA, curB) {
+  const W = 70, x = (i) => 30 + i * W, y = 92;
+  const box = (i, d, cls) => `<rect x="${x(i)}" y="${y}" width="46" height="34" rx="8" class="qz-sk-box ${cls}"/><text x="${x(i) + 23}" y="${y + 23}" class="qz-sk-t">${d}</text>`;
+  let g = `<text x="2" y="${y + 23}" class="qz-sk-name">A</text>`;
+  ids.forEach((d, i) => { g += box(i, d, i === curA ? 'cur' : ''); if (i < ids.length - 1) g += `<line x1="${x(i) + 46}" y1="${y + 17}" x2="${x(i + 1)}" y2="${y + 17}" class="qz-sk-link"/>`; });
+  const x1 = x(from) + 23, x2 = x(to) + 23;
+  g += `<path d="M${x1},${y} C${x1},${y - 62} ${x2},${y - 62} ${x2},${y - 6}" class="qz-sk-arc" marker-end="url(#qz-sk-ah)"/><text x="${(x1 + x2) / 2}" y="${y - 52}" class="qz-sk-lbl">skip pointer</text>`;
+  g += `<text x="${x(curA) + 23}" y="${y + 56}" class="qz-sk-lbl">▲ current in A</text>`;
+  g += `<text x="2" y="${y + 104}" class="qz-sk-name">B</text><text x="${x(0) - 4}" y="${y + 104}" class="qz-sk-dots">…</text>` + `<rect x="${x(0) + 20}" y="${y + 81}" width="46" height="34" rx="8" class="qz-sk-box cur"/><text x="${x(0) + 43}" y="${y + 104}" class="qz-sk-t">${curB}</text><text x="${x(0) + 80}" y="${y + 104}" class="qz-sk-dots">…</text><text x="${x(0) + 100}" y="${y + 104}" class="qz-sk-lbl start">◀ current in B</text>`;
+  return `<div class="qz-fig qz-skip"><svg viewBox="0 0 ${x(ids.length - 1) + 60} 230" role="img" aria-label="Postings list A with a skip pointer"><defs><marker id="qz-sk-ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="qz-sk-ahp"/></marker></defs>${g}</svg></div>`;
+}
 
 window.QUIZ = {
   id: 'ir-lab01',
@@ -24,7 +42,7 @@ window.QUIZ = {
     /* ---------- Part A: from documents to terms ---------- */
     {
       id: 'q01', title: 'Counting tokens and terms', type: 'single choice', level: 'Easy', skill: 'index',
-      intro: '<p>A document contains <code>Friends, FRIENDS!</code> The indexing pipeline tokenizes, removes punctuation and lower-cases.</p>',
+      intro: '<p>A document contains this text. The indexing pipeline tokenizes, removes punctuation and lower-cases.</p>' + papers([['doc', 'Friends, FRIENDS!']]),
       parts: [{ kind: 'mc', pts: 4, q: 'Which statement is correct?', answer: 2, options: [
         'The line has one token and two dictionary terms.',
         'It yields two terms, Friends and FRIENDS.',
@@ -34,7 +52,7 @@ window.QUIZ = {
     },
     {
       id: 'q02', title: 'A row of the term-document matrix', type: 'single choice', level: 'Easy', skill: 'index',
-      intro: '<p>One row of a <b>term-document frequency</b> matrix:</p><table class="qz-pq"><thead><tr><th>term = alpha</th><th>D0</th><th>D1</th><th>D2</th><th>D3</th><th>D4</th></tr></thead><tbody><tr><td>count</td><td>1</td><td>0</td><td>2</td><td>0</td><td>1</td></tr></tbody></table>',
+      intro: '<p>One row of a <b>term-document frequency</b> matrix:</p><table class="qz-pq qz-terms"><thead><tr><th>term = <code>alpha</code></th><th>D0</th><th>D1</th><th>D2</th><th>D3</th><th>D4</th></tr></thead><tbody><tr><td>count</td><td>1</td><td>0</td><td>2</td><td>0</td><td>1</td></tr></tbody></table>',
       parts: [{ kind: 'mc', pts: 4, q: 'Which postings list keeps all the information of this row while storing only the non-zero entries?', answer: 3, options: [
         '<code>[0, 2, 4]</code>',
         '<code>[(0, 1), (2, 1), (4, 1)]</code>',
@@ -44,7 +62,7 @@ window.QUIZ = {
     },
     {
       id: 'q03', title: 'A 2 in the lab\'s matrix', type: 'single choice', level: 'Easy', skill: 'index',
-      intro: M`<p>The lab calls its toy table an incidence matrix, but the implementation fills it with <code>sent.count(token)</code>. Suppose a cell contains <b>2</b>.</p>`,
+      intro: M`<p>The lab calls its toy table an incidence matrix, but the implementation fills it with <code>sent.count(token)</code>. Suppose a cell contains <b>2</b>:</p><table class="qz-pq qz-mx"><thead><tr><th></th><th>D0</th><th>D1</th><th>D2</th></tr></thead><tbody><tr><th>cat</th><td>1</td><td>0</td><td>0</td></tr><tr><th>dog</th><td>0</td><td class="qz-mx-on">2</td><td>1</td></tr><tr><th>bird</th><td>1</td><td>1</td><td>0</td></tr></tbody></table>`,
       parts: [{ kind: 'mc', pts: 4, q: 'What does the 2 mean?', answer: 0, options: [
         'The term occurs twice in that document.',
         'The term occurs in two different documents.',
@@ -54,7 +72,7 @@ window.QUIZ = {
     },
     {
       id: 'q04', title: 'Two frequencies of one term', type: 'numbers', level: 'Easy', skill: 'index',
-      intro: '<p>Three documents after preprocessing. Each chip is one token; the same colour means the same term.</p>' + docs([['D0', ['ai', 'ai', 'retrieval']], ['D1', ['ai', 'index']], ['D2', ['retrieval']]]) + '<p>Consider the term <span class="qz-tok t0">ai</span>.</p>',
+      intro: '<p>Three documents after preprocessing:</p>' + papers([['D0', 'ai ai retrieval'], ['D1', 'ai index'], ['D2', 'retrieval']]) + '<p>Consider the term <code>ai</code>.</p>',
       parts: [
         { kind: 'num', pts: 2, q: 'Its document frequency (the number of documents that contain it):', prefix: M`\(df\) =`, answer: 2 },
         { kind: 'num', pts: 2, q: 'Its collection frequency (the total number of occurrences in the collection):', prefix: M`\(cf\) =`, answer: 3 },
@@ -73,7 +91,7 @@ window.QUIZ = {
     },
     {
       id: 'q06', title: 'Header terms in sci.crypt', type: 'single choice', level: 'Medium', skill: 'norm',
-      intro: '<p>In the <code>sci.crypt</code> collection, terms such as <code>path</code>, <code>message-id</code>, <code>from</code> and <code>subject</code> appear in almost every post. The product requirement: <i>search the semantic content of messages, but still support queries restricted to the sender or the subject.</i></p>',
+      intro: '<p>In the <code>sci.crypt</code> collection, header terms such as <code>path</code>, <code>message-id</code>, <code>from</code> and <code>subject</code> appear in almost every post (an invented example):</p><div class="qz-post"><div class="qz-post-h"><span class="qz-post-tag">header</span><span>Path: news.example.org!crypt</span><span>From: alice@example.org</span><span>Subject: Re: key length for RSA</span><span>Message-ID: &lt;1993Apr2.1234@example.org&gt;</span></div><div class="qz-post-b"><span class="qz-post-tag">body</span>For new keys, 1024 bits is the minimum I would trust; the factoring records keep moving.</div></div><p>The product requirement: <i>search the semantic content of messages, but still support queries restricted to the sender or the subject.</i></p>',
       parts: [{ kind: 'mc', pts: 4, q: 'Which design best fits the requirement?', answer: 1, options: [
         'Delete all headers before indexing.',
         'Index body and headers as separate zones.',
@@ -83,7 +101,7 @@ window.QUIZ = {
     },
     {
       id: 'q07', title: 'US and us', type: 'single choice', level: 'Easy–Medium', skill: 'norm',
-      intro: '<p>Lower-casing maps both the country abbreviation <code>US</code> and the pronoun <code>us</code> to <code>us</code>.</p>',
+      intro: '<p>Lower-casing maps two different words to the same term:</p>' + flow(chip('US', 'the country') + chip('us', 'the pronoun'), chip('us', 'one term', 't1')),
       parts: [{ kind: 'mc', pts: 4, q: 'Which trade-off does this illustrate?', answer: 2, options: [
         'It always makes the search results better.',
         'It changes the df values but never the query results.',
@@ -93,7 +111,7 @@ window.QUIZ = {
     },
     {
       id: 'q08', title: 'A stop list and four queries', type: 'single choice', level: 'Easy', skill: 'norm',
-      intro: '<p>A system removes the terms <code>to</code>, <code>be</code>, <code>or</code> and <code>not</code> from its index entirely.</p>',
+      intro: '<p>A system removes these terms from its index entirely:</p><div class="qz-stop">' + ['to', 'be', 'or', 'not'].map(t => chip(t, '', 'off')).join('') + '</div>',
       parts: [{ kind: 'mc', pts: 4, q: 'Which query can no longer be answered exactly from that index alone?', answer: 3, options: [
         '<code>cryptography AND key</code>',
         '<code>retrieval OR search</code>',
@@ -103,7 +121,7 @@ window.QUIZ = {
     },
     {
       id: 'q09', title: 'The stem bu', type: 'single choice', level: 'Easy', skill: 'norm',
-      intro: '<p>The Porter stemmer can produce forms such as <code>bu</code> from <code>bus</code>.</p>',
+      intro: '<p>The Porter stemmer can produce forms that are not words:</p>' + flow(chip('bus', 'word'), chip('bu', 'stem', 't1')),
       parts: [{ kind: 'mc', pts: 4, q: 'Which statement is most accurate?', answer: 0, options: [
         'Stems are matching keys, not words.',
         'It shows that the stemmer is broken.',
@@ -124,7 +142,7 @@ window.QUIZ = {
     },
     {
       id: 'q12', title: 'A safer sort key', type: 'single choice', level: 'Medium', skill: 'build',
-      intro: '<p>You want the construction to be correct <b>without</b> relying on sort stability or on the original order of the pairs <code>(token, doc_id)</code>.</p>',
+      intro: '<p>You want the construction to be correct <b>without</b> relying on sort stability or on the original order of the <code>(token, doc_id)</code> pairs, which might arrive like this:</p><div class="qz-pairs">' + [['retrieval', 2], ['ai', 1], ['index', 1], ['ai', 0], ['retrieval', 0]].map(([t, d]) => `<span class="qz-pair"><code>${t}</code><b>${d}</b></span>`).join('') + '</div>',
       parts: [{ kind: 'mc', pts: 4, q: 'Which sort key is the safest replacement?', answer: 0, options: [
         '<code>key=lambda x: (x[0], x[1])</code>',
         '<code>key=lambda x: x[1]</code>',
@@ -134,7 +152,7 @@ window.QUIZ = {
     },
     {
       id: 'q13', title: 'Document IDs from os.listdir', type: 'single choice', level: 'Medium', skill: 'build',
-      intro: '<p>The lab assigns document IDs with <code>enumerate(os.listdir(...))</code>. On another machine, <code>os.listdir</code> returns the files in a different order. The index and the <code>doc_id → filename</code> map are built consistently within each run.</p>',
+      intro: '<p>The lab assigns document IDs with <code>enumerate(os.listdir(...))</code>. On another machine, <code>os.listdir</code> returns the files in a different order:</p><div class="qz-two"><table class="qz-pq"><thead><tr><th colspan="2">machine 1</th></tr></thead><tbody><tr><td>0</td><td>a.txt</td></tr><tr><td>1</td><td>b.txt</td></tr><tr><td>2</td><td>c.txt</td></tr></tbody></table><table class="qz-pq"><thead><tr><th colspan="2">machine 2</th></tr></thead><tbody><tr><td>0</td><td>c.txt</td></tr><tr><td>1</td><td>a.txt</td></tr><tr><td>2</td><td>b.txt</td></tr></tbody></table></div><p>The index and the <code>doc_id → filename</code> map are built consistently within each run.</p>',
       parts: [{ kind: 'mc', pts: 4, q: 'What is the main consequence?', answer: 3, options: [
         'Boolean retrieval becomes incorrect.',
         "Every term's document frequency becomes zero.",
@@ -145,19 +163,19 @@ window.QUIZ = {
     /* ---------- Part C: Boolean query processing ---------- */
     {
       id: 'q14', title: 'Intersect two postings lists', type: 'single choice', level: 'Easy', skill: 'bool',
-      intro: code('A: 1 → 4 → 7 → 9 → 13\nB: 2 → 4 → 6 → 9 → 12'),
+      intro: '<p>Two postings lists:</p>' + postings([['A', [1, 4, 7, 9, 13]], ['B', [2, 4, 6, 9, 12]]]),
       parts: [{ kind: 'mc', pts: 4, q: 'What is <code>A AND B</code>?', answer: 1, options: ['{1, 2, 4, 6, 7, 9, 12, 13}', '{4, 9}', '{1, 7, 13}', '{2, 6, 12}'] }],
       explain: '<p>Only 4 and 9 occur in both lists. {1, 2, …, 13} is <code>A OR B</code>, {1, 7, 13} is <code>A AND NOT B</code>.</p>',
     },
     {
       id: 'q15', title: 'Comparisons in the merge', type: 'number', level: 'Medium', skill: 'bool',
-      intro: code('A: 1 → 4 → 7 → 9 → 13\nB: 2 → 4 → 6 → 9 → 12') + '<p>Use the standard two-pointer <code>AND</code> merge. Count one comparison each time the algorithm compares the two current document IDs.</p>',
+      intro: postings([['A', [1, 4, 7, 9, 13]], ['B', [2, 4, 6, 9, 12]]]) + '<p>Use the standard two-pointer <code>AND</code> merge. Count one comparison each time the algorithm compares the two current document IDs.</p>',
       parts: [{ kind: 'num', pts: 6, q: 'How many document-ID comparisons are made before one list ends?', answer: 7 }],
       explain: '<p>(1, 2) advance A · (4, 2) advance B · (4, 4) match · (7, 6) advance B · (7, 9) advance A · (9, 9) match · (13, 12) advance B, and B is exhausted: <b>7</b> comparisons.</p>',
     },
     {
       id: 'q16', title: 'Order of a four-term AND', type: 'single choice', level: 'Easy', skill: 'bool',
-      intro: '<p>The query <code>a AND b AND c AND d</code>, with document frequencies:</p><table class="qz-pq"><thead><tr><th>term</th><th>df</th></tr></thead><tbody><tr><td>a</td><td>900</td></tr><tr><td>b</td><td>40</td></tr><tr><td>c</td><td>12</td></tr><tr><td>d</td><td>400</td></tr></tbody></table>',
+      intro: '<p>The query <code>a AND b AND c AND d</code>, with document frequencies:</p>' + bars([['a', 900], ['b', 40], ['c', 12], ['d', 400]], 900),
       parts: [{ kind: 'mc', pts: 4, q: 'Which processing order follows the lab\'s heuristic?', answer: 2, options: [
         'a, d, b, c',
         'a, b, c, d',
@@ -167,7 +185,7 @@ window.QUIZ = {
     },
     {
       id: 'q17', title: 'A term with df = 0', type: 'single choice', level: 'Easy', skill: 'bool',
-      intro: '<p>The query <code>alpha AND beta AND gamma</code>; the dictionary says <code>df(beta) = 0</code>.</p>',
+      intro: '<p>The query, with what the dictionary says about <code>beta</code>:</p>' + flow(chip('alpha') + '<span class="qz-op">AND</span>' + chip('beta', 'df = 0', 't3') + '<span class="qz-op">AND</span>' + chip('gamma')),
       parts: [{ kind: 'mc', pts: 4, q: 'What is the correct result?', answer: 0, options: [
         'Empty, without reading the other postings.',
         'Evaluate alpha AND gamma; beta is ignored.',
@@ -184,7 +202,7 @@ window.QUIZ = {
     /* ---------- Part D: skip pointers ---------- */
     {
       id: 'q19', title: 'One step of a skip-pointer merge', type: 'single choice', level: 'Medium', skill: 'skip',
-      intro: '<pre class="qz-code qz-diagram">A: 1 → 4 → 7 → 10 → 13\n   └────→ 7            (skip pointer from 1 to 7)\n\ncurrent in A: 1        current in B: 8</pre>',
+      intro: '<p>The current state of an <code>AND</code> merge with skip pointers:</p>' + skipFig([1, 4, 7, 10, 13], 0, 2, 0, 8),
       parts: [{ kind: 'mc', pts: 4, q: 'Using the lab\'s rule, what should the algorithm do?', answer: 1, options: [
         'Advance from 1 to 4: a skip must pass 8.',
         'Take the skip from 1 to 7, since 7 ≤ 8.',
@@ -214,13 +232,13 @@ window.QUIZ = {
     /* ---------- Part E: phrase and positional retrieval ---------- */
     {
       id: 'q22', title: 'Biwords for a three-word phrase', type: 'single choice', level: 'Medium', skill: 'phrase',
-      intro: '<p>A biword index evaluates the phrase query <code>"a b c"</code> as <code>"a b" AND "b c"</code>.</p>',
+      intro: '<p>A biword index evaluates the phrase query <code>"a b c"</code> as two biwords:</p>' + flow(chip('a b c', 'phrase'), chip('a b', 'biword', 't1') + '<span class="qz-op">AND</span>' + chip('b c', 'biword', 't1')),
       parts: [{ kind: 'mc', pts: 4, q: 'Which document is a <b>false positive</b> of this method?', answer: 0, options: ['<code>a b x b c</code>', '<code>a b c</code>', '<code>x a b c y</code>', '<code>a x b x c</code>'] }],
       explain: '<p><code>a b x b c</code> contains both biwords, <i>a b</i> and <i>b c</i>, but not the phrase <i>a b c</i>. <code>a b c</code> and <code>x a b c y</code> are true matches; <code>a x b x c</code> contains neither biword.</p>',
     },
     {
       id: 'q23', title: 'Read a positional index', type: 'single choice', level: 'Easy', skill: 'phrase',
-      intro: code('D0: alpha → [1, 5]    beta → [2, 9]\nD1: alpha → [3]       beta → [5]') + '<p>The phrase query <code>"alpha beta"</code>.</p>',
+      intro: '<p>A positional index (term → positions in each document):</p><table class="qz-pq qz-terms"><thead><tr><th>document</th><th><code>alpha</code></th><th><code>beta</code></th></tr></thead><tbody><tr><td>D0</td><td>[1, 5]</td><td>[2, 9]</td></tr><tr><td>D1</td><td>[3]</td><td>[5]</td></tr></tbody></table><p>The phrase query <code>"alpha beta"</code>.</p>',
       parts: [{ kind: 'mc', pts: 4, q: 'Which documents match the exact phrase?', answer: 0, options: ['D0 only', 'D1 only', 'D0 and D1', 'Neither'] }],
       explain: '<p>In D0, <i>alpha</i> at position 1 is followed by <i>beta</i> at 2. In D1 there is a gap (3 and 5): both words occur, but not as a phrase.</p>',
     },
