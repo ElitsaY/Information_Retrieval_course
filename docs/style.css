@@ -2700,3 +2700,5 @@ pre.pb-prompt { margin: 0; padding: 0.8rem 1rem; border-radius: var(--radius-sm)
 .qz-tok.t2 { border-color: var(--ucs); background: color-mix(in srgb, var(--ucs) 22%, var(--surface)); }
 .qz-tok.t3 { border-color: var(--dfs); background: color-mix(in srgb, var(--dfs) 16%, var(--surface)); }
 
+.qz-task .code-card code { padding: 0; background: none; border-radius: 0; font-size: inherit; }   /* code cards keep their own style inside quizzes */
+.qz-intro .code-card { margin: 0.4rem 0 1rem; }

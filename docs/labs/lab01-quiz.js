@@ -2,6 +2,8 @@
 const M = String.raw;
 const LAB = 'lab01-inverted-index.html';
 const code = (s) => `<pre class="qz-code">${s}</pre>`;
+// a Python code card, styled and highlighted by code-cards.js (loaded after quiz.js)
+const pyCard = (file, src) => `<details class="code-card" open><summary><span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="code-file">${file}</span><span class="code-lang">Python</span><button type="button" class="code-copy">Copy</button><span class="code-chevron" aria-hidden="true">▾</span></summary><pre class="code-body"><code class="lang-py">${src}</code></pre></details>`;
 // documents as cards of token chips, one colour per distinct term
 const docs = (rows) => {
   const terms = [...new Set(rows.flatMap(r => r[1]))];
@@ -61,7 +63,7 @@ window.QUIZ = {
     },
     {
       id: 'q05', title: 'set(document) in the df loop', type: 'single choice', level: 'Easy–Medium', skill: 'index',
-      intro: code('for document in documents:\n    for token in set(document):\n        df[token] += 1') + '<p>The lab computes document frequencies with the equivalent of this loop.</p>',
+      intro: '<p>The lab computes document frequencies with the equivalent of this loop:</p>' + pyCard('document_frequency.py', 'for document in documents:\n    for token in set(document):\n        df[token] += 1'),
       parts: [{ kind: 'mc', pts: 4, q: 'What would happen if <code>set(document)</code> were replaced by <code>document</code>?', answer: 3, options: [
         'Nothing: both versions give the same counts.',
         'Rare terms would disappear from the dictionary.',
