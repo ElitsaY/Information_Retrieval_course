@@ -85,11 +85,11 @@ window.QUIZ = {
       id: 'q07', title: 'US and us', type: 'single choice', level: 'Easy–Medium', skill: 'norm',
       intro: '<p>Lower-casing maps both the country abbreviation <code>US</code> and the pronoun <code>us</code> to <code>us</code>.</p>',
       parts: [{ kind: 'mc', pts: 4, q: 'Which trade-off does this illustrate?', answer: 2, options: [
-        'It always improves both precision and recall.',
-        'It changes df but never the query results.',
-        'It can raise recall but lower precision.',
+        'It always makes the search results better.',
+        'It changes the df values but never the query results.',
+        'More matches are found, but some are unrelated.',
         'It is only a storage optimization.'] }],
-      explain: '<p>Case folding merges variants (<i>Friends</i>, <i>friends</i>), which helps matching and recall, but it can also merge <b>distinct meanings</b>: a query for the country now matches every <i>us</i>, which lowers precision.</p>',
+      explain: '<p>Case folding merges variants (<i>Friends</i>, <i>friends</i>), so a query finds more of the documents it should. But it can also merge <b>distinct meanings</b>: a query for the country now also matches every document with the pronoun <i>us</i>, so some of the results are unrelated. Every normalization choice weighs these two effects; <a href="lab05-evaluation.html">Lab 05</a> names them recall and precision.</p>',
     },
     {
       id: 'q08', title: 'A stop list and four queries', type: 'single choice', level: 'Easy', skill: 'norm',
@@ -108,8 +108,8 @@ window.QUIZ = {
         'Stems are matching keys, not words.',
         'It shows that the stemmer is broken.',
         'A stem must be a dictionary word to be useful.',
-        'Stemming raises precision and recall together.'] }],
-      explain: '<p>A stem is an artificial <b>matching key</b>: what matters is that related surface forms map to the same key. Stemming usually trades some precision for recall; it does not guarantee both.</p>',
+        'Stemming only ever makes the results better.'] }],
+      explain: '<p>A stem is an artificial <b>matching key</b>: what matters is that related surface forms (<i>bus</i>, <i>buses</i>) map to the same key, so a query finds documents with either form. Stemming can also merge unrelated words under one stem, so it does not guarantee better results.</p>',
     },
     {
       id: 'q10', title: 'Filtering the token ...', type: 'single choice', level: 'Medium', skill: 'norm',
