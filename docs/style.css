@@ -2707,10 +2707,10 @@ pre.pb-prompt { margin: 0; padding: 0.8rem 1rem; border-radius: var(--radius-sm)
 .qz-op { align-self: center; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; color: var(--ink-soft); padding-bottom: 0.9rem; }
 .qz-flow-g > .qz-op { padding-bottom: 0; } .qz-flow-g:has(small) > .qz-op { padding-bottom: 1rem; }
 .qz-stop { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.3rem 0 1rem; }
-.qz-pls { display: grid; gap: 0.55rem; margin: 0.3rem 0 1rem; }
-.qz-pl { display: flex; align-items: center; gap: 0.7rem; min-width: 0; }
-.qz-pl-name { flex: none; display: inline-grid; place-items: center; width: 1.9rem; height: 1.9rem; border-radius: 50%; background: var(--indigo); color: #fff; font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 0.85rem; }
-.qz-pl:nth-child(2) .qz-pl-name { background: var(--bfs); }
+.qz-pls { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0.55rem 0.7rem; align-items: center; margin: 0.3rem 0 1rem; }
+.qz-pl { display: contents; }
+.qz-pl-name { justify-self: start; display: inline-grid; place-items: center; min-width: 1.9rem; height: 1.9rem; padding: 0 0.6rem; border-radius: 999px; background: var(--indigo); color: #fff; font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 0.85rem; }
+.qz-pl:nth-child(2) .qz-pl-name { background: var(--bfs); } .qz-pl:nth-child(3) .qz-pl-name { background: color-mix(in srgb, var(--ucs) 80%, var(--ink)); } .qz-pl:nth-child(4) .qz-pl-name { background: var(--dfs); }
 .qz-pl-ids { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; }
 .qz-pl-ids b { display: inline-grid; place-items: center; min-width: 2.3rem; height: 2rem; padding: 0 0.4rem; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface); font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 0.92rem; color: var(--ink); font-variant-numeric: tabular-nums; }
 .qz-pl-ids i { font-style: normal; color: var(--ink-soft); font-size: 0.85rem; }
@@ -2741,3 +2741,7 @@ table.qz-mx td.qz-mx-on { outline: 2.5px solid var(--dfs); outline-offset: -3px;
 .qz-fig.qz-skip svg { max-width: 440px; }
 .qz-fig svg .qz-sk-lbl.start { text-anchor: start; }
 table.qz-terms th code { text-transform: none; letter-spacing: 0; }
+.qz-case { margin: 0.3rem 0 1rem; padding: 0.7rem 1rem; border: 1px solid var(--line); border-left: 4px solid var(--ucs); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--ucs) 8%, var(--surface)); }
+.qz-case-k { display: block; margin-bottom: 0.2rem; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: color-mix(in srgb, var(--ucs) 55%, var(--ink)); }
+.qz-case p { margin: 0; }
+
