@@ -111,16 +111,6 @@ window.QUIZ = {
         'Stemming only ever makes the results better.'] }],
       explain: '<p>A stem is an artificial <b>matching key</b>: what matters is that related surface forms (<i>bus</i>, <i>buses</i>) map to the same key, so a query finds documents with either form. Stemming can also merge unrelated words under one stem, so it does not guarantee better results.</p>',
     },
-    {
-      id: 'q10', title: 'Filtering the token ...', type: 'single choice', level: 'Medium', skill: 'norm',
-      intro: code("_tok not in string.punctuation") + '<p>The lab filters punctuation with this test. <code>string.punctuation</code> is <b>one string</b> of individual punctuation characters: <code>!"#$%&amp;\'()*+,-./:;&lt;=&gt;?@[\\]^_`{|}~</code></p>',
-      parts: [{ kind: 'mc', pts: 4, q: 'What happens to the token <code>...</code> (three dots)?', answer: 1, options: [
-        'It is removed, since it contains punctuation.',
-        "It survives: '...' is not in that string.",
-        "It is shortened to a single '.'.",
-        'It becomes the empty string.'] }],
-      explain: '<p><code>in</code> on strings tests for a <b>substring</b>. <code>"..." in string.punctuation</code> is False, because the string contains only one dot in a row, so the test <code>not in</code> is True and the token is kept. Tokens made of several punctuation characters slip through; a fix is <code>not all(ch in string.punctuation for ch in _tok)</code>.</p>',
-    },
     /* ---------- Part B: building the index ---------- */
     {
       id: 'q11', title: 'Sorting the pairs by token', type: 'single choice', level: 'Medium', skill: 'build',
@@ -162,7 +152,7 @@ window.QUIZ = {
     {
       id: 'q15', title: 'Comparisons in the merge', type: 'number', level: 'Medium', skill: 'bool',
       intro: code('A: 1 → 4 → 7 → 9 → 13\nB: 2 → 4 → 6 → 9 → 12') + '<p>Use the standard two-pointer <code>AND</code> merge. Count one comparison each time the algorithm compares the two current document IDs.</p>',
-      parts: [{ kind: 'num', pts: 4, q: 'How many document-ID comparisons are made before one list ends?', answer: 7 }],
+      parts: [{ kind: 'num', pts: 6, q: 'How many document-ID comparisons are made before one list ends?', answer: 7 }],
       explain: '<p>(1, 2) advance A · (4, 2) advance B · (4, 4) match · (7, 6) advance B · (7, 9) advance A · (9, 9) match · (13, 12) advance B, and B is exhausted: <b>7</b> comparisons.</p>',
     },
     {
@@ -238,8 +228,8 @@ window.QUIZ = {
       id: 'q24', title: 'Positions vs postings for one document', type: 'numbers', level: 'Medium', skill: 'phrase',
       intro: '<p>A document has 100,000 term positions. A particular term fills 0.1% of those positions and occurs nowhere else in the collection.</p>',
       parts: [
-        { kind: 'num', pts: 2, q: 'How many positions must a positional index store for this term in this document?', answer: 100 },
-        { kind: 'num', pts: 2, q: 'How many postings does a non-positional Boolean index need for it?', answer: 1 },
+        { kind: 'num', pts: 3, q: 'How many positions must a positional index store for this term in this document?', answer: 100 },
+        { kind: 'num', pts: 3, q: 'How many postings does a non-positional Boolean index need for it?', answer: 1 },
       ],
       explain: '<p>0.1% of 100,000 is 100 positions, against a single posting (the document ID) in a non-positional index. Positional indexes are typically several times larger than non-positional ones.</p>',
     },
