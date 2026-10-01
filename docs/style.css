@@ -2688,3 +2688,15 @@ pre.pb-prompt { margin: 0; padding: 0.8rem 1rem; border-radius: var(--radius-sm)
 .fl-labels { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .rg-steps.course-steps span a { color: inherit; }
 .tf-input-l.ev-in { min-width: 0; } .tf-input-l.ev-in input { width: 0; }
+
+/* ---- Lab 01 (IR) quiz visuals: documents as token chips ---- */
+.qz-docs { display: grid; gap: 0.45rem; margin: 0.2rem 0 0.9rem; max-width: 30rem; }
+.qz-doc { display: flex; align-items: center; gap: 0.7rem; padding: 0.5rem 0.7rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow-sm); }
+.qz-doc-id { flex: none; display: inline-grid; place-items: center; width: 2.2rem; height: 1.7rem; border-radius: 6px; background: color-mix(in srgb, var(--ink) 8%, var(--surface)); font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 0.8rem; }
+.qz-doc-toks { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.qz-tok { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; border: 1.5px solid; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.86rem; font-weight: 700; color: var(--ink); }
+.qz-tok.t0 { border-color: var(--ids); background: color-mix(in srgb, var(--ids) 16%, var(--surface)); }
+.qz-tok.t1 { border-color: var(--bfs); background: color-mix(in srgb, var(--bfs) 16%, var(--surface)); }
+.qz-tok.t2 { border-color: var(--ucs); background: color-mix(in srgb, var(--ucs) 22%, var(--surface)); }
+.qz-tok.t3 { border-color: var(--dfs); background: color-mix(in srgb, var(--dfs) 16%, var(--surface)); }
+

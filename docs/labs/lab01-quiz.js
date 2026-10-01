@@ -2,6 +2,11 @@
 const M = String.raw;
 const LAB = 'lab01-inverted-index.html';
 const code = (s) => `<pre class="qz-code">${s}</pre>`;
+// documents as cards of token chips, one colour per distinct term
+const docs = (rows) => {
+  const terms = [...new Set(rows.flatMap(r => r[1]))];
+  return '<div class="qz-docs">' + rows.map(([id, toks]) => `<div class="qz-doc"><span class="qz-doc-id">${id}</span><span class="qz-doc-toks">${toks.map(t => `<span class="qz-tok t${terms.indexOf(t) % 4}">${t}</span>`).join('')}</span></div>`).join('') + '</div>';
+};
 
 window.QUIZ = {
   id: 'ir-lab01',
@@ -47,7 +52,7 @@ window.QUIZ = {
     },
     {
       id: 'q04', title: 'Two frequencies of one term', type: 'numbers', level: 'Easy', skill: 'index',
-      intro: code('D0: ai ai retrieval\nD1: ai index\nD2: retrieval') + '<p>The three documents after preprocessing. Consider the term <code>ai</code>.</p>',
+      intro: '<p>Three documents after preprocessing. Each chip is one token; the same colour means the same term.</p>' + docs([['D0', ['ai', 'ai', 'retrieval']], ['D1', ['ai', 'index']], ['D2', ['retrieval']]]) + '<p>Consider the term <span class="qz-tok t0">ai</span>.</p>',
       parts: [
         { kind: 'num', pts: 2, q: 'Its document frequency (the number of documents that contain it):', prefix: M`\(df\) =`, answer: 2 },
         { kind: 'num', pts: 2, q: 'Its collection frequency (the total number of occurrences in the collection):', prefix: M`\(cf\) =`, answer: 3 },
