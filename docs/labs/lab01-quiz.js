@@ -114,7 +114,7 @@ window.QUIZ = {
     /* ---------- Part B: building the index ---------- */
     {
       id: 'q11', title: 'Sorting the pairs by token', type: 'single choice', level: 'Medium', skill: 'build',
-      intro: code('sorted(token_docid, key=itemgetter(0))') + '<p>The (token, doc_id) pairs are emitted in document order and then sorted by token only.</p>',
+      intro: '<p>The (token, doc_id) pairs are emitted in document order and then sorted by token only:</p>' + pyCard('sort_pairs.py', 'from operator import itemgetter\n\nsorted_pairs = sorted(token_docid, key=itemgetter(0))'),
       parts: [{ kind: 'mc', pts: 4, q: 'Why do the postings of each term still come out in increasing document-ID order?', answer: 2, options: [
         'Dictionaries sort document IDs automatically.',
         'itemgetter(0) actually sorts by both fields.',
