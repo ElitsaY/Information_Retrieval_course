@@ -46,11 +46,11 @@ window.QUIZ = {
     {
       id: 't_scan', title: 'Index or scan?', type: 'single choice', level: 'Easy', skill: 'model',
       intro: caseCard('A collection of 10 million documents', 'It receives thousands of queries a day. One option is to search the full text of every document for each query, as <code>grep</code> would; the other is to build an inverted index once, in advance.'),
-      parts: [{ kind: 'mc', pts: 3, q: 'What is the main reason to build the index?', answer: 1, options: [
-        'Scanning returns wrong documents for AND queries.',
-        'A query then reads only the postings of its terms.',
-        'The index keeps the documents in compressed form.',
-        'Scanning cannot handle more than one query term.'] }],
+      parts: [{ kind: 'mc', pts: 3, q: 'Why is building the index the better option?', answer: 1, options: [
+        'Scanning would return different documents than the index does.',
+        'A query looks up only its terms, not all 10 million documents.',
+        'The index keeps a shorter, compressed copy of every document.',
+        'Scanning only works for queries that contain a single word.'] }],
       explain: '<p>Scanning costs time proportional to the <b>whole collection</b>, again for every query. The index is built once; a query then fetches the postings of its own terms and never reads the documents. Scanning is not wrong (it finds the same matches), and an inverted index is not a compressed copy of the documents.</p>',
     },
     {
@@ -152,13 +152,13 @@ window.QUIZ = {
       explain: '<p><b>Lemmatization</b> maps inflected forms to the dictionary headword, which needs a vocabulary and morphological analysis (<i>am, are, is → be</i>; <i>better → good</i>). <b>Stemming</b> chops suffixes by rules, and its output need not be a word: Porter\'s <code>ies → i</code> gives <i>poni</i>, and <code>(m>1) ement →</code> gives <i>replac</i>.</p>',
     },
     {
-      id: 's_lang', title: 'Case: a multilingual collection', type: 'matching', level: 'Medium', skill: 'norm',
-      intro: caseCard('An international company', 'It indexes its documents in German, Chinese and Arabic with the same English-style tokenizer, which splits text at spaces and punctuation.'),
-      parts: [{ kind: 'rows', pts: 6, q: 'Which tokenization problem does each language raise?', options: ['long compound words are not split', 'written right to left, numbers left to right', 'accents that users leave out', 'no spaces between words'], rows: [
-        { label: '<b>Arabic</b>', answer: 1 },
-        { label: '<b>Chinese</b>', answer: 3 },
-        { label: '<b>German</b>', answer: 0 }] }],
-      explain: '<p>Tokenization is language-specific. German writes noun compounds as one word (<i>Lebensversicherungsgesellschaftsangestellter</i>), so a query for <i>Versicherung</i> misses it unless compounds are segmented; Chinese and Japanese have no spaces, so splitting at spaces finds no words at all; Arabic and Hebrew run right to left with numbers left to right. Accents are a normalization issue, mostly for languages such as French or German.</p>',
+      id: 's_recipe', title: 'Case: a recipe website', type: 'matching', level: 'Easy–Medium', skill: 'norm',
+      intro: caseCard('A recipe website', 'Its pages are written carefully, with accents and British spelling. Its users type quickly: without accents, and often in American spelling.'),
+      parts: [{ kind: 'rows', pts: 6, q: 'A query and a page should match, but their terms differ. Which normalization fixes each case?', options: ['case folding', 'deleting periods', 'removing accents', 'a thesaurus (equivalence list)'], rows: [
+        { label: 'query <code>creme brulee</code>, page <code>crème brûlée</code>', answer: 2 },
+        { label: 'query <code>USA</code>, page <code>U.S.A.</code>', answer: 1 },
+        { label: 'query <code>color</code>, page <code>colour</code>', answer: 3 }] }],
+      explain: '<p>Each fix puts the query term and the document term into the same <b>equivalence class</b>. Removing accents merges <i>crème</i> and <i>creme</i>, which matters because users rarely type accents; deleting periods merges <i>U.S.A.</i> and <i>USA</i>; spelling variants such as <i>colour</i> and <i>color</i> are not related by any character rule, so they need a hand-built equivalence list (a thesaurus). Case folding is not needed in any of the three: the forms differ in other ways.</p>',
     },
     {
       id: 'q06', title: 'Header terms in sci.crypt', type: 'single choice', level: 'Medium', skill: 'norm',
