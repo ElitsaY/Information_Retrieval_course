@@ -71,51 +71,28 @@
   <!-- work-in-progress notice: remove from a lab once it is finished -->
   <div class="wip-note" role="note"><span class="wip-tag">Work in progress</span> These notes are still being written and reviewed: content may change, and some parts may still contain mistakes.</div>
 
-  <!-- ===== OVERVIEW ===== -->
-  <section class="block" id="overview">
-    <h2 class="section-title">Overview of the lab</h2>
-    <p class="section-lede">Until now we represented text with explicit lexical features: <b>TF-IDF</b>, <b>BM25</b>, <b>language-model term probabilities</b>. Modern neural retrieval uses <b>learned vector representations</b> instead. Writing <code>embedding = model.encode(text)</code> without explaining what an encoder is leaves a gap; this lab fills it. The central progression:</p>
-    <div class="rr-pipe">text → tokens → token embeddings → Transformer → contextual token representations → pooling / projection → one vector for the text</div>
-    <ol class="concept-list" style="margin-top:1.2rem;">
-      <li><a href="#vectors">From TF-IDF vectors to learned vectors</a>.</li>
-      <li><a href="#tokens">Tokens and token embeddings</a>.</li>
-      <li><a href="#attention">Self-attention</a> and contextual representations.</li>
-      <li><a href="#layers">Transformer layers</a> and why position matters.</li>
-      <li><a href="#encoder">What is an encoder?</a> Encoder-only, decoder-only, encoder–decoder.</li>
-      <li><a href="#pooling">From token vectors to one text vector</a>: pooling, and why not any Transformer.</li>
-      <li><a href="#semantic">Semantic search</a>: what changes compared with lexical search.</li>
-      <li><a href="#biencoder">Bi-encoders</a> for retrieval.</li>
-      <li><a href="#demo">A small embedding demo</a>, the <a href="#summary">summary</a> and an optional exercise.</li>
-    </ol>
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Learning objectives</h3>
-    <p class="section-lede">By the end you should be able to explain:</p>
-    <ul class="concept-list">
-      <li>the difference between sparse lexical vectors and learned dense vectors;</li>
-      <li>what tokenization does, what a token embedding is, and why token embeddings alone are not contextual;</li>
-      <li>the intuition behind self-attention, and what a Transformer layer does at a high level;</li>
-      <li>what an encoder is, and the difference between encoder-only, decoder-only and encoder–decoder Transformers;</li>
-      <li>how contextual token vectors become a single sentence or document embedding;</li>
-      <li>why a generic Transformer is not automatically a good retrieval model, and why bi-encoders are useful for retrieval.</li>
-    </ul>
-  </section>
-
   <!-- ===== PART I ===== -->
   <section class="block algo-section ids" id="vectors">
     <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part I</span>
     <h2 class="section-title">From TF-IDF vectors to learned vectors</h2>
-    <ul class="concept-list">
-      <li><b>A TF-IDF vector</b> looks like \([0, 0.72, 0, 1.31, 0, \ldots]\). Each dimension corresponds to a vocabulary term (dimension 1 → <i>aircraft</i>, dimension 2 → <i>wing</i>, dimension 3 → <i>drag</i>, …). It is <b>high-dimensional, sparse, interpretable, lexical</b>.</li>
-      <li><b>A learned dense vector</b> looks like \([0.13, -0.41, 0.08, 0.67, \ldots]\). Most dimensions are non-zero, and they do <b>not</b> correspond to individual words: the representation is <b>learned from data</b>.</li>
-    </ul>
-    <p class="section-lede">Which raises the important question: <b>where do these numbers actually come from?</b> The rest of the lab answers it.</p>
-    <h4 style="margin:1.4rem 0 0.4rem;">See it: one text, two representations</h4>
-    <p class="section-lede">The text <i>how to repair a car engine</i>. Left: its TF-IDF vector (scikit-learn's formula) over the vocabulary of the five texts of the <a href="#demo">demo</a>. Right: its real 384-dimensional embedding from <code>all-MiniLM-L6-v2</code>, one cell per dimension (blue positive, red negative). Hover or tap a cell.</p>
-    <div class="playground">
-      <div class="sd-grid">
-        <div><p class="al-h">Sparse: TF-IDF <span id="sd-sp-n"></span></p><div id="sd-sparse" class="sd-sparse"></div></div>
-        <div><p class="al-h">Dense: embedding <span>384 of 384 non-zero</span></p><div id="sd-dense" class="sd-dense"></div><p class="rr-note" id="sd-cell">Hover a cell.</p></div>
+    <div class="vx-pair">
+      <div class="vx-card sp">
+        <p class="vx-label">Sparse · lexical</p>
+        <h3 class="vx-title">A TF-IDF vector</h3>
+        <div class="vx-vec"><span class="vx-cell"><b>0</b><small>aircraft</small></span><span class="vx-cell nz"><b>0.72</b><small>wing</small></span><span class="vx-cell"><b>0</b><small>drag</small></span><span class="vx-cell nz"><b>1.31</b><small>lift</small></span><span class="vx-cell more"><b>…</b><small>&nbsp;</small></span></div>
+        <p class="vx-text">Each dimension corresponds to a <b>vocabulary term</b>. Most entries are 0: only the terms in the text get a weight.</p>
+        <div class="vx-tags"><span>high-dimensional</span><span>sparse</span><span>interpretable</span><span>lexical</span></div>
+      </div>
+      <div class="vx-vs" aria-hidden="true">vs</div>
+      <div class="vx-card de">
+        <p class="vx-label">Dense · learned</p>
+        <h3 class="vx-title">A learned dense vector</h3>
+        <div class="vx-vec"><span class="vx-cell nz"><b>0.13</b><small>dim 1</small></span><span class="vx-cell nz neg"><b>−0.41</b><small>dim 2</small></span><span class="vx-cell nz"><b>0.08</b><small>dim 3</small></span><span class="vx-cell nz"><b>0.67</b><small>dim 4</small></span><span class="vx-cell more"><b>…</b><small>&nbsp;</small></span></div>
+        <p class="vx-text">Most dimensions are non-zero, and they do <b>not</b> correspond to individual words: the representation is <b>learned from data</b>.</p>
+        <div class="vx-tags"><span>low-dimensional</span><span>dense</span><span>not word-aligned</span><span>learned</span></div>
       </div>
     </div>
+    <p class="section-lede">Which raises the important question: <b>where do these numbers actually come from?</b> The rest of the lab answers it.</p>
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Sparse vs dense</h3>
     <div class="table-wrap">
       <table class="summary sc-small">
@@ -137,9 +114,9 @@
   <section class="block algo-section bfs" id="tokens">
     <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Part II</span>
     <h2 class="section-title">Tokens and token embeddings</h2>
-    <p class="section-lede">Neural models do not consume raw strings directly; they consume <b>tokens</b>. A simple tokenizer turns <i>retrieval systems are useful</i> into <code>["retrieval", "systems", "are", "useful"]</code>. Modern language models often use <b>subword tokens</b> instead: a rarer word is split into pieces (conceptually <i>retrieval</i> → <code>retriev</code> + <code>al</code>). The exact split depends on the tokenizer.</p>
-    <h4 style="margin:1.4rem 0 0.4rem;">Try it: the tokenizer of <code>all-MiniLM-L6-v2</code></h4>
-    <p class="section-lede">The model's real tokenizer (WordPiece with the 30,522-entry vocabulary of BERT, lowercased, accents removed), running in your browser; checked to give the same tokens and IDs as Hugging Face's on 89 test texts. A dashed chip continues the previous word (<code>##</code>).</p>
+    <p class="section-lede">Neural models do not consume raw strings directly; they consume <b>tokens</b>. A simple tokenizer turns <mark class="tx-q">retrieval systems are useful</mark> into <code>["retrieval", "systems", "are", "useful"]</code>. Modern language models often use <b>subword tokens</b> instead: a rarer word is split into pieces (conceptually <i>retrieval</i> → <code>retriev</code> + <code>al</code>). The exact split depends on the tokenizer.</p>
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: split a text into tokens</h4>
+    <p class="section-lede">Type a text, or pick an example. Common words stay whole; rarer words are split into pieces. A dashed chip continues the previous word.</p>
     <div class="playground">
       <div class="pg-controls">
         <label class="tf-input-l" for="tk-in">Text <input type="text" id="tk-in" value="retrieval systems are useful" maxlength="400" autocomplete="off" spellcheck="false"></label>
@@ -147,17 +124,48 @@
       <div class="pg-controls"><div class="strategy-pick" id="tk-pre"></div></div>
       <div id="tk-out" class="tf-out"></div>
     </div>
-    <p class="caption-note">💡 <i>retrieval</i> is frequent enough to be one entry of this vocabulary, so the outline's conceptual split does not happen here; <i>embeddings</i> becomes <code>em ##bed ##ding ##s</code>. [CLS] and [SEP] are special tokens added to every input. The model reads at most 256 tokens (<code>max_seq_length</code>); the rest is cut off.</p>
+    <p class="caption-note">💡 <i>retrieval</i> is common enough to be a single token, while <i>embeddings</i> is split into <code>em</code> + <code>bed</code> + <code>ding</code> + <code>s</code>. A tokenizer has a fixed vocabulary of words and word pieces; any text is written with them.</p>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Tokens become IDs, IDs look up vectors</h3>
-    <p class="section-lede">The tokenizer maps each token to an integer ID (above: <code>retrieval</code> → 26384). The model does not treat the integer itself as meaning: the integer is used to <b>look up a vector</b>. Each token ID maps to a learned vector, its <b>token embedding</b>:</p>
+    <p class="section-lede">The tokenizer maps each token to an integer ID (for example <code>retrieval</code> → 26384). The model does not treat the integer itself as meaning: the integer is used to <b>look up a vector</b>. Each token ID maps to a learned vector, its <b>token embedding</b>:</p>
     <div class="math-block">\[ token_i \;\rightarrow\; e_i \in \mathbb{R}^{d} \]</div>
-    <ul class="concept-list">
-      <li>In <code>all-MiniLM-L6-v2</code> the lookup table has 30,522 rows (one per vocabulary entry) and \(d = 384\) columns: 11.7 million learned numbers, about half of the model's 22.7 million parameters.</li>
-      <li>The row of <code>bank</code> (ID <span id="bk-id">2924</span>) begins <span id="bk-row"></span></li>
-    </ul>
+    <h4 style="margin:1.4rem 0 0.4rem;">See it: the lookup table</h4>
+    <p class="section-lede">One row per vocabulary entry (tens of thousands of rows), and each row is a learned vector of hundreds of numbers; only the first few are shown. Click a token.</p>
+    <div class="playground">
+      <div class="lt-sent" id="lt-sent"></div>
+      <div class="lt-wrap"><table class="lt-table" id="lt-table"></table></div>
+      <p class="lt-out" id="lt-out"></p>
+    </div>
+
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">A token embedding is not yet contextual</h3>
-    <p class="section-lede">In <i>river bank</i> and in <i>bank account</i>, the token <code>bank</code> starts from the <b>same lookup embedding</b>, the same row of the table. But its meaning depends on context. We need a mechanism that lets the surrounding tokens change the representation: that is the role of the <b>Transformer</b>.</p>
+    <p class="section-lede">The word <i>bank</i> has many meanings, but the tokenizer only sees the string <code>bank</code>. Every sentence below gets the <b>same token ID</b>, so it looks up the <b>same row</b> of the table. Click a picture.</p>
+    <div class="playground">
+      <div class="mb-pics" id="mb-pics">
+        <button type="button" class="mb-pic" data-i="0">
+          <svg viewBox="0 0 160 100" aria-hidden="true"><polygon class="p-ids" points="80,12 130,36 30,36"/><rect class="p-ids" x="34" y="36" width="92" height="6"/><rect class="p-ids" x="44" y="45" width="8" height="30"/><rect class="p-ids" x="64" y="45" width="8" height="30"/><rect class="p-ids" x="88" y="45" width="8" height="30"/><rect class="p-ids" x="108" y="45" width="8" height="30"/><rect class="p-ids" x="30" y="76" width="100" height="8"/><circle class="p-ucs" cx="138" cy="20" r="11"/><text class="p-sym" x="138" y="24.5">$</text></svg>
+          <span>I deposited money at the <b>bank</b>.</span>
+        </button>
+        <button type="button" class="mb-pic" data-i="1">
+          <svg viewBox="0 0 160 100" aria-hidden="true"><path class="p-water" d="M0,66 Q20,60 40,66 T80,66 T120,66 T160,66 L160,100 L0,100 Z"/><path class="p-wave" d="M100,82 q8,-4 16,0 t16,0 M112,92 q8,-4 16,0 t16,0"/><path class="p-bfs" d="M0,34 C38,32 60,46 96,100 L0,100 Z"/><rect class="p-trunk" x="25" y="14" width="5" height="22"/><circle class="p-bfs" cx="27.5" cy="14" r="12"/></svg>
+          <span>We sat on the river <b>bank</b>.</span>
+        </button>
+        <button type="button" class="mb-pic" data-i="2">
+          <svg viewBox="0 0 160 100" aria-hidden="true"><line class="p-horizon" x1="8" y1="84" x2="152" y2="84"/><g transform="translate(80,50) rotate(-24)"><polygon class="p-dfs" points="-1.6,-8 1.6,-8 1,-30 -1,-30"/><polygon class="p-dfs" points="-20,-5 20,-5 20,-3 -20,-3"/><polygon class="p-dfs" points="-64,-1 -9,-4 9,-4 64,-1 64,2 9,5 -9,5 -64,2"/><circle class="p-dfs" cx="-26" cy="8" r="4.5"/><circle class="p-dfs" cx="26" cy="8" r="4.5"/><circle class="p-dfs" r="10"/><path class="p-win" d="M-6,-3 A7,7 0 0 1 6,-3"/></g><path class="p-arrow" d="M126,22 A50,50 0 0 1 146,52"/><polygon class="p-arrowhead" points="141,50 149,58 151,47"/></svg>
+          <span>The plane began to <b>bank</b> left.</span>
+        </button>
+        <button type="button" class="mb-pic" data-i="3">
+          <svg viewBox="0 0 160 100" aria-hidden="true"><g transform="rotate(10 50 70)"><rect class="p-ucs" x="12" y="58" width="72" height="18" rx="6"/><path class="p-ucs" d="M28,58 L38,44 L64,44 L74,58 Z"/><circle class="p-wheel" cx="30" cy="78" r="7"/><circle class="p-wheel" cx="68" cy="78" r="7"/></g><path class="p-snow" d="M66,100 C74,58 118,42 160,50 L160,100 Z"/><circle class="p-flake" cx="20" cy="18" r="2.2"/><circle class="p-flake" cx="58" cy="12" r="2.2"/><circle class="p-flake" cx="98" cy="24" r="2.2"/><circle class="p-flake" cx="138" cy="14" r="2.2"/><circle class="p-flake" cx="120" cy="34" r="2.2"/></svg>
+          <span>The car slid into a snow <b>bank</b>.</span>
+        </button>
+      </div>
+      <svg class="mb-funnel" id="mb-funnel" viewBox="0 0 400 44" preserveAspectRatio="none" aria-hidden="true"><line x1="50" y1="0" x2="200" y2="44"/><line x1="150" y1="0" x2="200" y2="44"/><line x1="250" y1="0" x2="200" y2="44"/><line x1="350" y1="0" x2="200" y2="44"/></svg>
+      <div class="mb-down" aria-hidden="true">↓</div>
+      <div class="mb-out">
+        <span class="tk-chip">bank</span><span class="mb-arr">→</span><span class="mb-id">ID 2924</span><span class="mb-arr">→</span><span class="mb-row" id="mb-row"></span>
+      </div>
+      <p class="lt-out" id="mb-out"></p>
+    </div>
+    <p class="section-lede" style="margin-top:1rem;">Four different meanings, one identical starting vector. But the meaning depends on <b>context</b>. We need a mechanism that lets the surrounding tokens change the representation: that is the role of the <b>Transformer</b>.</p>
   </section>
 
   <!-- ===== PART III ===== -->

@@ -113,36 +113,62 @@ function initHero() {
   });
 }
 
-/* ---------- Part I: sparse vs dense ---------- */
-function initSparseDense() {
-  const T = tinyTfidf(D.tiny.texts), v = T.rows[0], nz = v.filter(x => x > 0).length;
-  document.getElementById('sd-sp-n').textContent = `${nz} of ${T.vocab.length} non-zero`;
-  document.getElementById('sd-sparse').innerHTML = T.vocab.map((w, i) => `<span class="sd-t${v[i] > 0 ? ' nz' : ''}"><b>${v[i] > 0 ? f3(v[i]) : '0'}</b><small>${esc(w)}</small></span>`).join('');
-  const box = document.getElementById('sd-dense'), info = document.getElementById('sd-cell'), vec = D.vec0, m = Math.max(...vec.map(Math.abs));
-  box.innerHTML = vec.map((x, i) => `<span class="sd-c" data-i="${i}" style="background:${signColor(x, m)}"></span>`).join('');
-  const show = (i) => { info.innerHTML = `dimension ${i}: <b>${vec[i].toFixed(5)}</b> · first ten: [${vec.slice(0, 10).map(x => x.toFixed(3)).join(', ')}] · length \\(\\|v\\| = 1\\)`; mathIn(info); };
-  box.querySelectorAll('.sd-c').forEach(c => { c.addEventListener('mouseenter', () => show(+c.dataset.i)); c.addEventListener('click', () => show(+c.dataset.i)); });
-  show(0);
-}
-
 /* ---------- Part II: tokenizer ---------- */
 function initTokenizer() {
   const inp = document.getElementById('tk-in'), out = document.getElementById('tk-out');
-  const PRE = ['retrieval systems are useful', 'embeddings', 'myocardial infarction', 'error code 0x80070005', 'ChatGPT and GPT-4o', 'naïve café in Zürich', 'Sofia University, ФМИ'];
+  const PRE = ['retrieval systems are useful', 'tokenization', 'embeddings', 'chatbots', 'myocardial infarction'];
   pills(document.getElementById('tk-pre'), PRE.map(p => [p, p]), PRE[0], (p) => { inp.value = p; render(); });
   function render() {
     const toks = wordPiece(inp.value), words = inp.value.trim().split(/\s+/).filter(Boolean).length;
-    const chip = (t, id, cls) => `<span class="tk-chip tk-id-chip ${cls}"><span>${esc(t)}</span><small>${id}</small></span>`;
-    const unk = toks.filter(x => x.t === '[UNK]').length, cont = toks.filter(x => x.t.startsWith('##')).length;
-    out.innerHTML = `<div class="tk-chips">${chip('[CLS]', 101, 'char')}${toks.map(x => chip(x.t, x.id, x.t === '[UNK]' ? 'unk' : x.t.startsWith('##') ? 'cont' : '')).join('')}${chip('[SEP]', 102, 'char')}</div>` +
-      `<p><b>${words}</b> whitespace word${words === 1 ? '' : 's'} → <b>${toks.length}</b> tokens (+ [CLS] and [SEP] = ${toks.length + 2} input positions)${cont ? `, ${cont} of them word continuations` : ''}.</p>` +
-      `<p class="note">${unk ? `❗ ${unk} [UNK]: a word whose characters are not in the vocabulary; the model sees only "unknown".` : toks.length + 2 > 256 ? '❗ Longer than 256 positions: the model would ignore everything after the limit.' : 'The small numbers are the token IDs, the row numbers of the embedding table.'}</p>`;
+    out.innerHTML = `<div class="tk-chips">${toks.map(x => `<span class="tk-chip${x.t === '[UNK]' ? ' unk' : x.t.startsWith('##') ? ' cont' : ''}">${esc(x.t.replace(/^##/, ''))}</span>`).join('')}</div>` +
+      `<p><b>${words}</b> word${words === 1 ? '' : 's'} → <b>${toks.length}</b> token${toks.length === 1 ? '' : 's'}</p>`;
   }
   inp.addEventListener('input', () => { document.querySelectorAll('#tk-pre .strat-btn').forEach(b => b.classList.toggle('active', b.dataset.k === inp.value)); render(); });
   render();
-  const B = D.bank;
-  document.getElementById('bk-id').textContent = B.bankId;
-  document.getElementById('bk-row').textContent = `[${B.wemb.slice(0, 6).map(x => x.toFixed(4)).join(', ')}, …] (384 numbers), whatever sentence it appears in.`;
+}
+
+/* ---------- Part II: the lookup table ---------- */
+// first 6 of the 384 numbers in each row of the model's real token-embedding table
+const LUT = [
+  { t: 'are', id: 2024, v: [-0.0225, -0.017, -0.0119, 0.0298, -0.0568, 0.023] },
+  { t: 'bank', id: 2924, v: [0.0492, 0.0312, -0.0702, 0.0593, 0.0814, -0.0581] },
+  { t: 'systems', id: 3001, v: [-0.0784, -0.1659, -0.0132, 0.0723, 0.02, -0.0607] },
+  { t: 'useful', id: 6179, v: [-0.0503, -0.0526, 0.0378, -0.0092, 0.0113, -0.0324] },
+  { t: 'retrieval', id: 26384, v: [-0.1179, -0.0731, 0.0209, -0.0475, -0.0011, -0.0548] },
+];
+const fmt2 = (x) => (x <= -0.005 ? '−' : '') + Math.abs(x).toFixed(2);
+const rowStrip = (v, m) => v.map(x => `<span class="lt-c" style="background:${signColor(x, m)}">${fmt2(x)}</span>`).join('') + '<span class="lt-c more">…</span>';
+function initLookup() {
+  const sent = document.getElementById('lt-sent'), tab = document.getElementById('lt-table'), out = document.getElementById('lt-out');
+  const m = Math.max(...LUT.flatMap(r => r.v.map(Math.abs)));
+  const gap = '<tr class="lt-gap"><td>⋮</td><td></td><td colspan="7"></td></tr>';
+  tab.innerHTML = '<thead><tr><th>ID</th><th>token</th>' + [1, 2, 3, 4, 5, 6].map(d => `<th class="d${d}">${d}</th>`).join('') + '<th>…</th></tr></thead><tbody>' + gap +
+    LUT.map((r, k) => `<tr data-k="${k}"><td class="lt-id">${r.id}</td><td><span class="tk-chip">${r.t}</span></td>` + r.v.map((x, d) => `<td class="d${d + 1}" style="background:${signColor(x, m)}">${fmt2(x)}</td>`).join('') + '<td>…</td></tr>' + gap).join('') + '</tbody>';
+  const order = ['retrieval', 'systems', 'are', 'useful'];
+  sent.innerHTML = '<span class="lt-lab">Text</span>' + order.map(t => `<button type="button" class="tk-chip lt-tok" data-t="${t}">${t}</button>`).join('');
+  function pick(t) {
+    const k = LUT.findIndex(r => r.t === t), r = LUT[k];
+    sent.querySelectorAll('.lt-tok').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+    tab.querySelectorAll('tbody tr[data-k]').forEach(tr => tr.classList.toggle('on', +tr.dataset.k === k));
+    out.innerHTML = `<span class="tk-chip">${r.t}</span> → ID <b>${r.id}</b> → row ${r.id} = [${r.v.slice(0, 3).map(fmt2).join(', ')}, …]: its token embedding`;
+  }
+  sent.querySelectorAll('.lt-tok').forEach(b => b.addEventListener('click', () => pick(b.dataset.t)));
+  tab.querySelectorAll('tbody tr[data-k]').forEach(tr => tr.addEventListener('click', () => pick(LUT[+tr.dataset.k].t)));
+  pick('retrieval');
+}
+
+/* ---------- Part II: one string, many meanings ---------- */
+function initBankPics() {
+  const pics = [...document.querySelectorAll('#mb-pics .mb-pic')], lines = [...document.querySelectorAll('#mb-funnel line')], out = document.getElementById('mb-out');
+  const r = LUT.find(x => x.t === 'bank'), m = Math.max(...LUT.flatMap(x => x.v.map(Math.abs)));
+  document.getElementById('mb-row').innerHTML = rowStrip(r.v, m);
+  function pick(i) {
+    pics.forEach((p, j) => p.classList.toggle('on', j === i));
+    lines.forEach((l, j) => l.classList.toggle('on', j === i));
+    out.innerHTML = `“${pics[i].querySelector('span').innerHTML}” → <span class="tk-chip">bank</span> → ID <b>2924</b> → row 2924: the same row as for the other three sentences.`;
+  }
+  pics.forEach((p, i) => p.addEventListener('click', () => pick(i)));
+  pick(0);
 }
 
 /* ---------- Part III: real attention weights ---------- */
@@ -370,8 +396,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initMath();
   initHero();
   if (!D) return;
-  initSparseDense();
   if (VOC) initTokenizer();
+  initLookup();
+  initBankPics();
   initAttention();
   initBank();
   initWordOrder();
