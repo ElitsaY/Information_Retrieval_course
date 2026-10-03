@@ -2870,13 +2870,6 @@ button.lt-tok { cursor: pointer; font-size: 0.95rem; color: var(--ink); } button
 .art-intro .hero-art .lk { stroke: var(--ink-soft); stroke-width: 1.5; opacity: 0.14; }
 .art-intro .hero-art .dc rect { fill: var(--surface); stroke-width: 2; } .art-intro .hero-art .dc line { stroke-width: 2; stroke-linecap: round; }
 .art-intro .hero-art .dc { opacity: 0.35; } .art-intro .hero-art .dc.c0 { stroke: var(--dfs); } .art-intro .hero-art .dc.c1 { stroke: var(--bfs); } .art-intro .hero-art .dc.c2 { stroke: var(--ucs); } .art-intro .hero-art .dc.c3 { stroke: var(--ids); }
-.ab-hi { margin-top: 1.2rem; padding: 1.1rem 1.3rem; border: 1px solid color-mix(in srgb, var(--ids) 40%, var(--line)); border-left: 5px solid var(--ids); border-radius: var(--radius); background: color-mix(in srgb, var(--ids) 8%, var(--surface)); }
-.ab-hi-text { margin: 0 0 0.9rem; font-size: 1.02rem; }
-.ab-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; }
-.ab-stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.7rem 0.9rem; min-width: 0; }
-.ab-stat b { display: block; font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 1.5rem; line-height: 1.2; color: var(--indigo); }
-.ab-stat span { font-size: 0.85rem; color: var(--ink-soft); }
-@media (max-width: 520px) { .ab-stats { grid-template-columns: 1fr; } .ab-stat { display: flex; align-items: baseline; gap: 0.6rem; } .ab-stat b { font-size: 1.25rem; flex: none; } }
 .ab-list { display: grid; gap: 1.2rem; margin-top: 1.2rem; }
 .ab-card { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 1.5rem; align-items: start; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 1.2rem; }
 .ab-photo { display: block; width: 100%; aspect-ratio: 4 / 5; height: auto; object-fit: cover; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--ids) 12%, var(--surface)); }
