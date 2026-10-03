@@ -171,49 +171,111 @@ function initBankPics() {
   pick(0);
 }
 
-/* ---------- Part III: real attention weights ---------- */
-function initAttention() {
-  const A = D.att, L = document.getElementById('aw-l'), H = document.getElementById('aw-h'), toksBox = document.getElementById('aw-toks'), out = document.getElementById('aw-out');
-  const NAMES = ['… because it was tired', '… because it was too wide', 'The cat sat on the mat …'];
-  let s = 0, sel = A[0].tok.indexOf('it');
-  pills(document.getElementById('aw-s'), A.map((_, i) => [i, NAMES[i]]), 0, (i) => { const word = A[s].tok[sel]; s = +i; const j = A[s].tok.indexOf(word); sel = j >= 0 ? j : A[s].tok.indexOf('it'); render(); });
-  function row() {
-    const l = +L.value - 1, h = +H.value, n = A[s].tok.length;
-    if (h === 0) return Array.from({ length: n }, (_, j) => A[s].w[l].reduce((acc, hh) => acc + hh[sel][j], 0) / 12 / 1000);
-    return A[s].w[l][h - 1][sel].map(x => x / 1000);
+/* ---------- Part III: where does "it" look? (illustrative weights) ---------- */
+const SA = {
+  tired: { words: ['The', 'animal', 'did', 'not', 'cross', 'the', 'street', 'because', 'it', 'was', 'tired'], w: [0.02, 0.55, 0.01, 0.01, 0.03, 0.02, 0.08, 0.03, 0.06, 0.04, 0.15], ref: 'the animal' },
+  wide: { words: ['The', 'animal', 'did', 'not', 'cross', 'the', 'street', 'because', 'it', 'was', 'too', 'wide'], w: [0.01, 0.10, 0.01, 0.01, 0.03, 0.01, 0.52, 0.03, 0.06, 0.04, 0.04, 0.14], ref: 'the street' },
+};
+function initSelfAttn() {
+  const toks = document.getElementById('sa-toks'), bars = document.getElementById('sa-bars'), out = document.getElementById('sa-out');
+  const pct = (x) => `${Math.round(x * 100)}%`;
+  function render(k) {
+    const S = SA[k], qi = S.words.indexOf('it');
+    toks.innerHTML = S.words.map((t, i) => `<span class="sa-tok${i === qi ? ' q' : ''}" style="background:color-mix(in srgb, var(--dfs) ${Math.round(S.w[i] / 0.55 * 70)}%, var(--surface))">${esc(t)}<small>${pct(S.w[i])}</small></span>`).join('');
+    const top = S.words.map((t, i) => ({ t, w: S.w[i] })).sort((a, b) => b.w - a.w).slice(0, 4);
+    bars.innerHTML = top.map(x => `<div class="sa-bar"><span>${esc(x.t)}</span><i style="width:${x.w * 100 / 0.6}%"></i><b>${pct(x.w)}</b></div>`).join('');
+    out.innerHTML = `New vector of <b>it</b> ≈ ${top.map(x => `${pct(x.w)} <i>${esc(x.t)}</i>`).join(' + ')} + …: <b>it</b> now carries information about <b>${S.ref}</b>.`;
   }
+  pills(document.getElementById('sa-s'), [['tired', '… because it was tired'], ['wide', '… because it was too wide']], 'tired', render);
+  render('tired');
+}
+
+/* ---------- Part III: query, key, value step by step (invented 2-number vectors) ---------- */
+const QKV = { q: [1, 2], rows: [{ t: 'animal', k: [2, 1], v: [1, 0] }, { t: 'street', k: [1, 0], v: [0, 1] }, { t: 'tired', k: [0, 1], v: [0.5, 0] }, { t: 'it', k: [0.5, 0.5], v: [0.2, 0.2] }] };
+function initQKV() {
+  const tab = document.getElementById('qk-table'), lab = document.getElementById('qk-step'), out = document.getElementById('qk-out');
+  const q = QKV.q, R = QKV.rows, vec = (a) => `[${a.map(x => +x.toFixed(2)).join(', ')}]`, n2 = (x) => x.toFixed(3);
+  const sc = R.map(r => r.k[0] * q[0] + r.k[1] * q[1]), ex = sc.map(Math.exp), Z = ex.reduce((a, b) => a + b, 0), w = ex.map(x => x / Z);
+  const o = [0, 1].map(d => R.reduce((a, r, i) => a + w[i] * r.v[d], 0));
+  const LAB = ['Start: the query of <b>it</b> is q = [1, 2]', 'Step 1 · Score: q · key', 'Step 2 · Weights: softmax', 'Step 3 · Mix: weighted sum of values'];
+  let step = 0;
   function render() {
-    document.getElementById('aw-l-val').textContent = L.value; document.getElementById('aw-h-val').textContent = +H.value === 0 ? 'avg' : H.value;
-    const t = A[s].tok, w = row(), mx = Math.max(...w);
-    toksBox.innerHTML = t.map((x, j) => `<button type="button" class="aw-tok${j === sel ? ' sel' : ''}" data-j="${j}" style="background:color-mix(in srgb, var(--indigo) ${Math.round(100 * w[j])}%, var(--surface));${w[j] > 0.45 ? 'color:#fff;' : ''}" title="${f3(w[j])}">${esc(x)}</button>`).join('');
-    toksBox.querySelectorAll('.aw-tok').forEach(b => b.addEventListener('click', () => { sel = +b.dataset.j; render(); }));
-    const order = w.map((v, j) => [v, j]).sort((a, b) => b[0] - a[0]);
-    const special = w.reduce((acc, v, j) => acc + (['[CLS]', '[SEP]', '.'].includes(t[j]) ? v : 0), 0);
-    out.innerHTML = `<p class="big">Layer ${L.value}, ${+H.value === 0 ? 'average of the 12 heads' : 'head ' + H.value}: <b>${esc(t[sel])}</b> attends to</p>` +
-      order.slice(0, 5).map(([v, j]) => `<div class="cm-bar aw-bar"><span>${esc(t[j])}${j === sel ? ' (itself)' : ''}</span><div><i style="width:${(100 * v / Math.max(mx, 1e-9)).toFixed(1)}%"></i></div><b>${f2(v)}</b></div>`).join('') +
-      `<p class="note">The ${t.length} weights of the row sum to 1; ${f2(special)} of them go to [CLS], [SEP] and the full stop.</p>`;
+    lab.innerHTML = LAB[step];
+    tab.innerHTML = `<thead><tr><th>word</th><th class="k">key</th><th class="${step >= 1 ? 's' : 'off'}">score</th><th class="${step >= 2 ? 'w' : 'off'}">weight</th><th class="v">value</th></tr></thead><tbody>` +
+      R.map((r, i) => `<tr${r.t === 'it' ? ' class="self"' : ''}><td><span class="tk-chip">${r.t}</span></td><td class="k">${vec(r.k)}</td>` +
+        `<td class="${step >= 1 ? 's' : 'off'}">${step >= 1 ? `<span class="qk-calc">1·${+r.k[0].toFixed(2)} + 2·${+r.k[1].toFixed(2)} = </span><b>${+sc[i].toFixed(2)}</b>` : '?'}</td>` +
+        `<td class="${step >= 2 ? 'w' : 'off'}">${step >= 2 ? `<span class="qk-wbar"><i style="width:${w[i] * 100}%"></i></span><b>${n2(w[i])}</b>` : '?'}</td>` +
+        `<td class="v${step >= 3 ? ' on' : ''}">${vec(r.v)}</td></tr>`).join('') + '</tbody>';
+    out.innerHTML = [
+      'Every word has a <b>key</b> (what it offers) and a <b>value</b> (what it passes on). We compute the new vector of <b>it</b>, so we use its <b>query</b>.',
+      `The query matches the key of <b>animal</b> best (score ${+sc[0].toFixed(2)}), and the key of <b>street</b> worst (score ${+sc[1].toFixed(2)}).`,
+      `softmax: each weight is \\(e^{\\text{score}}\\) divided by the sum over all words, so the weights add up to 1. <b>animal</b> gets ${n2(w[0])} of the attention.`,
+      `New vector of <b>it</b> = ${R.map((r, i) => `${n2(w[i])}·${vec(r.v)}`).join(' + ')} = <b>${vec(o)}</b>: close to the value of <b>animal</b>, [1, 0]. <b>it</b> now carries the animal's information.`,
+    ][step];
+    mathIn(out);
+    document.getElementById('qk-prev').disabled = step === 0;
+    document.getElementById('qk-next').disabled = step === 3;
   }
-  [L, H].forEach(x => x.addEventListener('input', render));
+  document.getElementById('qk-next').addEventListener('click', () => { step = Math.min(3, step + 1); render(); });
+  document.getElementById('qk-prev').addEventListener('click', () => { step = Math.max(0, step - 1); render(); });
+  document.getElementById('qk-reset').addEventListener('click', () => { step = 0; render(); });
   render();
 }
 
-/* ---------- Part III: "bank" in six contexts ---------- */
-function initBank() {
-  const B = D.bank, t = document.getElementById('bk-hm'), out = document.getElementById('bk-out');
-  const lbl = (i) => (B.sense[i] === 'river' ? 'R' : 'M') + (1 + B.sense.slice(0, i).filter(x => x === B.sense[i]).length);
-  const hl = (s) => esc(s).replace(/\bbank\b/, '<b>bank</b>');
-  const items = [['lookup', 'lookup table'], ...B.layers.map((_, l) => [String(l), l === 0 ? 'embedding layer' : 'layer ' + l])];
-  pills(document.getElementById('bk-l'), items, '6', render);
-  function render(k) {
-    const M = k === 'lookup' ? B.ctx.map(() => B.ctx.map(() => 1)) : B.layers[+k];
-    t.innerHTML = `<thead><tr><th></th>${B.ctx.map((_, j) => `<th class="bk-c">${lbl(j)}</th>`).join('')}</tr></thead><tbody>` +
-      B.ctx.map((s, i) => `<tr><th class="bk-r ${B.sense[i]}"><span class="bk-tag">${lbl(i)}</span>${hl(s)}</th>${M[i].map((v, j) => `<td class="${B.sense[i] === B.sense[j] ? 'same' : ''}" style="background:color-mix(in srgb, var(--indigo) ${Math.round(Math.max(0, (v - 0.6) / 0.4) * 100)}%, var(--surface));${v > 0.85 ? 'color:#fff;' : ''}">${v.toFixed(2)}</td>`).join('')}</tr>`).join('') + '</tbody>';
-    const pairs = (same) => { const v = []; for (let a = 0; a < 6; a++) for (let b = a + 1; b < 6; b++) if ((B.sense[a] === B.sense[b]) === same) v.push(M[a][b]); return v.reduce((x, y) => x + y, 0) / v.length; };
-    const w = pairs(true), a = pairs(false);
-    out.innerHTML = `<p class="big">${k === 'lookup' ? 'Lookup table' : k === '0' ? 'After the embedding layer' : 'After layer ' + k}: same sense <b>${f3(w)}</b>, different senses <b>${f3(a)}</b>, gap <b>${f3(w - a)}</b></p>` +
-      `<p class="note">R = river, M = money. Colour from 0.6 (white) to 1 (dark).</p>`;
+/* ---------- Part III: the score is a dot product ---------- */
+function initDotProduct() {
+  const words = document.getElementById('dp-words'), svg = document.getElementById('dp-plot'), calc = document.getElementById('dp-calc');
+  const q = QKV.q, R = QKV.rows, O = [40, 200], S = 70, P = (v) => [O[0] + v[0] * S, O[1] - v[1] * S];
+  const arrow = (v, cls, label) => {
+    const [x, y] = P(v), a = Math.atan2(y - O[1], x - O[0]), h = 13;
+    el('line', { x1: O[0], y1: O[1], x2: x - Math.cos(a) * h * 0.8, y2: y - Math.sin(a) * h * 0.8, class: cls }, svg);
+    el('polygon', { points: `${x},${y} ${x - h * Math.cos(a - 0.42)},${y - h * Math.sin(a - 0.42)} ${x - h * Math.cos(a + 0.42)},${y - h * Math.sin(a + 0.42)}`, class: cls + ' head' }, svg);
+    if (label) { const t = el('text', { x: x + 6, y: y - 4, class: cls + ' lab' }, svg); t.textContent = label; }
+  };
+  function pick(k) {
+    const r = R[k], sc = q[0] * r.k[0] + q[1] * r.k[1];
+    words.querySelectorAll('.lt-tok').forEach((b, i) => b.classList.toggle('on', i === k));
+    svg.innerHTML = '';
+    for (let g = 1; g <= 2; g++) { el('line', { x1: P([g, 0])[0], y1: O[1], x2: P([g, 0])[0], y2: P([0, 2.7])[1], class: 'grid' }, svg); el('line', { x1: O[0], y1: P([0, g])[1], x2: P([2.7, 0])[0], y2: P([0, g])[1], class: 'grid' }, svg); }
+    el('line', { x1: O[0], y1: O[1], x2: P([2.85, 0])[0], y2: O[1], class: 'axis' }, svg); el('line', { x1: O[0], y1: O[1], x2: O[0], y2: P([0, 2.85])[1], class: 'axis' }, svg);
+    [1, 2].forEach(g => { const t1 = el('text', { x: P([g, 0])[0], y: O[1] + 16, class: 'tick' }, svg); t1.textContent = g; const t2 = el('text', { x: O[0] - 12, y: P([0, g])[1] + 4, class: 'tick' }, svg); t2.textContent = g; });
+    R.forEach((x, i) => { if (i !== k) arrow(x.k, 'key faint', x.t); });
+    arrow(q, 'qry', 'query of it');
+    arrow(r.k, 'key', `key of ${r.t}`);
+    const f = (x) => +x.toFixed(2);
+    calc.innerHTML = `<div class="dp-row"><span class="dp-l q">query</span><span class="dp-n q">${f(q[0])}</span><span class="dp-n q">${f(q[1])}</span></div>` +
+      `<div class="dp-row"><span class="dp-l k">key of ${r.t}</span><span class="dp-n k">${f(r.k[0])}</span><span class="dp-n k">${f(r.k[1])}</span></div>` +
+      `<div class="dp-row"><span class="dp-l">multiply</span><span class="dp-n">${f(q[0] * r.k[0])}</span><span class="dp-n">${f(q[1] * r.k[1])}</span></div>` +
+      `<p class="dp-sum">add: ${f(q[0] * r.k[0])} + ${f(q[1] * r.k[1])} = <b>${f(sc)}</b></p>` +
+      `<p class="dp-note">${sc === Math.max(...R.map(x => q[0] * x.k[0] + q[1] * x.k[1])) ? `The highest score: the key of <b>${r.t}</b> points most in the direction of the query.` : sc === Math.min(...R.map(x => q[0] * x.k[0] + q[1] * x.k[1])) ? `The lowest score: the key of <b>${r.t}</b> points the most in a different direction from the query.` : `A middle score.`}</p>`;
   }
-  render('6');
+  words.innerHTML = '<span class="lt-lab">Key of</span>' + R.map((r, i) => `<button type="button" class="tk-chip lt-tok" data-i="${i}">${r.t}</button>`).join('');
+  words.querySelectorAll('.lt-tok').forEach(b => b.addEventListener('click', () => pick(+b.dataset.i)));
+  pick(0);
+}
+
+/* ---------- Part III: softmax ---------- */
+function initSoftmax() {
+  const grid = document.getElementById('sm-grid'), out = document.getElementById('sm-out'), R = QKV.rows;
+  const base = R.map(r => QKV.q[0] * r.k[0] + QKV.q[1] * r.k[1]);
+  grid.innerHTML = '<span class="sm-h">word</span><span class="sm-h">score</span><span class="sm-h" style="text-transform:none">e<sup>score</sup></span><span class="sm-h">weight</span>' +
+    R.map((r, i) => `<span><span class="tk-chip">${r.t}</span></span><span class="sm-s"><input type="range" min="-2" max="6" step="0.5" value="${base[i]}" data-i="${i}" aria-label="score of ${r.t}"><b class="val"></b></span>` +
+      `<span class="sm-e"><i></i><b></b></span><span class="sm-w"><i></i><b></b></span>`).join('') +
+    '<span class="sm-tot">total</span><span></span><span class="sm-tot" id="sm-esum"></span><span class="sm-tot">1.000</span>';
+  const ins = [...grid.querySelectorAll('input')], es = [...grid.querySelectorAll('.sm-e')], ws = [...grid.querySelectorAll('.sm-w')];
+  const fe = (x) => x < 100 ? x.toFixed(2) : x.toFixed(1);
+  function render() {
+    const sc = ins.map(x => +x.value), ex = sc.map(Math.exp), Z = ex.reduce((a, b) => a + b, 0), w = ex.map(x => x / Z), mx = Math.max(...ex);
+    ins.forEach((x, i) => { x.nextElementSibling.textContent = sc[i]; });
+    es.forEach((c, i) => { c.querySelector('i').style.width = `${ex[i] / mx * 100}%`; c.querySelector('b').textContent = fe(ex[i]); });
+    ws.forEach((c, i) => { c.querySelector('i').style.width = `${w[i] * 100}%`; c.querySelector('b').textContent = w[i].toFixed(3); });
+    document.getElementById('sm-esum').textContent = fe(Z);
+    const top = w.indexOf(Math.max(...w));
+    out.innerHTML = `weight of <b>${R[top].t}</b> = e<sup>${sc[top]}</sup> / total = ${fe(ex[top])} / ${fe(Z)} = <b>${w[top].toFixed(3)}</b>`;
+  }
+  ins.forEach(x => x.addEventListener('input', render));
+  document.getElementById('sm-reset').addEventListener('click', () => { ins.forEach((x, i) => { x.value = base[i]; }); render(); });
+  render();
 }
 
 /* ---------- Part IV: word order ---------- */
@@ -399,8 +461,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (VOC) initTokenizer();
   initLookup();
   initBankPics();
-  initAttention();
-  initBank();
+  initSelfAttn();
+  initDotProduct();
+  initSoftmax();
+  initQKV();
   initWordOrder();
   initMask();
   initPooling();
