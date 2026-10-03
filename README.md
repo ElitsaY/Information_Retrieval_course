@@ -10,6 +10,7 @@ Served from `docs/` on GitHub Pages: **[elitsay.github.io/Information_Retrieval_
 
 | Lab | Class notes | Quiz | Covers |
 | :--- | :--- | :--- | :--- |
+| 00 | [Introduction](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab00-introduction.html) | coming soon | The team, course content, SemEval-2027 (Task 9, organised by us), the top AI and NLP conferences |
 | 01 | [Inverted Index and Boolean Queries](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab01-inverted-index.html) | [Quiz](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab01-quiz.html) | Incidence matrices, dictionary and postings, index construction, Boolean queries, skip pointers, phrase queries |
 | 02 | [Text Preprocessing](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab02-text-preprocessing.html) | coming soon | Tokenizers, normalization, stop words, stemming and lemmatization, a preprocessing pipeline |
 | 03 | [Tolerant Retrieval and Spelling Correction](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab03-spelling-correction.html) | coming soon | Wild-card queries, edit distance, n-gram overlap, context-sensitive correction, Soundex |

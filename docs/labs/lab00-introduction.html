@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab 00 — Introduction | Class Notes</title>
+<meta name="description" content="Introduction to the Information Retrieval labs at Sofia University: the team, the course topics, taking part in SemEval-2027 (including Task 9, organised by the team) and the top AI and NLP conferences.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css">
+<script src="../theme.js"></script>
+</head>
+<body>
+
+<header class="site-nav">
+  <button class="side-toggle" type="button" aria-controls="lab-menu" aria-expanded="false" aria-label="Labs menu"><span></span></button>
+  <a class="brand" href="../index.html"><span class="dot"></span> Class Notes</a>
+  <nav><a href="../index.html">Home</a></nav>
+  <button class="theme-toggle" type="button" aria-label="Switch colour theme"><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+</header>
+
+<div class="lab-layout">
+  <aside class="lab-menu" id="lab-menu" aria-label="Contents">
+    <div class="lm-tabs" role="tablist" aria-label="Menus">
+      <button class="lm-tab" type="button" role="tab" id="lm-t-notes" aria-controls="lm-notes" aria-selected="true">Class notes</button>
+      <button class="lm-tab" type="button" role="tab" id="lm-t-quiz" aria-controls="lm-quiz" aria-selected="false">Quizzes</button>
+    </div>
+    <div class="lm-panel" id="lm-notes" role="tabpanel" aria-labelledby="lm-t-notes">
+    <ol>
+      <li><a href="lab00-introduction.html" aria-current="page"><span class="lm-n">00</span>Introduction</a></li>
+      <li><a href="lab01-inverted-index.html"><span class="lm-n">01</span>Inverted Index and Boolean Queries</a></li>
+      <li><a href="lab02-text-preprocessing.html"><span class="lm-n">02</span>Text Preprocessing</a></li>
+      <li><a href="lab03-spelling-correction.html"><span class="lm-n">03</span>Tolerant Retrieval and Spelling Correction</a></li>
+      <li><a href="lab04-ranked-retrieval.html"><span class="lm-n">04</span>Ranked Retrieval: TF-IDF and BM25</a></li>
+      <li><a href="lab05-evaluation.html"><span class="lm-n">05</span>Evaluating IR Systems</a></li>
+      <li><a href="lab06-crawling-pagerank.html"><span class="lm-n">06</span>Web Crawling and PageRank</a></li>
+      <li><a href="lab07-query-expansion-lm.html"><span class="lm-n">07</span>Query Expansion and Language Models</a></li>
+      <li><a href="lab08-dense-retrieval.html"><span class="lm-n">08</span>Neural Text Representations</a></li>
+      <li><a href="lab09-ann-faiss.html"><span class="lm-n">09</span>Dense Retrieval and Vector Databases</a></li>
+      <li><a href="lab10-hybrid-reranking.html"><span class="lm-n">10</span>Hybrid Retrieval and Reranking</a></li>
+      <li><a href="lab11-rag.html"><span class="lm-n">11</span>Retrieval-Augmented Generation</a></li>
+      <li><a href="lab12-rag-evaluation.html"><span class="lm-n">12</span>Evaluating RAG Systems</a></li>
+    </ol>
+    </div>
+    <div class="lm-panel" id="lm-quiz" role="tabpanel" aria-labelledby="lm-t-quiz" hidden>
+    <ol>
+      <li><a href="lab01-quiz.html"><span class="lm-n">01</span>Inverted Index and Boolean Queries</a></li>
+    </ol>
+    <p class="lm-note">A quiz follows each lab; more are on the way.</p>
+    </div>
+  </aside>
+  <script>(function(){var b=document.body,t=document.querySelector(".side-toggle"),m=document.getElementById("lab-menu"),c=m.querySelector("[aria-current]");if(c&&m.scrollHeight>m.clientHeight)m.scrollTop=c.offsetTop-m.clientHeight/2;var ts=m.querySelectorAll(".lm-tab");ts.forEach(function(x){x.addEventListener("click",function(){ts.forEach(function(y){var o=y===x;y.setAttribute("aria-selected",o);document.getElementById(y.getAttribute("aria-controls")).hidden=!o})})});function s(o){b.classList.toggle("menu-open",o);t.setAttribute("aria-expanded",o)}t.addEventListener("click",function(e){e.stopPropagation();s(!b.classList.contains("menu-open"))});document.addEventListener("click",function(e){if(b.classList.contains("menu-open")&&!m.contains(e.target))s(false)});document.addEventListener("keydown",function(e){if(e.key==="Escape")s(false)})})();</script>
+<main class="lab-main">
+
+<section class="hero art-hero art-intro">
+  <svg id="in-hero-bg" class="hero-art" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+  <div class="wrap">
+    <p class="eyebrow">Lab 00</p>
+    <h1>Introduction</h1>
+    <div class="badges">
+      <span class="badge ids">Meet the team</span>
+      <span class="badge dfs">Course content</span>
+      <span class="badge bfs">SemEval-2027</span>
+      <span class="badge ucs">Top AI conferences</span>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+
+  <div class="wip-note" role="note"><span class="wip-tag">Work in progress</span> These notes are still being written and reviewed: content may change, and some parts may still contain mistakes.</div>
+
+  <!-- ===== OVERVIEW ===== -->
+  <section class="block" id="overview">
+    <h2 class="section-title">Overview of the lab</h2>
+    <ol class="concept-list">
+      <li><a href="#about">About us</a></li>
+      <li><a href="#topics">Course content</a></li>
+      <li><a href="#semeval">Take part in SemEval-2027</a></li>
+      <li><a href="#conferences">The top AI conferences</a></li>
+      <li><a href="#how">How the labs work</a></li>
+    </ol>
+  </section>
+
+  <!-- ===== ABOUT US ===== -->
+  <section class="block algo-section ids" id="about">
+    <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Meet the team</span>
+    <h2 class="section-title">About us</h2>
+    <p class="section-lede">Your teaching assistants for the labs. The lectures are given by Prof. Ivan Koychev.</p>
+
+    <div class="ab-hi">
+      <p class="ab-hi-text"><b>Dimitar Dimitrov</b> has <b>more than 8 papers accepted at ACL* conferences</b>, the most of any PhD student at Sofia University at top-tier AI conferences.</p>
+      <div class="ab-stats">
+        <div class="ab-stat"><b>8+</b><span>papers at ACL* conferences</span></div>
+        <div class="ab-stat"><b>1,700+</b><span>citations on <a href="https://scholar.google.com/citations?user=CJcR_T8AAAAJ&amp;hl=en" target="_blank" rel="noopener">Google Scholar</a></span></div>
+        <div class="ab-stat"><b>Task 9</b><span>SemEval-2027 organisers (<a href="#semeval">below</a>)</span></div>
+      </div>
+    </div>
+
+    <div class="ab-list">
+      <article class="ab-card">
+        <div class="ab-photo ab-initials" role="img" aria-label="Dimitar Dimitrov"><span>DD</span></div>
+        <div class="ab-text">
+          <p class="ab-role">Teaching assistant · Labs</p>
+          <h3>Dimitar Dimitrov</h3>
+          <p>PhD student in Artificial Intelligence at Sofia University. He works with Prof. Preslav Nakov (MBZUAI) and Prof. <a href="https://scholar.google.com/citations?user=URABLy0AAAAJ&amp;hl=en" target="_blank" rel="noopener">Giovanni Da San Martino</a> (University of Padova).</p>
+          <p>His research is on <b>disinformation and propaganda</b>: detecting propaganda and persuasion techniques in text and images, harmful memes, and framing and narratives in the news. His work has <b>more than 1,700 citations</b>, and he has co-organised SemEval shared tasks on persuasion techniques (2021, 2024), news narratives (2025) and now multimodal framing (2027).</p>
+          <p class="ab-sub">Papers at ACL* conferences</p>
+          <ul class="ab-papers">
+            <li><span class="ab-venue">ACL 2021</span><a href="https://aclanthology.org/2021.acl-long.516/" target="_blank" rel="noopener">Detecting Propaganda Techniques in Memes</a></li>
+            <li><span class="ab-venue">Findings ACL 2021</span><a href="https://aclanthology.org/2021.findings-acl.246/" target="_blank" rel="noopener">Detecting Harmful Memes and Their Targets</a></li>
+            <li><span class="ab-venue">Findings EMNLP 2021</span><a href="https://aclanthology.org/2021.findings-emnlp.379/" target="_blank" rel="noopener">MOMENTA: A Multimodal Framework for Detecting Harmful Memes and Their Targets</a></li>
+            <li><span class="ab-venue">ACL 2024</span><a href="https://aclanthology.org/2024.acl-long.420/" target="_blank" rel="noopener">EXAMS-V: A Multi-Discipline Multilingual Multimodal Exam Benchmark for Evaluating Vision Language Models</a></li>
+            <li><span class="ab-venue">ACL 2025</span><a href="https://aclanthology.org/2025.acl-long.1513/" target="_blank" rel="noopener">PolyNarrative: A Multilingual, Multilabel, Multi-domain Dataset for Narrative Extraction from News Articles</a></li>
+            <li><span class="ab-venue">Findings ACL 2025</span><a href="https://aclanthology.org/2025.findings-acl.17/" target="_blank" rel="noopener">Entity Framing and Role Portrayal in the News</a></li>
+            <li><span class="ab-venue">Findings ACL 2025</span><a href="https://aclanthology.org/2025.findings-acl.922/" target="_blank" rel="noopener">Annotating the Annotators: Analysis, Insights and Modelling from an Annotation Campaign on Persuasion Techniques Detection</a></li>
+            <li><span class="ab-venue">Findings EMNLP 2025</span><a href="https://aclanthology.org/2025.findings-emnlp.1112/" target="_blank" rel="noopener">NarratEX Dataset: Explaining the Dominant Narratives in News Texts</a></li>
+          </ul>
+          <p class="ab-more">Also: <a href="https://aclanthology.org/2022.coling-1.576/" target="_blank" rel="noopener">A Survey on Multimodal Disinformation Detection</a> (COLING 2022) and the overview papers of SemEval-2021 Task 6, SemEval-2024 Task 4 and SemEval-2025 Task 10.</p>
+          <div class="person-links">
+            <a href="https://scholar.google.com/citations?user=CJcR_T8AAAAJ&amp;hl=en" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2.5 9 2.5 12 0v-5"/></svg>Google Scholar</a>
+            <a href="https://aclanthology.org/people/dimitar-iliyanov-dimitrov/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5M8 13h8M8 17h6"/></svg>ACL Anthology</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="ab-card">
+        <img class="ab-photo" src="../assets/elitsa.jpg" alt="Photo of Elitsa Yotkova" width="560" height="700" loading="lazy">
+        <div class="ab-text">
+          <p class="ab-role">Teaching assistant · Labs · Author of these notes</p>
+          <h3>Elitsa Yotkova</h3>
+          <p class="ab-gs"><span class="prev-logo g"><img src="../assets/logos/google.svg" alt="Google"></span><span><b>Google Search</b> · Software engineering intern · Zurich · 2026</span></p>
+          <p>Master's student in Information Retrieval and Knowledge Discovery at Sofia University. In summer 2026 she worked at <b>Google on Google Search</b> in Zurich, on autoraters and on evaluating how reliable they are. Before that she interned at Uber (Amsterdam &amp; Sofia).</p>
+          <p>Her research is on the robustness of LLM judges, evaluation, and the broader questions of frontier AI safety. At Sofia University she works with Dimitar Dimitrov, Prof. Ivan Koychev and Prof. Preslav Nakov (MBZUAI), and she collaborates with Violeta Kastreva (ETH Zurich).</p>
+          <div class="person-links">
+            <a href="mailto:eyotkova@g.fmi.uni-sofia.bg"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>eyotkova@g.fmi.uni-sofia.bg</a>
+            <a href="https://elitsay.github.io/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>Website</a>
+            <a href="https://scholar.google.com/citations?user=-Y7pNIsAAAAJ&amp;hl=en" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2.5 9 2.5 12 0v-5"/></svg>Scholar</a>
+            <a href="https://www.linkedin.com/in/elitza-yotkova/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 10v7M8 7v.01M12 17v-4a2 2 0 0 1 4 0v4M12 10v7"/></svg>LinkedIn</a>
+            <a href="https://github.com/ElitsaY" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 19c-4 1.3-4-2-6-2.5M15 21v-3.4a3 3 0 0 0-.8-2.3c2.7-.3 5.5-1.3 5.5-6a4.7 4.7 0 0 0-1.3-3.2 4.3 4.3 0 0 0-.1-3.2s-1-.3-3.4 1.3a11.6 11.6 0 0 0-6 0C6.5 2.6 5.5 2.9 5.5 2.9a4.3 4.3 0 0 0-.1 3.2A4.7 4.7 0 0 0 4 9.3c0 4.6 2.8 5.7 5.5 6a3 3 0 0 0-.8 2.3V21"/></svg>GitHub</a>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===== COURSE CONTENT ===== -->
+  <section class="block" id="topics">
+    <h2 class="section-title">Course content</h2>
+    <p class="section-lede">Twelve labs in three parts: <b>classic IR</b>, <b>the Web and language models</b>, and <b>neural retrieval and RAG</b>.</p>
+
+    <div class="tp-card">
+      <table class="tp-table">
+        <thead><tr><th>Lab</th><th>At a glance</th><th>What it is about</th></tr></thead>
+        <tbody>
+          <tr class="tp-part dfs"><td colspan="3">Part 1 · Classic information retrieval</td></tr>
+          <tr>
+            <td class="tp-topic"><span class="lab-num">01</span><a href="lab01-inverted-index.html">Inverted Index and Boolean Queries</a></td>
+            <td class="tp-vis"><svg viewBox="0 0 120 72" role="img" aria-label="Three terms, each pointing to its sorted postings list">
+              <rect class="tv-chip c1" x="4" y="6" width="32" height="15" rx="4"/><rect class="tv-chip c1" x="4" y="28" width="32" height="15" rx="4"/><rect class="tv-chip c1" x="4" y="50" width="32" height="15" rx="4"/>
+              <text class="tv-t" x="20" y="16.5">cat</text><text class="tv-t" x="20" y="38.5">dog</text><text class="tv-t" x="20" y="60.5">fish</text>
+              <path class="tv-arrow" d="M38 13.5h7M38 35.5h7M38 57.5h7"/>
+              <g class="tv-post"><rect x="48" y="6" width="15" height="15" rx="2"/><rect x="65" y="6" width="15" height="15" rx="2"/><rect x="82" y="6" width="15" height="15" rx="2"/>
+              <rect x="48" y="28" width="15" height="15" rx="2"/><rect x="65" y="28" width="15" height="15" rx="2"/>
+              <rect x="48" y="50" width="15" height="15" rx="2"/><rect x="65" y="50" width="15" height="15" rx="2"/><rect x="82" y="50" width="15" height="15" rx="2"/><rect x="99" y="50" width="15" height="15" rx="2"/></g>
+              <text class="tv-t" x="55.5" y="16.5">1</text><text class="tv-t" x="72.5" y="16.5">3</text><text class="tv-t" x="89.5" y="16.5">7</text>
+              <text class="tv-t" x="55.5" y="38.5">2</text><text class="tv-t" x="72.5" y="38.5">3</text>
+              <text class="tv-t" x="55.5" y="60.5">3</text><text class="tv-t" x="72.5" y="60.5">5</text><text class="tv-t" x="89.5" y="60.5">8</text><text class="tv-t" x="106.5" y="60.5">9</text>
+            </svg></td>
+            <td class="tp-desc">Dictionaries and postings lists: building an index and answering AND / OR / NOT and phrase queries.</td>
+          </tr>
+          <tr>
+            <td class="tp-topic"><span class="lab-num">02</span><a href="lab02-text-preprocessing.html">Text Preprocessing</a></td>
+            <td class="tp-vis"><svg viewBox="0 0 120 72" role="img" aria-label="Raw tokens normalised to their stems">
+              <rect class="tv-chip" x="6" y="6" width="54" height="17" rx="4"/><rect class="tv-chip" x="66" y="6" width="48" height="17" rx="4"/>
+              <text class="tv-t" x="33" y="17.5">Running</text><text class="tv-t" x="90" y="17.5">Cats!</text>
+              <path class="tv-arrow" d="M33 27v14M90 27v14M29 37l4 4 4-4M86 37l4 4 4-4"/>
+              <rect class="tv-chip c1 f" x="16" y="47" width="34" height="17" rx="4"/><rect class="tv-chip c1 f" x="73" y="47" width="34" height="17" rx="4"/>
+              <text class="tv-t" x="33" y="58.5">run</text><text class="tv-t" x="90" y="58.5">cat</text>
+            </svg></td>
+            <td class="tp-desc">From raw text to index terms: tokenizers, normalization, stop words, stemming and lemmatization.</td>
+          </tr>
+          <tr>
+            <td class="tp-topic"><span class="lab-num">03</span><a href="lab03-spelling-correction.html">Tolerant Retrieval and Spelling Correction</a></td>
+            <td class="tp-vis"><svg viewBox="0 0 120 72" role="img" aria-label="The misspelling qeury corrected to query by swapping two letters">
+              <g class="tv-post"><rect x="20" y="6" width="15" height="17" rx="2"/><rect x="77" y="6" width="15" height="17" rx="2"/><rect x="96" y="6" width="15" height="17" rx="2"/>
+              <rect x="20" y="49" width="15" height="17" rx="2"/><rect x="77" y="49" width="15" height="17" rx="2"/><rect x="96" y="49" width="15" height="17" rx="2"/></g>
+              <rect class="tv-cm bad" x="39" y="6" width="15" height="17" rx="2"/><rect class="tv-cm bad" x="58" y="6" width="15" height="17" rx="2"/>
+              <rect class="tv-cm ok" x="39" y="49" width="15" height="17" rx="2"/><rect class="tv-cm ok" x="58" y="49" width="15" height="17" rx="2"/>
+              <text class="tv-v" x="27.5" y="18.5">q</text><text class="tv-v" x="46.5" y="18.5">e</text><text class="tv-v" x="65.5" y="18.5">u</text><text class="tv-v" x="84.5" y="18.5">r</text><text class="tv-v" x="103.5" y="18.5">y</text>
+              <text class="tv-v" x="27.5" y="61.5">q</text><text class="tv-v" x="46.5" y="61.5">u</text><text class="tv-v" x="65.5" y="61.5">e</text><text class="tv-v" x="84.5" y="61.5">r</text><text class="tv-v" x="103.5" y="61.5">y</text>
+              <path class="tv-arrow" d="M46.5 27l19 18M65.5 27l-19 18"/>
+            </svg></td>
+            <td class="tp-desc">Queries with typos and wild-cards: edit distance, n-gram overlap, context-sensitive correction, Soundex.</td>
+          </tr>
+          <tr>
+            <td class="tp-topic"><span class="lab-num">04</span><a href="lab04-ranked-retrieval.html">Ranked Retrieval: TF-IDF and BM25</a></td>
+            <td class="tp-vis"><svg viewBox="0 0 120 72" role="img" aria-label="Documents ranked by decreasing score">
+              <text class="tv-t" x="12" y="15">d3</text><text class="tv-t" x="12" y="31">d1</text><text class="tv-t" x="12" y="47">d7</text><text class="tv-t" x="12" y="63">d2</text>
+              <g class="tv-bar c1"><rect x="24" y="7" width="88" height="11" rx="2"/><rect x="24" y="23" width="66" height="11" rx="2"/><rect x="24" y="39" width="44" height="11" rx="2"/><rect x="24" y="55" width="24" height="11" rx="2"/></g>
+            </svg></td>
+            <td class="tp-desc">Scoring documents instead of matching them: TF, IDF, TF-IDF vectors, cosine similarity and BM25.</td>
+          </tr>
+          <tr>
+            <td class="tp-topic"><span class="lab-num">05</span><a href="lab05-evaluation.html">Evaluating IR Systems</a></td>
+            <td class="tp-vis"><svg viewBox="0 0 120 72" role="img" aria-label="A ranked list of five results, three of them relevant">
+              <rect class="tv-cm ok" x="8" y="8" width="18" height="18" rx="3"/><rect class="tv-cm bad" x="30" y="8" width="18" height="18" rx="3"/><rect class="tv-cm ok" x="52" y="8" width="18" height="18" rx="3"/><rect class="tv-cm ok" x="74" y="8" width="18" height="18" rx="3"/><rect class="tv-cm bad" x="96" y="8" width="18" height="18" rx="3"/>
+              <path class="tv-check s" d="M12 17l4 4 6-7M56 17l4 4 6-7M78 17l4 4 6-7"/><path class="tv-x" d="M35 13l8 8M43 13l-8 8M101 13l8 8M109 13l-8 8"/>
+              <text class="tv-t soft" x="17" y="36">1</text><text class="tv-t soft" x="39" y="36">2</text><text class="tv-t soft" x="61" y="36">3</text><text class="tv-t soft" x="83" y="36">4</text><text class="tv-t soft" x="105" y="36">5</text>
+              <text class="tv-v" x="60" y="60">P@5 = 3/5</text>
+            </svg></td>
+            <td class="tp-desc">Is the ranking any good? Precision and recall, MRR, MAP, nDCG and per-query analysis.</td>
+          </tr>
+
+          <tr class="tp-part bfs"><td colspan="3">Part 2 · The Web and language models</td></tr>
+          <tr>
+            <td class="tp-topic"><span class="lab-num">06</span><a href="lab06-crawling-pagerank.html">Web Crawling and PageRank</a></td>
+            <td class="tp-vis"><svg viewBox="0 0 120 72" role="img" aria-label="A small web graph where the most linked page is largest">
+              <defs><marker id="tv-ah6" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="5" markerHeight="5" orient="auto"><path class="tv-ah" d="M0 0L6 3L0 6z"/></marker></defs>
+              <path class="tv-e" marker-end="url(#tv-ah6)" d="M28 22L51 43M88 20L70 41M17 55L46 54M100 52L76 52M64 40L80 25M38 14L82 15"/>
+              <circle class="tv-n c4 f" cx="62" cy="52" r="13"/><circle class="tv-n c4 f" cx="24" cy="17" r="8"/><circle class="tv-n c4" cx="88" cy="16" r="7"/><circle class="tv-n c4" cx="12" cy="55" r="5"/><circle class="tv-n c4" cx="104" cy="52" r="5"/>
+            </svg></td>
+            <td class="tp-desc">How search engines collect the Web: crawlers, the URL frontier, robots.txt and politeness, and ranking pages with PageRank.</td>
+          </tr>
+          <tr>
+            <td class="tp-topic"><span class="lab-num">07</span><a href="lab07-query-expansion-lm.html">Query Expansion and Language Models</a></td>
+            <td class="tp-vis"><svg viewBox="0 0 120 72" role="img" aria-label="The query car expanded with related terms">
+              <rect class="tv-chip c4 f" x="6" y="27" width="34" height="18" rx="4"/><text class="tv-t" x="23" y="39">car</text>
+              <path class="tv-e" d="M40 36L62 14M40 36H62M40 36L62 58"/>
+              <rect class="tv-chip dash" x="62" y="5" width="52" height="17" rx="4"/><rect class="tv-chip dash" x="62" y="27.5" width="52" height="17" rx="4"/><rect class="tv-chip dash" x="62" y="50" width="52" height="17" rx="4"/>
+              <text class="tv-t" x="88" y="16.5">auto</text><text class="tv-t" x="88" y="39">vehicle</text><text class="tv-t" x="88" y="61.5">sedan</text>
+            </svg></td>
+            <td class="tp-desc">Bridging the vocabulary gap: Rocchio and pseudo-relevance feedback, n-gram language models and query likelihood.</td>
+          </tr>
+
+          <tr class="tp-part ucs"><td colspan="3">Part 3 · Neural retrieval and RAG</td></tr>
+          <tr>
+            <td class="tp-topic"><span class="lab-num">08</span><a href="lab08-dense-retrieval.html">Neural Text Representations</a></td>
+            <td class="tp-vis"><svg viewBox="0 0 120 72" role="img" aria-label="Two tokens mapped to dense vectors">
+              <rect class="tv-chip c3 f" x="4" y="10" width="36" height="17" rx="4"/><rect class="tv-chip c3 f" x="4" y="45" width="36" height="17" rx="4"/>
+              <text class="tv-t" x="22" y="21.5">bank</text><text class="tv-t" x="22" y="56.5">river</text>
+              <path class="tv-arrow" d="M43 18.5h6M43 53.5h6"/>
+              <g class="tv-att"><rect class="a3" x="52" y="11" width="9" height="15"/><rect class="a1" x="62" y="11" width="9" height="15"/><rect class="a4" x="72" y="11" width="9" height="15"/><rect class="a2" x="82" y="11" width="9" height="15"/><rect class="a1" x="92" y="11" width="9" height="15"/><rect class="a3" x="102" y="11" width="9" height="15"/>
+              <rect class="a2" x="52" y="46" width="9" height="15"/><rect class="a4" x="62" y="46" width="9" height="15"/><rect class="a1" x="72" y="46" width="9" height="15"/><rect class="a3" x="82" y="46" width="9" height="15"/><rect class="a2" x="92" y="46" width="9" height="15"/><rect class="a1" x="102" y="46" width="9" height="15"/></g>
+            </svg></td>
+            <td class="tp-desc">Text as dense vectors: tokens and embeddings, self-attention, Transformer encoders and sentence embeddings.</td>
+          </tr>
+          <tr>
+            <td class="tp-topic"><span class="lab-num">09</span><a href="lab09-ann-faiss.html">Dense Retrieval and Vector Databases</a></td>
+            <td class="tp-vis"><svg viewBox="0 0 120 72" role="img" aria-label="A query vector and its nearest neighbours">
+              <circle class="tv-ring" cx="60" cy="36" r="22"/>
+              <g class="tv-pt i"><circle cx="48" cy="26" r="3.2"/><circle cx="70" cy="46" r="3.2"/><circle cx="66" cy="22" r="3.2"/></g>
+              <g class="tv-pt g"><circle cx="20" cy="18" r="3.2"/><circle cx="28" cy="52" r="3.2"/><circle cx="96" cy="20" r="3.2"/><circle cx="102" cy="48" r="3.2"/><circle cx="90" cy="62" r="3.2"/><circle cx="12" cy="36" r="3.2"/></g>
+              <path class="tv-q" d="M60 30v12M54 36h12"/>
+            </svg></td>
+            <td class="tp-desc">Search by meaning: bi-encoders, similarity functions, approximate nearest neighbours (IVF, HNSW), FAISS and vector databases.</td>
+          </tr>
+          <tr>
+            <td class="tp-topic"><span class="lab-num">10</span><a href="lab10-hybrid-reranking.html">Hybrid Retrieval and Reranking</a></td>
+            <td class="tp-vis"><svg viewBox="0 0 120 72" role="img" aria-label="A lexical and a dense ranking fused into one list">
+              <g class="tv-bar c1"><rect x="8" y="8" width="22" height="10" rx="2"/><rect x="8" y="22" width="22" height="10" rx="2"/><rect x="8" y="36" width="22" height="10" rx="2"/></g>
+              <g class="tv-bar c3"><rect x="36" y="8" width="22" height="10" rx="2"/><rect x="36" y="22" width="22" height="10" rx="2"/><rect x="36" y="36" width="22" height="10" rx="2"/></g>
+              <text class="tv-t soft" x="19" y="58">BM25</text><text class="tv-t soft" x="47" y="58">dense</text>
+              <path class="tv-arrow" d="M62 27h14M72 23l4 4-4 4"/>
+              <g class="tv-bar c3"><rect x="82" y="6" width="30" height="10" rx="2"/><rect x="82" y="34" width="30" height="10" rx="2"/></g>
+              <g class="tv-bar c1"><rect x="82" y="20" width="30" height="10" rx="2"/><rect x="82" y="48" width="30" height="10" rx="2"/></g>
+              <text class="tv-t soft" x="97" y="69">fused</text>
+            </svg></td>
+            <td class="tp-desc">Combining lexical and dense search: score and rank fusion (RRF) and cross-encoder reranking.</td>
+          </tr>
+          <tr>
+            <td class="tp-topic"><span class="lab-num">11</span><a href="lab11-rag.html">Retrieval-Augmented Generation</a></td>
+            <td class="tp-vis"><svg viewBox="0 0 120 72" role="img" aria-label="Retrieved chunks passed to a language model that writes an answer">
+              <rect class="tv-resp" x="6" y="5" width="26" height="18" rx="3"/><rect class="tv-resp" x="6" y="27" width="26" height="18" rx="3"/><rect class="tv-resp" x="6" y="49" width="26" height="18" rx="3"/>
+              <path class="tv-lines" d="M11 11h16M11 17h11M11 33h16M11 39h11M11 55h16M11 61h11"/>
+              <path class="tv-arrow" d="M35 14l12 16M35 36h12M35 58l12-16"/>
+              <rect class="tv-box" x="49" y="26" width="26" height="20" rx="5"/><text class="tv-t" x="62" y="39">LLM</text>
+              <path class="tv-arrow" d="M77 36h8M82 33l3 3-3 3"/>
+              <rect class="tv-resp win" x="88" y="18" width="28" height="36" rx="5"/><path class="tv-lines" d="M93 27h18M93 33h18M93 39h12"/><text class="tv-t" x="102" y="49">[1]</text>
+            </svg></td>
+            <td class="tp-desc">Grounding an LLM in retrieved documents: chunking, top-k context, grounded prompts and citations, prompt injection.</td>
+          </tr>
+          <tr>
+            <td class="tp-topic"><span class="lab-num">12</span><a href="lab12-rag-evaluation.html">Evaluating RAG Systems</a></td>
+            <td class="tp-vis"><svg viewBox="0 0 120 72" role="img" aria-label="An answer scored on evidence recall, faithfulness and citations">
+              <rect class="tv-resp win" x="6" y="8" width="44" height="56" rx="6"/><path class="tv-lines" d="M13 20h30M13 28h26M13 36h30M13 44h18"/><path class="tv-check" d="M18 55l5 4 9-9"/>
+              <text class="tv-t soft" x="63" y="18.5">R</text><text class="tv-t soft" x="63" y="38.5">F</text><text class="tv-t soft" x="63" y="58.5">C</text>
+              <g class="tv-bar c2"><rect x="70" y="10" width="42" height="12" rx="2"/><rect x="70" y="30" width="32" height="12" rx="2"/><rect x="70" y="50" width="22" height="12" rx="2"/></g>
+            </svg></td>
+            <td class="tp-desc">Evaluating each stage: evidence recall, faithfulness and citation quality, unanswerable questions, ablations and LLM judges.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== SEMEVAL ===== -->
+  <section class="block algo-section bfs" id="semeval">
+    <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">SemEval-2027</span>
+    <h2 class="section-title">Take part in SemEval-2027</h2>
+    <p class="section-lede"><b>SemEval</b> is the yearly international workshop on semantic evaluation: organisers publish a task with data and a metric, teams build systems, and all systems are scored on the same hidden test set.</p>
+
+    <ul class="concept-list">
+      <li><b>A ready-made problem</b>: the data, the evaluation and the leaderboard come from the organisers, so you spend your time on the system and its analysis.</li>
+      <li><b>Compete with the world</b>: your results are compared with teams from universities and companies everywhere.</li>
+      <li><b>Publish a paper</b>: teams can write a system description paper; SemEval papers appear in the <a href="https://aclanthology.org/" target="_blank" rel="noopener">ACL Anthology</a>. Example: <a href="https://aclanthology.org/2026.semeval-1.275/" target="_blank" rel="noopener">Elitsa's SemEval-2026 Task 13 paper</a> with Violeta Kastreva.</li>
+      <li><b>Course project</b>: we recommend a SemEval-2027 task as your project, in teams of at most <b>2</b>.</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">The 11 tasks</h3>
+    <div class="se-grid">
+      <a class="se-task" href="https://semeval.github.io/SemEval2027/tasks" target="_blank" rel="noopener"><span class="se-n">1</span><span>RETECO: Reasoning-Oriented Retrieval</span><em class="se-tag ir">closest to this course</em></a>
+      <a class="se-task" href="https://semeval.github.io/SemEval2027/tasks" target="_blank" rel="noopener"><span class="se-n">2</span><span>Directional-Consistent Fine-Grained NLI (DiCo-NLI)</span></a>
+      <a class="se-task" href="https://semeval.github.io/SemEval2027/tasks" target="_blank" rel="noopener"><span class="se-n">3</span><span>Semantic Change Across Multiple Time Periods</span></a>
+      <a class="se-task" href="https://semeval.github.io/SemEval2027/tasks" target="_blank" rel="noopener"><span class="se-n">4</span><span>Par-PARSEME: Paraphrasing of Idioms</span></a>
+      <a class="se-task" href="https://semeval.github.io/SemEval2027/tasks" target="_blank" rel="noopener"><span class="se-n">5</span><span>ComPartMENT: Compound and Particle Verb Compositionality</span></a>
+      <a class="se-task" href="https://semeval.github.io/SemEval2027/tasks" target="_blank" rel="noopener"><span class="se-n">6</span><span>Culturally Grounded Spoken and Visual Question Answering</span></a>
+      <a class="se-task" href="https://semeval.github.io/SemEval2027/tasks" target="_blank" rel="noopener"><span class="se-n">7</span><span>CLaS: Cross-Lingual Alignment and Steering of LLMs</span></a>
+      <a class="se-task" href="https://semeval.github.io/SemEval2027/tasks" target="_blank" rel="noopener"><span class="se-n">8</span><span>StereoQueerEval: Stereotypes and Hate Speech towards LGBTQIA+</span></a>
+      <a class="se-task ours" href="https://propaganda.math.unipd.it/semeval2027task9/" target="_blank" rel="noopener"><span class="se-n">9</span><span>Analysis of Multimodal Framing in the News</span><em class="se-tag">organised by us</em></a>
+      <a class="se-task" href="https://semeval.github.io/SemEval2027/tasks" target="_blank" rel="noopener"><span class="se-n">10</span><span>AgentRisk: Risk in Agentic Multi-Turn Interactions</span></a>
+      <a class="se-task" href="https://semeval.github.io/SemEval2027/tasks" target="_blank" rel="noopener"><span class="se-n">11</span><span>VAKRA-Advanced: Multi-Hop Multi-Source Tool Calling</span></a>
+    </div>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Task 9: Analysis of Multimodal Framing in the News</h3>
+    <div class="se-t9">
+      <p>We are among the organisers of <b>Task 9</b>: Dimitar Dimitrov, Elitsa Yotkova and Prof. Ivan Koychev, together with Giovanni Da San Martino, Preslav Nakov, Jakub Piskorski and colleagues from Padova, MBZUAI, Helsinki, Porto, Beira Interior and ETH Zurich. It builds on the SemEval-2023 task on persuasion techniques, framing and news genre.</p>
+      <p><b>Framing</b> is choosing which aspects of an issue to make salient, so that a reader takes away a particular meaning. Images can reinforce, complement or contradict the framing of the text.</p>
+      <div class="se-ex" role="img" aria-label="A paragraph of a news article labelled with three framings">
+        <div class="se-par"><span class="se-k">Paragraph</span><span class="se-l"></span><span class="se-l"></span><span class="se-l s"></span></div>
+        <span class="se-arrow" aria-hidden="true">→</span>
+        <div class="se-frames"><span>Policy prescription and evaluation</span><span>Economic</span><span>Political</span></div>
+      </div>
+      <ul class="concept-list">
+        <li><b>Subtask 1 · Framing in text</b>: label each paragraph of a news article with zero or more of <b>14 framings</b> (the taxonomy of Card et al., 2015): multi-label text classification.</li>
+        <li><b>Subtask 2 · Framing in images</b>: given the article and an accompanying image, label the image with the same framings; 2a without and 2b with the gold text labels.</li>
+        <li><b>Languages</b>: Bulgarian, English, (European) Portuguese and Russian. You may enter a single subtask–language pair and train on all languages.</li>
+        <li><b>Dates</b>: evaluation runs <b>10–31 January 2027</b>; system papers are due in February 2027 (tentative); the workshop is in summer 2027.</li>
+      </ul>
+      <div class="se-btns">
+        <a class="learn-btn" href="https://propaganda.math.unipd.it/semeval2027task9/" target="_blank" rel="noopener">Task 9 page →</a>
+        <a class="learn-btn ghost" href="https://semeval.github.io/SemEval2027/tasks" target="_blank" rel="noopener">All SemEval-2027 tasks →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CONFERENCES ===== -->
+  <section class="block algo-section ucs" id="conferences">
+    <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Top AI conferences</span>
+    <h2 class="section-title">The top AI conferences</h2>
+    <p class="section-lede">In AI, the main results are published first at conferences, not in journals. Two groups matter most for this course.</p>
+
+    <div class="cf-grid">
+      <div class="cf-group ml">
+        <p class="cf-k">Machine learning</p>
+        <div class="cf-item"><b>ICLR</b><span>International Conference on Learning Representations. Since 2013, focused on deep learning; reviews are public on <a href="https://openreview.net/" target="_blank" rel="noopener">OpenReview</a>.</span></div>
+        <div class="cf-item"><b>ICML</b><span>International Conference on Machine Learning. Held since 1980, in the summer.</span></div>
+        <div class="cf-item"><b>NeurIPS</b><span>Conference on Neural Information Processing Systems. Held since 1987, in December; the largest ML conference.</span></div>
+      </div>
+      <div class="cf-group nlp">
+        <p class="cf-k">Natural language processing · ACL*</p>
+        <div class="cf-item"><b>ACL</b><span>Annual Meeting of the Association for Computational Linguistics: the flagship NLP conference.</span></div>
+        <div class="cf-item"><b>EMNLP</b><span>Conference on Empirical Methods in Natural Language Processing. Held since 1996.</span></div>
+        <div class="cf-item"><b>NAACL</b><span>Conference of the North American Chapter of the ACL.</span></div>
+      </div>
+    </div>
+
+    <ul class="concept-list" style="margin-top:1.2rem;">
+      <li><b>ACL*</b>: short for the conferences of the Association for Computational Linguistics (ACL, EMNLP, NAACL, and also EACL and AACL). All their papers are free in the <a href="https://aclanthology.org/" target="_blank" rel="noopener">ACL Anthology</a>.</li>
+      <li><b>Findings</b>: papers that are accepted but not selected for the main conference appear in <i>Findings of ACL / EMNLP / NAACL</i>, a companion volume.</li>
+      <li><b>Workshops</b>: SemEval is a workshop co-located with an ACL* conference, which is why SemEval papers are in the ACL Anthology too.</li>
+      <li><b>For IR specifically</b>: the main venues are <b>SIGIR</b> (ACM) and <b>ECIR</b> (European); much neural retrieval and RAG work also appears at ACL* and the ML conferences above.</li>
+    </ul>
+  </section>
+
+  <!-- ===== HOW THE LABS WORK ===== -->
+  <section class="block" id="how">
+    <h2 class="section-title">How the labs work</h2>
+    <ol class="concept-list">
+      <li><b>Class notes</b>: every lab has a page with the definitions, worked examples and <b>“Try it”</b> widgets you can play with.</li>
+      <li><b>Quizzes</b>: labs are followed by an auto-graded quiz with an explanation for every answer. Answers stay in your browser; nothing is collected.</li>
+      <li><b>Menu</b>: the left menu (☰ on phones) lists every lab; switch between <b>Class notes</b> and <b>Quizzes</b> at its top.</li>
+      <li><b>Notebooks</b>: the lab exercises (Jupyter notebooks, datasets and setup instructions) are in the <a href="https://github.com/di-dimitrov/information_retrieval_fmi_new/tree/main" target="_blank" rel="noopener">course repository</a>.</li>
+    </ol>
+  </section>
+
+</div>
+
+<footer>Class notes by Elitsa Yotkova · Lab 00</footer>
+</main>
+</div>
+
+<script src="lab00.js"></script>
+</body>
+</html>
