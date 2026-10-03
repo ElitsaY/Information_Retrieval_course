@@ -2887,7 +2887,6 @@ button.lt-tok { cursor: pointer; font-size: 0.95rem; color: var(--ink); } button
 .ab-papers li { display: grid; grid-template-columns: 9.2rem minmax(0, 1fr); gap: 0.6rem; align-items: baseline; font-size: 0.9rem; line-height: 1.4; }
 .ab-papers a { color: var(--ink); } .ab-papers a:hover { color: var(--indigo); }
 .ab-venue { justify-self: start; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.02em; white-space: nowrap; padding: 0.12rem 0.5rem; border-radius: 999px; background: color-mix(in srgb, var(--ids) 16%, var(--surface)); color: color-mix(in srgb, var(--ids) 65%, var(--ink)); }
-.ab-text > p.ab-more { margin: 0.6rem 0 0; font-size: 0.85rem; }
 @media (max-width: 640px) { .ab-card { grid-template-columns: 1fr; } .ab-photo { max-width: 240px; } .ab-initials { max-width: 160px; } .ab-papers li { grid-template-columns: 1fr; gap: 0.1rem; } }
 .tp-card { margin-top: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); overflow: hidden; }
 .tp-table { width: 100%; border-collapse: collapse; }
