@@ -336,11 +336,50 @@ function initUnit() {
   render();
 }
 
-/* ---------- Part IV: word order ---------- */
+/* ---------- Part V: residual connection and normalization (invented numbers) ---------- */
+const RS = { x: [2.0, -1.0, 0.5, 3.5], f: [0.6, 0.4, -0.8, 0.2] };
+function initResidual() {
+  const out = document.getElementById('rs-out'), f2s = (v) => (v < 0 ? '−' : '') + Math.abs(v).toFixed(2);
+  let on = true;
+  const bars = (v, cls) => `<div class="rs-bars">${v.map(x => `<span class="rs-b"><i class="${cls}${x < 0 ? ' neg' : ''}" style="height:${Math.min(100, Math.abs(x) / 4 * 100)}%"></i><b>${f2s(x)}</b></span>`).join('')}</div>`;
+  function render() {
+    const add = on ? RS.x.map((v, i) => +(v + RS.f[i]).toFixed(4)) : RS.f.slice();
+    const mean = add.reduce((a, b) => a + b, 0) / add.length, sd = Math.sqrt(add.reduce((a, b) => a + (b - mean) ** 2, 0) / add.length);
+    const norm = add.map(v => (v - mean) / sd);
+    const step = (n, title, sub, v, cls, extra = '') => `<div class="rs-step${extra}"><p class="rs-h"><span>${n}</span>${title}<small>${sub}</small></p>${bars(v, cls)}</div>`;
+    out.innerHTML = `<div class="rs-steps">` +
+      step(1, 'input x', 'the token vector', RS.x, 'x') +
+      step(2, 'block(x)', 'what the block wants to add', RS.f, 'f') +
+      step(3, on ? 'x + block(x)' : 'block(x) only', on ? 'residual: add, don\'t replace' : 'no residual: x is thrown away', add, on ? 'a' : 'f', on ? '' : ' lost') +
+      step(4, 'normalize', `average ${f2s(mean)} → 0, spread ${f2s(sd)} → 1`, norm, 'n') + `</div>` +
+      `<p class="lt-out">${on ? 'The output still carries the input: the biggest number is still in position 4, as in x, now slightly corrected by the block.' : 'Without the residual connection the output depends only on block(x): position 4, the largest number of x, is no longer the largest. Whatever the block did not copy is lost.'}</p>`;
+  }
+  pills(document.getElementById('rs-mode'), [['on', 'with residual connection'], ['off', 'without']], 'on', (v) => { on = v === 'on'; render(); });
+  render();
+}
+
+/* ---------- Part V: word order with and without positions ---------- */
+const WO = [
+  { a: 'dog bites man', b: 'man bites dog', ma: 'the dog does the biting', mb: 'the man does the biting' },
+  { a: 'flights from Sofia to London', b: 'flights from London to Sofia', ma: 'you start in Sofia', mb: 'you start in London' },
+];
 function initWordOrder() {
-  const t = document.getElementById('wo-table');
-  t.innerHTML = `<thead><tr><th>Sentence A</th><th>Sentence B</th><th>mean of lookup embeddings</th><th>sentence embeddings</th></tr></thead><tbody>` +
-    D.order.map(o => `<tr><td>${esc(o.a)}</td><td>${esc(o.b)}</td><td>${o.bag.toFixed(3)}</td><td class="hit">${o.st.toFixed(3)}</td></tr>`).join('') + '</tbody>';
+  const out = document.getElementById('wo-out');
+  let k = 0, pos = false;
+  function row(label, toks, other, meaning) {
+    const seen = pos ? toks.map((t, i) => `<span class="tk-chip${other[i] !== t ? ' wo-diff' : ''}">${esc(t)}<sub>${i + 1}</sub></span>`)
+      : toks.slice().sort().map(t => `<span class="tk-chip wo-bag">${esc(t)}</span>`);
+    return `<div class="wo-row"><span class="wo-l">${label}</span><div class="wo-col"><p class="wo-s">${toks.map(esc).join(' ')} <small>(${meaning})</small></p>` +
+      `<div class="wo-seen"><span class="wo-h">${pos ? 'model sees: tokens + positions' : 'model sees: a bag of tokens'}</span>${seen.join('')}</div></div></div>`;
+  }
+  function render() {
+    const P = WO[k], A = P.a.split(' '), B = P.b.split(' ');
+    out.innerHTML = row('A', A, B, P.ma) + row('B', B, A, P.mb) +
+      `<p class="wo-verdict ${pos ? 'ok' : 'bad'}">${pos ? `<b>Different:</b> the highlighted tokens sit at different positions, so the model can tell the two sentences apart.` : `<b>Identical:</b> both sentences give exactly the same tokens, so the model could not tell them apart.`}</p>`;
+  }
+  pills(document.getElementById('wo-pair'), WO.map((p, i) => [String(i), `${p.a} / ${p.b}`]), '0', (v) => { k = +v; render(); });
+  pills(document.getElementById('wo-mode'), [['off', 'without positions'], ['on', 'with positions']], 'off', (v) => { pos = v === 'on'; render(); });
+  render();
 }
 
 /* ---------- init ---------- */
@@ -356,6 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initSoftmax();
   initQKV();
   initUnit();
+  initResidual();
   initWordOrder();
 });
 

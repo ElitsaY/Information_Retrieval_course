@@ -368,20 +368,49 @@
         <p class="al-h">Inside one layer</p>
         <span class="be-box be-sim">self-attention: tokens exchange information</span><span class="be-ar">↓</span>
         <span class="be-box be-sim">feed-forward network: each token transformed on its own</span>
-        <p class="be-note">plus residual connections and normalization around both.</p>
+        <p class="be-note">plus <a href="#residual">residual connections and normalization</a> around both.</p>
       </div>
     </div>
     <p class="section-lede" style="margin-top:1rem;">You do not need to derive every component. The key point: <b>a Transformer repeatedly lets tokens interact and transforms their representations.</b></p>
 
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Position matters</h3>
-    <p class="section-lede">A Transformer also needs information about token <b>position</b>. Otherwise <i>dog bites man</i> and <i>man bites dog</i> would contain the same bag of token embeddings. Different Transformer families encode position in different ways (some add a learned position vector to each token embedding). For this course: <b>token identity + position + context → contextual representation</b>.</p>
-    <h4 style="margin:1.4rem 0 0.4rem;">See it: the same words in another order</h4>
-    <div class="table-wrap"><table class="summary sc-small rr-num" id="wo-table"></table></div>
-    <p class="caption-note">💡 The mean of the lookup embeddings is identical for both orders (cosine 1.000). The sentence embeddings do differ, thanks to positions and attention, but only a little: <i>flights from Sofia to London</i> and <i>flights from London to Sofia</i> score 0.993. For a search engine these are different requests; for this embedding model they are almost the same vector.</p>
+    <h3 class="section-title" id="residual" style="font-size:1.15rem; margin-top:1.8rem;">Residual connections and normalization</h3>
+    <p class="section-lede">Two small tricks make it possible to stack many layers on top of each other. Both are applied around every block (self-attention and the feed-forward network):</p>
+    <div class="rs-fig"><svg class="rs-svg" viewBox="0 0 470 130" role="img" aria-label="The input goes through the block and also around it; both are added, then normalized">
+        <path class="rs-skip" d="M62,78 C62,18 300,18 300,62"/><polygon class="rs-head" points="300,66 295,56 305,56"/>
+        <text class="rs-lab skip" x="181" y="28">residual connection: the input goes around</text>
+        <rect class="rs-box in" x="8" y="62" width="58" height="34" rx="8"/><text class="rs-t" x="37" y="84">x</text>
+        <line class="rs-ar" x1="66" y1="79" x2="122" y2="79"/><polygon class="rs-head" points="126,79 117,74 117,84"/>
+        <rect class="rs-box blk" x="128" y="58" width="140" height="42" rx="8"/><text class="rs-t" x="198" y="76">block</text><text class="rs-s" x="198" y="92">attention or feed-forward</text>
+        <line class="rs-ar" x1="268" y1="79" x2="282" y2="79"/><polygon class="rs-head" points="286,79 277,74 277,84"/>
+        <circle class="rs-plus" cx="300" cy="79" r="13"/><text class="rs-t" x="300" y="85">+</text>
+        <line class="rs-ar" x1="313" y1="79" x2="330" y2="79"/><polygon class="rs-head" points="334,79 325,74 325,84"/>
+        <rect class="rs-box nm" x="336" y="62" width="76" height="34" rx="8"/><text class="rs-t" x="374" y="84">normalize</text>
+        <line class="rs-ar" x1="412" y1="79" x2="428" y2="79"/><polygon class="rs-head" points="432,79 423,74 423,84"/>
+        <text class="rs-t" x="450" y="84">out</text>
+        <text class="rs-s" x="300" y="118">x + block(x)</text>
+      </svg></div>
+    <ul class="concept-list">
+      <li><b>Residual connection:</b> the block's result is <b>added</b> to its input instead of replacing it: new vector = \(x + \text{block}(x)\). The block only writes a <b>correction</b> on top of the vector, so the information already there is never lost, and very deep stacks can still be trained. The idea comes from image recognition (<a href="https://arxiv.org/abs/1512.03385" target="_blank" rel="noopener">He et al., 2015</a>).</li>
+      <li><b>Normalization:</b> after the addition, each token's vector is <b>rescaled</b> so that its numbers have average 0 and spread 1 (then a learned scale and shift). Without it, the numbers could grow or shrink a little more after every layer (<a href="https://arxiv.org/abs/1607.06450" target="_blank" rel="noopener">layer normalization</a>, Ba et al., 2016).</li>
+    </ul>
+    <h4 style="margin:1.4rem 0 0.4rem;">See it: one block, step by step</h4>
+    <p class="section-lede">A token vector with four numbers, and what a block wants to add to it (invented numbers). Switch the residual connection off to see what is lost.</p>
+    <div class="playground">
+      <div class="pg-controls"><div class="strategy-pick" id="rs-mode"></div></div>
+      <div id="rs-out"></div>
+    </div>
 
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">First-half recap</h3>
-    <div class="rr-pipe">text → tokenizer → token IDs → initial token embeddings → Transformer → contextual token vectors</div>
-    <p class="section-lede" style="margin-top:1rem;">We now have <b>one vector per token</b>. How do we get <b>one vector for an entire query or document</b>? That is the topic of <a href="lab09-sentence-embeddings.html">Lab 09</a>.</p>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Position matters</h3>
+    <p class="section-lede">A Transformer also needs information about token <b>position</b>. Otherwise <mark class="tx-q">dog bites man</mark> and <mark class="tx-q">man bites dog</mark> would contain the same bag of token embeddings. Different Transformer families encode position in different ways (some add a learned position vector to each token embedding). For this course: <b>token identity + position + context → contextual representation</b>.</p>
+    <h4 style="margin:1.4rem 0 0.4rem;">See it: the same words in another order</h4>
+    <p class="section-lede">Without position information, the model would see each sentence as a <b>bag of tokens</b>: which tokens occur, but not where. Pick a pair and switch positions off and on.</p>
+    <div class="playground">
+      <div class="pg-controls"><div class="strategy-pick" id="wo-pair"></div></div>
+      <div class="pg-controls"><div class="strategy-pick" id="wo-mode"></div></div>
+      <div id="wo-out"></div>
+    </div>
+    <p class="caption-note">💡 For a search engine, <i>flights from Sofia to London</i> and <i>flights from London to Sofia</i> are different requests: the order of the words carries meaning.</p>
+
   </section>
 
   <!-- ===== SUMMARY ===== -->
