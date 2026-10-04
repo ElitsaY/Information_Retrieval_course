@@ -278,6 +278,64 @@ function initSoftmax() {
   render();
 }
 
+/* ---------- Part IV: one feed-forward unit (invented numbers) ---------- */
+const UNIT = { inputs: [{ name: 'living thing', w: 1, x: 0.9 }, { name: 'tired', w: 1, x: 0.8 }, { name: 'a place', w: -1, x: 0.1 }], b: -1 };
+function initUnit() {
+  const box = document.getElementById('ff-in'), out = document.getElementById('ff-out'), f1 = (v) => (v < 0 ? '−' : '') + Math.abs(v).toFixed(1);
+  box.innerHTML = UNIT.inputs.map((u, i) => `<div class="beam-control show"><label for="ff-x${i}">${u.name} <small>(weight ${u.w > 0 ? '+' : '−'}${Math.abs(u.w).toFixed(1)})</small></label><input type="range" id="ff-x${i}" min="0" max="1" step="0.1" value="${u.x}" autocomplete="off"><span class="val" id="ff-v${i}"></span></div>`).join('');
+  const ins = UNIT.inputs.map((_, i) => document.getElementById('ff-x' + i));
+  const svg = document.getElementById('ff-unit'), YS = [45, 118, 191], S = [270, 118];
+  function draw(x, sum, y) {
+    svg.innerHTML = '';
+    const t = (px, py, str, cls, anchor = 'middle') => { const e = el('text', { x: px, y: py, class: cls, 'text-anchor': anchor }, svg); e.textContent = str; return e; };
+    // edges: thickness = |weight × input|, colour = sign of the contribution
+    UNIT.inputs.forEach((u, i) => {
+      const c = u.w * x[i], y0 = YS[i];
+      el('line', { x1: 125, y1: y0, x2: S[0] - 30, y2: S[1] + (y0 - S[1]) * 0.18, class: 'fu-e ' + (c > 0 ? 'pos' : c < 0 ? 'neg' : 'zero'), 'stroke-width': 1.5 + 6 * Math.abs(c) }, svg);
+      const x2 = S[0] - 30, y2 = S[1] + (y0 - S[1]) * 0.18, mx = 180, my = y0 + (y2 - y0) * (mx - 125) / (x2 - 125), sw = 1.5 + 6 * Math.abs(c);
+      t(mx, y2 < y0 ? my + 16 + sw / 2 : my - 7 - sw / 2 - (y2 > y0 ? 6 : 0), `× ${u.w > 0 ? '+' : '−'}${Math.abs(u.w)} = ${c < 0 ? '−' : c > 0 ? '+' : ''}${Math.abs(c).toFixed(1)}`, 'fu-w');
+    });
+    UNIT.inputs.forEach((u, i) => {
+      el('circle', { cx: 105, cy: YS[i], r: 20, class: 'fu-in', style: `fill:color-mix(in srgb, var(--ids) ${Math.round(10 + 70 * x[i])}%, var(--surface))` }, svg);
+      t(105, YS[i] + 5, x[i].toFixed(1), 'fu-v');
+      t(78, YS[i] + 5, u.name, 'fu-n', 'end');
+    });
+    // bias
+    el('rect', { x: S[0] - 34, y: 6, width: 68, height: 26, rx: 7, class: 'fu-b' }, svg);
+    t(S[0], 24, `bias −${Math.abs(UNIT.b).toFixed(1)}`, 'fu-bt');
+    el('line', { x1: S[0], y1: 32, x2: S[0], y2: S[1] - 30, class: 'fu-e neg', 'stroke-width': 1.5 + 6 * Math.abs(UNIT.b) / 1.5 }, svg);
+    // sum node
+    el('circle', { cx: S[0], cy: S[1], r: 28, class: 'fu-sum' }, svg);
+    t(S[0], S[1] - 4, 'Σ', 'fu-sig');
+    t(S[0], S[1] + 14, (sum < 0 ? '−' : '') + Math.abs(sum).toFixed(1), 'fu-v');
+    // ReLU panel
+    const X = (v) => 330 + (Math.max(-1.5, Math.min(1.5, v)) + 1.5) / 3 * 84, Y = (v) => 168 - Math.min(1.5, v) / 1.5 * 84;
+    el('line', { x1: S[0] + 29, y1: S[1], x2: 322, y2: S[1], class: 'fu-ar' }, svg);
+    el('rect', { x: 324, y: 74, width: 96, height: 104, rx: 8, class: 'fu-box' }, svg);
+    el('line', { x1: 330, y1: 168, x2: 414, y2: 168, class: 'fu-ax' }, svg); el('line', { x1: X(0), y1: 80, x2: X(0), y2: 172, class: 'fu-ax' }, svg);
+    el('polyline', { points: `${X(-1.5)},${Y(0)} ${X(0)},${Y(0)} ${X(1.5)},${Y(1.5)}`, class: 'fu-relu' }, svg);
+    el('circle', { cx: X(sum), cy: Y(Math.max(0, sum)), r: 5.5, class: 'fu-dot' + (y > 0 ? ' on' : '') }, svg);
+    t(372, 68, 'ReLU', 'fu-n');
+    // output
+    el('line', { x1: 421, y1: S[1], x2: 426, y2: S[1], class: 'fu-ar' }, svg);
+    el('circle', { cx: 450, cy: S[1], r: 22, class: 'fu-out' + (y > 0 ? ' on' : ''), style: `fill:color-mix(in srgb, var(--ucs) ${Math.round(8 + 80 * Math.min(1, y))}%, var(--surface))` }, svg);
+    t(450, S[1] + 5, y.toFixed(1), 'fu-v');
+    t(450, S[1] + 38, y > 0 ? 'on' : 'off', 'fu-st' + (y > 0 ? ' on' : ''));
+    [['inputs', 105], ['× weights', 190], ['add + bias', S[0]], ['on or off', 372], ['output', 450]].forEach(([s, px]) => t(px, 230, s, 'fu-cap'));
+  }
+  function render() {
+    const x = ins.map(e => +e.value), sum = Math.round(x.reduce((a, v, i) => a + UNIT.inputs[i].w * v, UNIT.b) * 100) / 100, y = Math.max(0, sum);
+    x.forEach((v, i) => { document.getElementById('ff-v' + i).textContent = v.toFixed(1); });
+    draw(x, sum, y);
+    const terms = x.map((v, i) => `${UNIT.inputs[i].w > 0 ? (i ? '+ ' : '') : '− '}${v.toFixed(1)}`).join(' ');
+    out.innerHTML = `weighted sum: ${terms} − 1.0 (bias) = <b>${f1(sum)}</b> → ReLU → <b>${y.toFixed(1)}</b>` +
+      `<span class="ff-bar"><i style="width:${Math.min(1, y) * 100}%"></i></span>` +
+      (y > 0 ? `The unit is <b>on</b>: “a tired living thing” is present.` : `The unit is <b>off</b> (output 0): the pattern is not there.`);
+  }
+  ins.forEach(e => e.addEventListener('input', render));
+  render();
+}
+
 /* ---------- Part IV: word order ---------- */
 function initWordOrder() {
   const t = document.getElementById('wo-table');
@@ -297,6 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initDotProduct();
   initSoftmax();
   initQKV();
+  initUnit();
   initWordOrder();
 });
 

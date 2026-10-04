@@ -2989,3 +2989,38 @@ button.lt-tok { cursor: pointer; font-size: 0.95rem; color: var(--ink); } button
 .rt-svg .rt-h { fill: color-mix(in srgb, var(--ink-soft) 10%, var(--surface)); stroke: var(--ink-soft); stroke-width: 1.2; }
 .rt-svg .rt-up { stroke: var(--line); stroke-width: 1.5; } .rt-svg .rt-arr { stroke: var(--dfs); stroke-width: 2; } .rt-svg .rt-head { fill: var(--dfs); }
 .rt-svg .rt-arc { fill: none; stroke: color-mix(in srgb, var(--ids) 45%, var(--surface)); stroke-width: 1.8; } .rt-svg .rt-arc.an { stroke: var(--bfs); stroke-width: 3; }
+/* Lab 08 (IR) Part IV: feed-forward network */
+.ff-fig { margin: 0.6rem 0 0.8rem; } .ff-svg { display: block; width: 100%; max-width: 440px; height: auto; margin: 0 auto; }
+.ff-svg .ff-l { stroke: color-mix(in srgb, var(--ink-soft) 30%, var(--surface)); stroke-width: 1; }
+.ff-svg .ff-n { stroke-width: 1.8; } .ff-svg .ff-n.i, .ff-svg .ff-n.o { fill: color-mix(in srgb, var(--ids) 22%, var(--surface)); stroke: var(--ids); } .ff-svg .ff-n.h { fill: color-mix(in srgb, var(--ucs) 25%, var(--surface)); stroke: var(--ucs); }
+.ff-svg text { font-family: 'Inter', sans-serif; text-anchor: middle; fill: var(--ink); } .ff-svg .ff-w { font: 700 12.5px 'Poppins', sans-serif; } .ff-svg .sub { font-size: 9px; }
+.ff-svg .ff-t { font-size: 11.5px; font-weight: 700; } .ff-svg .ff-s { font-size: 10.5px; fill: var(--ink-soft); }
+.ff-in .beam-control { margin-top: 0.5rem; } .ff-in .beam-control label { min-width: 11rem; } .ff-in .beam-control small { font-weight: 600; color: var(--ink-soft); }
+@media (max-width: 520px) { .ff-in .beam-control { flex-wrap: wrap; gap: 0.3rem 0.8rem; } .ff-in .beam-control label { min-width: 0; width: 100%; } }
+.ff-bar { display: block; height: 0.7rem; margin: 0.5rem 0; border-radius: 999px; background: color-mix(in srgb, var(--ucs) 15%, var(--surface)); overflow: hidden; } .ff-bar i { display: block; height: 100%; background: var(--ucs); transition: width 0.2s ease; }
+/* Lab 08 (IR) Part IV: single-unit diagram */
+.fu-svg { display: block; width: 100%; min-width: 440px; max-width: 600px; height: auto; margin: 0 auto 0.4rem; }
+.fu-svg text { font-family: 'Inter', sans-serif; fill: var(--ink); }
+.fu-svg .fu-n { font-size: 12.5px; font-weight: 700; } .fu-svg .fu-v { font: 800 13px 'Poppins', sans-serif; } .fu-svg .fu-sig { font: 800 15px 'Poppins', sans-serif; fill: var(--ink-soft); }
+.fu-svg .fu-w { font-size: 11px; font-weight: 700; fill: var(--ink-soft); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; }
+.fu-svg .fu-cap { font-size: 11px; fill: var(--ink-soft); font-style: italic; } .fu-svg .fu-bt { font-size: 11.5px; font-weight: 700; }
+.fu-svg .fu-st { font-size: 11.5px; font-weight: 800; fill: var(--ink-soft); } .fu-svg .fu-st.on { fill: color-mix(in srgb, var(--ucs) 70%, var(--ink)); }
+.fu-svg .fu-e { stroke-linecap: round; transition: stroke-width 0.15s ease; } .fu-svg .fu-e.pos { stroke: var(--bfs); } .fu-svg .fu-e.neg { stroke: #d9546e; } .fu-svg .fu-e.zero { stroke: var(--line); stroke-dasharray: 4 4; }
+.fu-svg .fu-in { stroke: var(--ids); stroke-width: 2; } .fu-svg .fu-sum { fill: var(--surface); stroke: var(--ink-soft); stroke-width: 2; }
+.fu-svg .fu-b { fill: color-mix(in srgb, #d9546e 12%, var(--surface)); stroke: #d9546e; stroke-width: 1.5; }
+.fu-svg .fu-ar { stroke: var(--ink-soft); stroke-width: 2; } .fu-svg .fu-box { fill: color-mix(in srgb, var(--ucs) 6%, var(--surface)); stroke: var(--line); }
+.fu-svg .fu-ax { stroke: var(--line); stroke-width: 1.2; } .fu-svg .fu-relu { fill: none; stroke: var(--ucs); stroke-width: 2.5; }
+.fu-svg .fu-dot { fill: var(--ink-soft); stroke: var(--surface); stroke-width: 2; } .fu-svg .fu-dot.on { fill: var(--dfs); }
+.fu-svg .fu-out { stroke: var(--ucs); stroke-width: 2; } .fu-svg .fu-out.on { stroke-width: 3; }
+.fig-scroll > svg.fu-svg { min-width: 440px; }
+/* Lab 08 (IR) Part IV: patterns of real feed-forward units */
+.pt-scale { display: flex; justify-content: space-between; gap: 1rem; margin: 0.8rem 0 0.4rem; padding: 0.35rem 0.7rem; border-radius: 999px; background: linear-gradient(90deg, color-mix(in srgb, var(--ids) 22%, var(--surface)), color-mix(in srgb, var(--ucs) 30%, var(--surface))); font-size: 0.74rem; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink); }
+.pt-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.55rem; }
+@media (max-width: 900px) { .pt-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .pt-grid { grid-template-columns: minmax(0, 1fr); } .pt-scale { font-size: 0.64rem; } }
+.pt-card { min-width: 0; padding: 0.65rem 0.75rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+.pt-card.early { border-top: 4px solid var(--ids); } .pt-card.late { border-top: 4px solid var(--ucs); }
+.pt-card p { margin: 0 0 0.35rem; } .pt-l { display: flex; justify-content: space-between; gap: 0.4rem; align-items: baseline; }
+.pt-layer { font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 0.82rem; } .pt-kind { font-size: 0.68rem; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.03em; }
+.pt-pat { font-weight: 700; font-size: 0.88rem; line-height: 1.35; } .pt-ex { font-size: 0.8rem; color: var(--ink-soft); line-height: 1.4; } .pt-ex u { text-decoration: none; background: color-mix(in srgb, var(--ucs) 30%, var(--surface)); color: var(--ink); border-radius: 3px; padding: 0 0.15rem; }
+.pt-ex.pt-words { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; color: var(--ink); }
