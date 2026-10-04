@@ -36,10 +36,11 @@
       <li><a href="lab06-crawling-pagerank.html"><span class="lm-n">06</span>Web Crawling and PageRank</a></li>
       <li><a href="lab07-query-expansion-lm.html"><span class="lm-n">07</span>Query Expansion and Language Models</a></li>
       <li><a href="lab08-dense-retrieval.html"><span class="lm-n">08</span>Neural Text Representations</a></li>
-      <li><a href="lab09-ann-faiss.html"><span class="lm-n">09</span>Dense Retrieval and Vector Databases</a></li>
-      <li><a href="lab10-hybrid-reranking.html"><span class="lm-n">10</span>Hybrid Retrieval and Reranking</a></li>
-      <li><a href="lab11-rag.html"><span class="lm-n">11</span>Retrieval-Augmented Generation</a></li>
-      <li><a href="lab12-rag-evaluation.html"><span class="lm-n">12</span>Evaluating RAG Systems</a></li>
+      <li><a href="lab09-sentence-embeddings.html"><span class="lm-n">09</span>Sentence Embeddings and Semantic Search</a></li>
+      <li><a href="lab10-ann-faiss.html"><span class="lm-n">10</span>Dense Retrieval and Vector Databases</a></li>
+      <li><a href="lab11-hybrid-reranking.html"><span class="lm-n">11</span>Hybrid Retrieval and Reranking</a></li>
+      <li><a href="lab12-rag.html"><span class="lm-n">12</span>Retrieval-Augmented Generation</a></li>
+      <li><a href="lab13-rag-evaluation.html"><span class="lm-n">13</span>Evaluating RAG Systems</a></li>
     </ol>
     </div>
     <div class="lm-panel" id="lm-quiz" role="tabpanel" aria-labelledby="lm-t-quiz" hidden>
@@ -133,7 +134,7 @@
   <!-- ===== COURSE CONTENT ===== -->
   <section class="block" id="topics">
     <h2 class="section-title">Course content</h2>
-    <p class="section-lede">Twelve labs in three parts: <b>classic IR</b>, <b>the Web and language models</b>, and <b>neural retrieval and RAG</b>.</p>
+    <p class="section-lede">Thirteen labs in three parts: <b>classic IR</b>, <b>the Web and language models</b>, and <b>neural retrieval and RAG</b>.</p>
 
     <div class="tp-card">
       <table class="tp-table">
@@ -229,10 +230,20 @@
               <g class="tv-att"><rect class="a3" x="52" y="11" width="9" height="15"/><rect class="a1" x="62" y="11" width="9" height="15"/><rect class="a4" x="72" y="11" width="9" height="15"/><rect class="a2" x="82" y="11" width="9" height="15"/><rect class="a1" x="92" y="11" width="9" height="15"/><rect class="a3" x="102" y="11" width="9" height="15"/>
               <rect class="a2" x="52" y="46" width="9" height="15"/><rect class="a4" x="62" y="46" width="9" height="15"/><rect class="a1" x="72" y="46" width="9" height="15"/><rect class="a3" x="82" y="46" width="9" height="15"/><rect class="a2" x="92" y="46" width="9" height="15"/><rect class="a1" x="102" y="46" width="9" height="15"/></g>
             </svg></td>
-            <td class="tp-desc">Text as dense vectors: tokens and embeddings, self-attention, Transformer encoders and sentence embeddings.</td>
+            <td class="tp-desc">Text as dense vectors: tokens and embeddings, self-attention with queries, keys and values, and the Transformer.</td>
           </tr>
           <tr>
-            <td class="tp-topic"><span class="lab-num">09</span><a href="lab09-ann-faiss.html">Dense Retrieval and Vector Databases</a></td>
+            <td class="tp-topic"><span class="lab-num">09</span><a href="lab09-sentence-embeddings.html">Sentence Embeddings and Semantic Search</a></td>
+            <td class="tp-vis"><svg viewBox="0 0 120 72" role="img" aria-label="Several token vectors pooled into one text vector">
+              <g class="tv-att"><rect class="a3" x="6" y="5" width="10" height="52"/><rect class="a1" x="20" y="5" width="10" height="52"/><rect class="a4" x="34" y="5" width="10" height="52"/><rect class="a2" x="48" y="5" width="10" height="52"/></g>
+              <path class="tv-arrow" d="M63 31h16M75 27l4 4-4 4"/>
+              <g class="tv-att"><rect class="a4" x="86" y="5" width="14" height="52"/></g>
+              <text class="tv-t soft" x="32" y="68">tokens</text><text class="tv-t soft" x="93" y="68">text</text>
+            </svg></td>
+            <td class="tp-desc">From token vectors to one text vector: encoders vs decoders, pooling into sentence embeddings, semantic search and bi-encoders.</td>
+          </tr>
+          <tr>
+            <td class="tp-topic"><span class="lab-num">10</span><a href="lab10-ann-faiss.html">Dense Retrieval and Vector Databases</a></td>
             <td class="tp-vis"><svg viewBox="0 0 120 72" role="img" aria-label="A query vector and its nearest neighbours">
               <circle class="tv-ring" cx="60" cy="36" r="22"/>
               <g class="tv-pt i"><circle cx="48" cy="26" r="3.2"/><circle cx="70" cy="46" r="3.2"/><circle cx="66" cy="22" r="3.2"/></g>
@@ -242,7 +253,7 @@
             <td class="tp-desc">Search by meaning: bi-encoders, similarity functions, approximate nearest neighbours (IVF, HNSW), FAISS and vector databases.</td>
           </tr>
           <tr>
-            <td class="tp-topic"><span class="lab-num">10</span><a href="lab10-hybrid-reranking.html">Hybrid Retrieval and Reranking</a></td>
+            <td class="tp-topic"><span class="lab-num">11</span><a href="lab11-hybrid-reranking.html">Hybrid Retrieval and Reranking</a></td>
             <td class="tp-vis"><svg viewBox="0 0 120 72" role="img" aria-label="A lexical and a dense ranking fused into one list">
               <g class="tv-bar c1"><rect x="8" y="8" width="22" height="10" rx="2"/><rect x="8" y="22" width="22" height="10" rx="2"/><rect x="8" y="36" width="22" height="10" rx="2"/></g>
               <g class="tv-bar c3"><rect x="36" y="8" width="22" height="10" rx="2"/><rect x="36" y="22" width="22" height="10" rx="2"/><rect x="36" y="36" width="22" height="10" rx="2"/></g>
@@ -255,7 +266,7 @@
             <td class="tp-desc">Combining lexical and dense search: score and rank fusion (RRF) and cross-encoder reranking.</td>
           </tr>
           <tr>
-            <td class="tp-topic"><span class="lab-num">11</span><a href="lab11-rag.html">Retrieval-Augmented Generation</a></td>
+            <td class="tp-topic"><span class="lab-num">12</span><a href="lab12-rag.html">Retrieval-Augmented Generation</a></td>
             <td class="tp-vis"><svg viewBox="0 0 120 72" role="img" aria-label="Retrieved chunks passed to a language model that writes an answer">
               <rect class="tv-resp" x="6" y="5" width="26" height="18" rx="3"/><rect class="tv-resp" x="6" y="27" width="26" height="18" rx="3"/><rect class="tv-resp" x="6" y="49" width="26" height="18" rx="3"/>
               <path class="tv-lines" d="M11 11h16M11 17h11M11 33h16M11 39h11M11 55h16M11 61h11"/>
@@ -267,7 +278,7 @@
             <td class="tp-desc">Grounding an LLM in retrieved documents: chunking, top-k context, grounded prompts and citations, prompt injection.</td>
           </tr>
           <tr>
-            <td class="tp-topic"><span class="lab-num">12</span><a href="lab12-rag-evaluation.html">Evaluating RAG Systems</a></td>
+            <td class="tp-topic"><span class="lab-num">13</span><a href="lab13-rag-evaluation.html">Evaluating RAG Systems</a></td>
             <td class="tp-vis"><svg viewBox="0 0 120 72" role="img" aria-label="An answer scored on evidence recall, faithfulness and citations">
               <rect class="tv-resp win" x="6" y="8" width="44" height="56" rx="6"/><path class="tv-lines" d="M13 20h30M13 28h26M13 36h30M13 44h18"/><path class="tv-check" d="M18 55l5 4 9-9"/>
               <text class="tv-t soft" x="63" y="18.5">R</text><text class="tv-t soft" x="63" y="38.5">F</text><text class="tv-t soft" x="63" y="58.5">C</text>

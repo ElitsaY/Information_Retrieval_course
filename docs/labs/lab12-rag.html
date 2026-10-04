@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lab 11 — Retrieval-Augmented Generation | Class Notes</title>
+<title>Lab 12 — Retrieval-Augmented Generation | Class Notes</title>
 <meta name="description" content="Interactive notes on Retrieval-Augmented Generation: encoder vs generator, the offline and online RAG pipeline, vector databases, chunking with size and overlap, top-k context selection, grounded prompts and citations, prompt injection from retrieved text, a minimal RAG demo, failure modes and the RAG debugging tree.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -37,10 +37,11 @@
       <li><a href="lab06-crawling-pagerank.html"><span class="lm-n">06</span>Web Crawling and PageRank</a></li>
       <li><a href="lab07-query-expansion-lm.html"><span class="lm-n">07</span>Query Expansion and Language Models</a></li>
       <li><a href="lab08-dense-retrieval.html"><span class="lm-n">08</span>Neural Text Representations</a></li>
-      <li><a href="lab09-ann-faiss.html"><span class="lm-n">09</span>Dense Retrieval and Vector Databases</a></li>
-      <li><a href="lab10-hybrid-reranking.html"><span class="lm-n">10</span>Hybrid Retrieval and Reranking</a></li>
-      <li><a href="lab11-rag.html" aria-current="page"><span class="lm-n">11</span>Retrieval-Augmented Generation</a></li>
-      <li><a href="lab12-rag-evaluation.html"><span class="lm-n">12</span>Evaluating RAG Systems</a></li>
+      <li><a href="lab09-sentence-embeddings.html"><span class="lm-n">09</span>Sentence Embeddings and Semantic Search</a></li>
+      <li><a href="lab10-ann-faiss.html"><span class="lm-n">10</span>Dense Retrieval and Vector Databases</a></li>
+      <li><a href="lab11-hybrid-reranking.html"><span class="lm-n">11</span>Hybrid Retrieval and Reranking</a></li>
+      <li><a href="lab12-rag.html" aria-current="page"><span class="lm-n">12</span>Retrieval-Augmented Generation</a></li>
+      <li><a href="lab13-rag-evaluation.html"><span class="lm-n">13</span>Evaluating RAG Systems</a></li>
     </ol>
     </div>
     <div class="lm-panel" id="lm-quiz" role="tabpanel" aria-labelledby="lm-t-quiz" hidden>
@@ -56,7 +57,7 @@
 <section class="hero art-hero art-rag11">
   <svg id="rg-hero-bg" class="hero-art" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
   <div class="wrap">
-    <p class="eyebrow">Lab 11</p>
+    <p class="eyebrow">Lab 12</p>
     <h1>Retrieval-Augmented Generation: Building a RAG System</h1>
     <div class="badges">
       <span class="badge ids">Architecture</span>
@@ -111,10 +112,10 @@
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
       <li><b>External knowledge</b>: the collection may hold company documentation, research papers, course materials, Wikipedia pages, product manuals, legal documents, support articles, database records. RAG is especially useful when the knowledge source is <b>large, changing, private or domain-specific</b>.</li>
-      <li>❗ <b>RAG is still an IR problem.</b> A common mistake is to think RAG = prompting. A better view: <b>RAG = retrieval + context selection + generation</b>. Everything from earlier labs still matters: <a href="lab04-ranked-retrieval.html">BM25</a>, <a href="lab09-ann-faiss.html">dense retrieval and ANN</a>, <a href="lab10-hybrid-reranking.html">hybrid retrieval and reranking</a>, <a href="lab05-evaluation.html">evaluation</a>.</li>
+      <li>❗ <b>RAG is still an IR problem.</b> A common mistake is to think RAG = prompting. A better view: <b>RAG = retrieval + context selection + generation</b>. Everything from earlier labs still matters: <a href="lab04-ranked-retrieval.html">BM25</a>, <a href="lab10-ann-faiss.html">dense retrieval and ANN</a>, <a href="lab11-hybrid-reranking.html">hybrid retrieval and reranking</a>, <a href="lab05-evaluation.html">evaluation</a>.</li>
     </ul>
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Encoder vs generator: where Lab 08 appears in RAG</h3>
-    <p class="section-lede">RAG connects the two neural components of <a href="lab08-dense-retrieval.html#encoder">Lab 08</a>, which do different jobs:</p>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Encoder vs generator: where Lab 09 appears in RAG</h3>
+    <p class="section-lede">RAG connects the two neural components of <a href="lab09-sentence-embeddings.html#encoder">Lab 09</a>, which do different jobs:</p>
     <div class="be-fig ce-fig" aria-label="Encoder and decoder-style LLM">
       <div class="be-col"><span class="be-note">retriever side: an encoder</span><span class="be-box be-in">question</span><span class="be-ar">↓</span><span class="be-box be-enc">encoder</span><span class="be-ar">↓</span><span class="be-box be-vec">query vector</span><span class="be-note">text → vector: it produces a representation and does not need to generate text</span></div>
       <div class="be-col"><span class="be-note">generator side: a decoder-style LLM</span><span class="be-box be-in">prompt</span><span class="be-ar">↓</span><span class="be-box be-enc">predict next token</span><span class="be-ar">↓</span><span class="be-box be-sim">append token, repeat</span><span class="be-note">text → more text, autoregressively: \(P(x_t \mid x_1, \ldots, x_{t-1})\)</span></div>
@@ -133,7 +134,7 @@
     </div>
     <p class="section-lede" style="margin-top:1rem;">The offline phase (collect, parse, chunk, embed, build indexes) runs once and whenever the documents change; the online phase (encode the query, retrieve, rerank, build the prompt, generate) runs for every question. This distinction matters for <b>latency</b> and <b>system design</b>.</p>
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Where does the vector database fit?</h3>
-    <p class="section-lede">A common RAG architecture stores chunk embeddings in a <a href="lab09-ann-faiss.html#vdb">vector database</a> (documents → chunk → encoder → embeddings → vector database; question → encoder → query vector → vector database → nearest chunks). It retrieves nearby vectors efficiently and may also support <b>metadata filters</b>: retrieve semantically similar chunks where <code>year = 2026</code> and <code>document_type = "programme regulation"</code>. But remember the separation:</p>
+    <p class="section-lede">A common RAG architecture stores chunk embeddings in a <a href="lab10-ann-faiss.html#vdb">vector database</a> (documents → chunk → encoder → embeddings → vector database; question → encoder → query vector → vector database → nearest chunks). It retrieves nearby vectors efficiently and may also support <b>metadata filters</b>: retrieve semantically similar chunks where <code>year = 2026</code> and <code>document_type = "programme regulation"</code>. But remember the separation:</p>
     <div class="table-wrap">
       <table class="summary sc-small">
         <thead><tr><th>Component</th><th>Responsible for</th></tr></thead>
@@ -188,14 +189,14 @@
   <section class="block algo-section ucs" id="context">
     <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Part IV</span>
     <h2 class="section-title">Retrieval and context selection</h2>
-    <p class="section-lede">Once chunks are indexed, retrieval looks familiar: BM25, dense retrieval or hybrid BM25 + dense, then optionally cross-encoder reranking. For example, the pipeline of <a href="lab10-hybrid-reranking.html">Lab 10</a>:</p>
+    <p class="section-lede">Once chunks are indexed, retrieval looks familiar: BM25, dense retrieval or hybrid BM25 + dense, then optionally cross-encoder reranking. For example, the pipeline of <a href="lab11-hybrid-reranking.html">Lab 11</a>:</p>
     <div class="rr-pipe">BM25 top 30 + dense top 30 → RRF → top 30 → cross-encoder → top 5 → context for generation</div>
     <ul class="concept-list" style="margin-top:1rem;">
       <li><b>Why not pass everything to the LLM?</b> Context windows are finite, more context costs more, irrelevant context can distract generation, duplicate evidence wastes space. <b>More retrieved text is not automatically better.</b></li>
       <li><b>Top-k is a real parameter.</b> If \(k\) is too small, important evidence may be missing; if \(k\) is too large, the context becomes noisy. Another retrieval trade-off.</li>
     </ul>
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: how many passages go into the prompt?</h4>
-    <p class="section-lede">Exactly that pipeline on Cranfield (the runs of Lab 10), treating each abstract as a chunk. For every context size \(k\), averaged over the 225 queries: how often at least one relevant abstract is in the context, which share of all relevant abstracts it holds (Recall@k), which share of the context is relevant (Precision@k), and how many words the model must read.</p>
+    <p class="section-lede">Exactly that pipeline on Cranfield (the runs of Lab 11), treating each abstract as a chunk. For every context size \(k\), averaged over the 225 queries: how often at least one relevant abstract is in the context, which share of all relevant abstracts it holds (Recall@k), which share of the context is relevant (Precision@k), and how many words the model must read.</p>
     <div class="playground">
       <div class="pg-controls">
         <div class="beam-control show" style="margin:0;"><label for="tk-k">context size \(k\)</label><input type="range" id="tk-k" min="1" max="20" value="5" step="1"><span class="val" id="tk-k-val">5</span></div>
@@ -416,7 +417,7 @@ print(answer)
   <section class="block" id="summary">
     <h2 class="section-title">Summary: key takeaways</h2>
     <div class="rr-pipe">documents → parse → chunk → index → retrieve → rerank → select context → construct prompt → generate → answer + citations</div>
-    <p class="section-lede" style="margin-top:1rem;">Built on the previous labs: <a href="lab04-ranked-retrieval.html">BM25 (Lab 04)</a>, <a href="lab05-evaluation.html">evaluation (Lab 05)</a>, <a href="lab08-dense-retrieval.html">embeddings (Lab 08)</a>, <a href="lab09-ann-faiss.html">vector search (Lab 09)</a>, <a href="lab10-hybrid-reranking.html">hybrid retrieval and reranking (Lab 10)</a>. <b>RAG is not a replacement for IR; it is a system built on top of IR.</b></p>
+    <p class="section-lede" style="margin-top:1rem;">Built on the previous labs: <a href="lab04-ranked-retrieval.html">BM25 (Lab 04)</a>, <a href="lab05-evaluation.html">evaluation (Lab 05)</a>, <a href="lab08-dense-retrieval.html">neural representations (Lab 08)</a>, <a href="lab09-sentence-embeddings.html">sentence embeddings (Lab 09)</a>, <a href="lab10-ann-faiss.html">vector search (Lab 10)</a>, <a href="lab11-hybrid-reranking.html">hybrid retrieval and reranking (Lab 11)</a>. <b>RAG is not a replacement for IR; it is a system built on top of IR.</b></p>
     <ol class="concept-list">
       <li>RAG combines retrieval with language-model generation.</li>
       <li>Chunking determines the units that the retriever can find.</li>
@@ -429,21 +430,21 @@ print(answer)
       <li><b>Minimal RAG pipeline.</b> On a small corpus of 10–30 documents (course regulations, programme descriptions, software documentation, research abstracts, FAQ pages), implement chunking, dense embeddings, retrieval, top-k selection, prompt construction, generation and source citation, without a high-level RAG framework. Choose documents for which you can write questions whose answers they explicitly support.</li>
       <li><b>Chunking experiment.</b> Chunk sizes 100, 300, 700 tokens and overlaps 0, 50, 150. For a few questions: did the correct evidence appear in the top 5? How much irrelevant text was retrieved? How many chunks were created? (The <a href="#chunk">chunking widget</a> is a small version.)</li>
       <li><b>Top-k experiment.</b> \(k\) = 1, 3, 5, 10: was the answer correct, the evidence present, the context noisy? Do not assume that increasing \(k\) always helps.</li>
-      <li><b>Hybrid RAG.</b> Dense retrieval only vs BM25 + dense + RRF before generation; measure evidence Recall@5 and answer correctness (reuses Lab 10).</li>
+      <li><b>Hybrid RAG.</b> Dense retrieval only vs BM25 + dense + RRF before generation; measure evidence Recall@5 and answer correctness (reuses Lab 11).</li>
       <li><b>Source attribution.</b> Require answers in the format "Answer text [2]", then check by hand: does source [2] actually support the claim? Answer correctness and citation correctness are different things.</li>
     </ul>
   </section>
 
 </div>
 
-<footer>Class notes by Elitsa Yotkova · Lab 11</footer>
+<footer>Class notes by Elitsa Yotkova · Lab 12</footer>
 </main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <script src="code-cards.js"></script>
-<script src="lab11-rag.js"></script>
-<script src="lab11.js"></script>
+<script src="lab12-rag.js"></script>
+<script src="lab12.js"></script>
 </body>
 </html>

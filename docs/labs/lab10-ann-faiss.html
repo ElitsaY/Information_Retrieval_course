@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lab 09 — Dense Retrieval, Vector Indexes and Vector Databases | Class Notes</title>
+<title>Lab 10 — Dense Retrieval, Vector Indexes and Vector Databases | Class Notes</title>
 <meta name="description" content="Interactive notes on dense retrieval: bi-encoders and Dense Passage Retrieval, hard negatives, cosine vs dot product, exact nearest-neighbor search and its cost, approximate search with IVF and HNSW, FAISS, vector databases and metadata filtering, ANN recall vs IR recall, on real Cranfield embeddings.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -37,10 +37,11 @@
       <li><a href="lab06-crawling-pagerank.html"><span class="lm-n">06</span>Web Crawling and PageRank</a></li>
       <li><a href="lab07-query-expansion-lm.html"><span class="lm-n">07</span>Query Expansion and Language Models</a></li>
       <li><a href="lab08-dense-retrieval.html"><span class="lm-n">08</span>Neural Text Representations</a></li>
-      <li><a href="lab09-ann-faiss.html" aria-current="page"><span class="lm-n">09</span>Dense Retrieval and Vector Databases</a></li>
-      <li><a href="lab10-hybrid-reranking.html"><span class="lm-n">10</span>Hybrid Retrieval and Reranking</a></li>
-      <li><a href="lab11-rag.html"><span class="lm-n">11</span>Retrieval-Augmented Generation</a></li>
-      <li><a href="lab12-rag-evaluation.html"><span class="lm-n">12</span>Evaluating RAG Systems</a></li>
+      <li><a href="lab09-sentence-embeddings.html"><span class="lm-n">09</span>Sentence Embeddings and Semantic Search</a></li>
+      <li><a href="lab10-ann-faiss.html" aria-current="page"><span class="lm-n">10</span>Dense Retrieval and Vector Databases</a></li>
+      <li><a href="lab11-hybrid-reranking.html"><span class="lm-n">11</span>Hybrid Retrieval and Reranking</a></li>
+      <li><a href="lab12-rag.html"><span class="lm-n">12</span>Retrieval-Augmented Generation</a></li>
+      <li><a href="lab13-rag-evaluation.html"><span class="lm-n">13</span>Evaluating RAG Systems</a></li>
     </ol>
     </div>
     <div class="lm-panel" id="lm-quiz" role="tabpanel" aria-labelledby="lm-t-quiz" hidden>
@@ -56,7 +57,7 @@
 <section class="hero art-hero art-an9">
   <svg id="an-hero-bg" class="hero-art" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
   <div class="wrap">
-    <p class="eyebrow">Lab 09</p>
+    <p class="eyebrow">Lab 10</p>
     <h1>Dense Retrieval, Semantic Search, Vector Indexes and Vector Databases</h1>
     <div class="badges">
       <span class="badge ids">DPR</span>
@@ -75,7 +76,7 @@
   <!-- ===== OVERVIEW ===== -->
   <section class="block" id="overview">
     <h2 class="section-title">Overview of the lab</h2>
-    <p class="section-lede"><a href="lab08-dense-retrieval.html">Lab 08</a> answered: <b>where does a dense text vector come from?</b> This lab asks: <b>how do we use those vectors to retrieve documents efficiently?</b></p>
+    <p class="section-lede"><a href="lab08-dense-retrieval.html">Lab 08</a> and <a href="lab09-sentence-embeddings.html">Lab 09</a> answered: <b>where does a dense text vector come from?</b> This lab asks: <b>how do we use those vectors to retrieve documents efficiently?</b></p>
     <div class="rr-pipe">documents → encoder → document vectors → vector index &nbsp;|&nbsp; query → encoder → query vector → nearest-neighbor search → top-k documents</div>
     <p class="section-lede" style="margin-top:1rem;">It deliberately separates <b>representation quality</b> from <b>search / index quality</b>: they are different problems.</p>
     <ol class="concept-list">
@@ -106,7 +107,7 @@
   <section class="block algo-section ids" id="retrieval">
     <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part I</span>
     <h2 class="section-title">From embeddings to retrieval</h2>
-    <p class="section-lede">From Lab 08:</p>
+    <p class="section-lede">From Labs 08 and 09:</p>
     <div class="rr-pipe">text → tokenizer → Transformer encoder → contextual token vectors → pooling → text embedding</div>
     <p class="section-lede" style="margin-top:1rem;">Now suppose every document has a vector. Retrieval becomes: <b>find the document vectors that are closest to the query vector</b>.</p>
     <div class="math-block">\[ \operatorname{top-k}_{d \in D}\; sim\big(E_q(q), E_d(d)\big) \]</div>
@@ -127,7 +128,7 @@
     <p class="section-lede" style="margin-top:1rem;">A better embedding model does not make nearest-neighbor search faster; a better index does not make the embeddings semantically better.</p>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Dense retrieval on Cranfield</h3>
-    <p class="section-lede">The Cranfield collection again, encoded with the model of Lab 08, so that the retrieval methods stay comparable across labs.</p>
+    <p class="section-lede">The Cranfield collection again, encoded with the model of <a href="lab09-sentence-embeddings.html#demo">Lab 09</a>, so that the retrieval methods stay comparable across labs.</p>
     <details class="code-card">
       <summary>
         <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -711,7 +712,7 @@ for ef in [16, 32, 64]:
 
 </div>
 
-<footer>Class notes by Elitsa Yotkova · Lab 09</footer>
+<footer>Class notes by Elitsa Yotkova · Lab 10</footer>
 </main>
 </div>
 
@@ -719,7 +720,7 @@ for ef in [16, 32, 64]:
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <script src="code-cards.js"></script>
 <script src="lab04-cranfield.js"></script>
-<script src="lab09-ann.js"></script>
-<script src="lab09.js"></script>
+<script src="lab10-ann.js"></script>
+<script src="lab10.js"></script>
 </body>
 </html>

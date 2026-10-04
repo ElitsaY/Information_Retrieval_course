@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lab 10 — Hybrid Retrieval, Reciprocal Rank Fusion and Reranking | Class Notes</title>
+<title>Lab 11 — Hybrid Retrieval, Reciprocal Rank Fusion and Reranking | Class Notes</title>
 <meta name="description" content="Interactive notes on multi-stage retrieval: why BM25 and dense retrieval are complementary, score fusion vs rank fusion, Reciprocal Rank Fusion, cross-encoder reranking, candidate-set sizes and ablations, evaluated on Cranfield.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -37,10 +37,11 @@
       <li><a href="lab06-crawling-pagerank.html"><span class="lm-n">06</span>Web Crawling and PageRank</a></li>
       <li><a href="lab07-query-expansion-lm.html"><span class="lm-n">07</span>Query Expansion and Language Models</a></li>
       <li><a href="lab08-dense-retrieval.html"><span class="lm-n">08</span>Neural Text Representations</a></li>
-      <li><a href="lab09-ann-faiss.html"><span class="lm-n">09</span>Dense Retrieval and Vector Databases</a></li>
-      <li><a href="lab10-hybrid-reranking.html" aria-current="page"><span class="lm-n">10</span>Hybrid Retrieval and Reranking</a></li>
-      <li><a href="lab11-rag.html"><span class="lm-n">11</span>Retrieval-Augmented Generation</a></li>
-      <li><a href="lab12-rag-evaluation.html"><span class="lm-n">12</span>Evaluating RAG Systems</a></li>
+      <li><a href="lab09-sentence-embeddings.html"><span class="lm-n">09</span>Sentence Embeddings and Semantic Search</a></li>
+      <li><a href="lab10-ann-faiss.html"><span class="lm-n">10</span>Dense Retrieval and Vector Databases</a></li>
+      <li><a href="lab11-hybrid-reranking.html" aria-current="page"><span class="lm-n">11</span>Hybrid Retrieval and Reranking</a></li>
+      <li><a href="lab12-rag.html"><span class="lm-n">12</span>Retrieval-Augmented Generation</a></li>
+      <li><a href="lab13-rag-evaluation.html"><span class="lm-n">13</span>Evaluating RAG Systems</a></li>
     </ol>
     </div>
     <div class="lm-panel" id="lm-quiz" role="tabpanel" aria-labelledby="lm-t-quiz" hidden>
@@ -56,7 +57,7 @@
 <section class="hero art-hero art-hy10">
   <svg id="hy-hero-bg" class="hero-art" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
   <div class="wrap">
-    <p class="eyebrow">Lab 10</p>
+    <p class="eyebrow">Lab 11</p>
     <h1>Hybrid Retrieval, Reciprocal Rank Fusion and Reranking</h1>
     <div class="badges">
       <span class="badge ids">Multi-stage retrieval</span>
@@ -75,7 +76,7 @@
   <!-- ===== OVERVIEW ===== -->
   <section class="block" id="overview">
     <h2 class="section-title">Overview of the lab</h2>
-    <p class="section-lede">We have seen two strong but different retrieval paradigms: <b>lexical retrieval</b> (BM25, <a href="lab04-ranked-retrieval.html">Lab 04</a>) and <b>dense retrieval</b> (embeddings and vector search, <a href="lab08-dense-retrieval.html">Labs 08</a>–<a href="lab09-ann-faiss.html">09</a>). BM25 is often strong when exact wording, rare terms or identifiers matter; dense retrieval when semantic similarity matters, wording differs, paraphrases occur. <b>Why choose only one?</b> Modern retrieval systems often combine several retrievers, then apply a more expensive reranker to the best candidates.</p>
+    <p class="section-lede">We have seen two strong but different retrieval paradigms: <b>lexical retrieval</b> (BM25, <a href="lab04-ranked-retrieval.html">Lab 04</a>) and <b>dense retrieval</b> (embeddings and vector search, <a href="lab08-dense-retrieval.html">Labs 08</a>–<a href="lab10-ann-faiss.html">10</a>). BM25 is often strong when exact wording, rare terms or identifiers matter; dense retrieval when semantic similarity matters, wording differs, paraphrases occur. <b>Why choose only one?</b> Modern retrieval systems often combine several retrievers, then apply a more expensive reranker to the best candidates.</p>
     <div class="rr-pipe">BM25 candidates + dense candidates → fusion → larger candidate set → cross-encoder reranking → final top-k</div>
     <ol class="concept-list" style="margin-top:1.2rem;">
       <li><a href="#why">Why hybrid retrieval?</a> Complementary failure modes.</li>
@@ -104,7 +105,7 @@
     <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part I</span>
     <h2 class="section-title">Why hybrid retrieval?</h2>
     <div class="vs-two">
-      <div class="vs-card"><p class="al-h">Query A</p><p><i>RFC 9309 robots exclusion protocol</i></p><p class="rr-note">BM25 is likely to do well: <b>RFC 9309</b> is a very distinctive lexical signal. In <a href="lab08-dense-retrieval.html#fail">Lab 08</a> the dense model ranked other RFCs above the text that mentions RFC 9309.</p></div>
+      <div class="vs-card"><p class="al-h">Query A</p><p><i>RFC 9309 robots exclusion protocol</i></p><p class="rr-note">BM25 is likely to do well: <b>RFC 9309</b> is a very distinctive lexical signal. In <a href="lab09-sentence-embeddings.html#fail">Lab 09</a> the dense model ranked other RFCs above the text that mentions RFC 9309.</p></div>
       <div class="vs-card"><p class="al-h">Query B</p><p><i>how to fix a broken car engine</i></p><p class="rr-note">A relevant document may say <i>automobile maintenance and engine servicing</i>. Dense retrieval may help, because the wording differs.</p></div>
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
@@ -236,10 +237,10 @@ for doc_id, score in reciprocal_rank_fusion([bm25_results, dense_results], k=60)
   <section class="block algo-section ids" id="ce">
     <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part V</span>
     <h2 class="section-title">Cross-encoder reranking</h2>
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1rem;">Connect back to Lab 08</h3>
-    <p class="section-lede">A Transformer produces <a href="lab08-dense-retrieval.html#attention">contextual token representations</a>. A <a href="lab08-dense-retrieval.html#biencoder">bi-encoder</a> uses that machinery <b>separately</b>: query → Transformer encoder → query vector; document → Transformer encoder → document vector; then a vector similarity. ❗ The crucial constraint: <b>the query and the document do not directly interact before each is compressed into a vector</b>. A <b>cross-encoder</b> changes that: it places the query and the document into the <b>same Transformer input</b> (<code>[CLS] query [SEP] document [SEP]</code>), so token-level interactions can be modeled before a relevance score is produced.</p>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1rem;">Connect back to Labs 08 and 09</h3>
+    <p class="section-lede">A Transformer produces <a href="lab08-dense-retrieval.html#attention">contextual token representations</a>. A <a href="lab09-sentence-embeddings.html#biencoder">bi-encoder</a> uses that machinery <b>separately</b>: query → Transformer encoder → query vector; document → Transformer encoder → document vector; then a vector similarity. ❗ The crucial constraint: <b>the query and the document do not directly interact before each is compressed into a vector</b>. A <b>cross-encoder</b> changes that: it places the query and the document into the <b>same Transformer input</b> (<code>[CLS] query [SEP] document [SEP]</code>), so token-level interactions can be modeled before a relevance score is produced.</p>
     <div class="be-fig ce-fig" aria-label="Bi-encoder and cross-encoder">
-      <div class="be-col"><span class="be-note">bi-encoder (Lab 08)</span><span class="be-box be-in">query</span><span class="be-ar">↓</span><span class="be-box be-enc">encoder</span><span class="be-ar">↓</span><span class="be-box be-vec">query vector</span><span class="be-box be-sim">similarity</span><span class="be-box be-vec">document vector</span><span class="be-ar">↑</span><span class="be-box be-enc">encoder</span><span class="be-ar">↑</span><span class="be-box be-in">document</span></div>
+      <div class="be-col"><span class="be-note">bi-encoder (Lab 09)</span><span class="be-box be-in">query</span><span class="be-ar">↓</span><span class="be-box be-enc">encoder</span><span class="be-ar">↓</span><span class="be-box be-vec">query vector</span><span class="be-box be-sim">similarity</span><span class="be-box be-vec">document vector</span><span class="be-ar">↑</span><span class="be-box be-enc">encoder</span><span class="be-ar">↑</span><span class="be-box be-in">document</span></div>
       <div class="be-col"><span class="be-note">cross-encoder</span><span class="be-box be-in">[query] + [document]</span><span class="be-ar">↓</span><span class="be-box be-enc">one transformer over both texts</span><span class="be-ar">↓</span><span class="be-box be-sim">relevance score</span></div>
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
@@ -300,7 +301,7 @@ reranker.predict([(query, "therapy after a heart attack"),
   <section class="block algo-section bfs" id="hybrid">
     <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Part VI</span>
     <h2 class="section-title">Hybrid retrieval on Cranfield</h2>
-    <p class="section-lede">Reuse the systems of earlier labs: BM25 (Lab 04) and dense retrieval with <code>all-MiniLM-L6-v2</code> (<a href="lab09-ann-faiss.html#retrieval">Lab 09</a>), each returning <code>(doc_id, title, score)</code>.</p>
+    <p class="section-lede">Reuse the systems of earlier labs: BM25 (Lab 04) and dense retrieval with <code>all-MiniLM-L6-v2</code> (<a href="lab10-ann-faiss.html#retrieval">Lab 10</a>), each returning <code>(doc_id, title, score)</code>.</p>
     <details class="code-card" open>
       <summary>
         <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -380,7 +381,7 @@ reranker.predict([(query, "therapy after a heart attack"),
     <div class="table-wrap"><table class="summary sc-small rr-num" id="ab-table"></table></div>
     <p class="rr-note" id="ab-note" style="margin-top:0.5rem;"></p>
     <ul class="concept-list" style="margin-top:1rem;">
-      <li><b>Reranking the hybrid does not help on Cranfield</b>: nDCG@10 drops from 0.3545 to 0.3515. The reranker learned relevance from MS MARCO web questions, not from aeronautics abstracts: a domain shift, one of the embedding failures listed in <a href="lab08-dense-retrieval.html#fail">Lab 08</a>.</li>
+      <li><b>Reranking the hybrid does not help on Cranfield</b>: nDCG@10 drops from 0.3545 to 0.3515. The reranker learned relevance from MS MARCO web questions, not from aeronautics abstracts: a domain shift, one of the embedding failures listed in <a href="lab09-sentence-embeddings.html#fail">Lab 09</a>.</li>
       <li><b>Reranking BM25 helps a lot</b> (nDCG@10 0.2822 → 0.3356): the stronger the first stage, the less room the reranker has, and the more its own mistakes show.</li>
       <li>Only evaluation tells which components earn their cost.</li>
     </ul>
@@ -390,7 +391,7 @@ reranker.predict([(query, "therapy after a heart attack"),
         <thead><tr><th>Stage</th><th>Cost (measured on a laptop, Cranfield)</th><th>Grows with</th></tr></thead>
         <tbody>
           <tr data-s="ucs"><td><b>BM25</b></td><td>3.4 ms per query (<code>rank_bm25</code>, pure Python)</td><td>the postings of the query terms</td></tr>
-          <tr data-s="ucs"><td><b>Dense ANN</b></td><td>one query encoding, then a few µs of index search (Lab 09)</td><td>fast after indexing</td></tr>
+          <tr data-s="ucs"><td><b>Dense ANN</b></td><td>one query encoding, then a few µs of index search (Lab 10)</td><td>fast after indexing</td></tr>
           <tr data-s="ucs"><td><b>Cross-encoder</b></td><td>12.6 ms per pair on CPU: 0.63 s for 50 candidates</td><td>the number of candidates</td></tr>
         </tbody>
       </table>
@@ -428,7 +429,7 @@ reranker.predict([(query, "therapy after a heart attack"),
 
 </div>
 
-<footer>Class notes by Elitsa Yotkova · Lab 10</footer>
+<footer>Class notes by Elitsa Yotkova · Lab 11</footer>
 </main>
 </div>
 
@@ -436,7 +437,7 @@ reranker.predict([(query, "therapy after a heart attack"),
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <script src="code-cards.js"></script>
 <script src="lab04-cranfield.js"></script>
-<script src="lab10-hybrid.js"></script>
-<script src="lab10.js"></script>
+<script src="lab11-hybrid.js"></script>
+<script src="lab11.js"></script>
 </body>
 </html>

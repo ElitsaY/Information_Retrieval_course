@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lab 12 — Evaluating RAG Systems | Class Notes</title>
+<title>Lab 13 — Evaluating RAG Systems | Class Notes</title>
 <meta name="description" content="Interactive notes on evaluating RAG systems by stage: evidence recall and context precision, exact match and token F1, claim-level faithfulness, citation precision and recall, building an evaluation set with unanswerable questions, comparing two RAG configurations, failure analysis, ablations and LLM-as-judge.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -37,10 +37,11 @@
       <li><a href="lab06-crawling-pagerank.html"><span class="lm-n">06</span>Web Crawling and PageRank</a></li>
       <li><a href="lab07-query-expansion-lm.html"><span class="lm-n">07</span>Query Expansion and Language Models</a></li>
       <li><a href="lab08-dense-retrieval.html"><span class="lm-n">08</span>Neural Text Representations</a></li>
-      <li><a href="lab09-ann-faiss.html"><span class="lm-n">09</span>Dense Retrieval and Vector Databases</a></li>
-      <li><a href="lab10-hybrid-reranking.html"><span class="lm-n">10</span>Hybrid Retrieval and Reranking</a></li>
-      <li><a href="lab11-rag.html"><span class="lm-n">11</span>Retrieval-Augmented Generation</a></li>
-      <li><a href="lab12-rag-evaluation.html" aria-current="page"><span class="lm-n">12</span>Evaluating RAG Systems</a></li>
+      <li><a href="lab09-sentence-embeddings.html"><span class="lm-n">09</span>Sentence Embeddings and Semantic Search</a></li>
+      <li><a href="lab10-ann-faiss.html"><span class="lm-n">10</span>Dense Retrieval and Vector Databases</a></li>
+      <li><a href="lab11-hybrid-reranking.html"><span class="lm-n">11</span>Hybrid Retrieval and Reranking</a></li>
+      <li><a href="lab12-rag.html"><span class="lm-n">12</span>Retrieval-Augmented Generation</a></li>
+      <li><a href="lab13-rag-evaluation.html" aria-current="page"><span class="lm-n">13</span>Evaluating RAG Systems</a></li>
     </ol>
     </div>
     <div class="lm-panel" id="lm-quiz" role="tabpanel" aria-labelledby="lm-t-quiz" hidden>
@@ -56,7 +57,7 @@
 <section class="hero art-hero art-ev12">
   <svg id="ev-hero-bg" class="hero-art" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
   <div class="wrap">
-    <p class="eyebrow">Lab 12</p>
+    <p class="eyebrow">Lab 13</p>
     <h1>Evaluating RAG Systems: Retrieval, Faithfulness and Failure Analysis</h1>
     <div class="badges">
       <span class="badge ids">Evidence recall</span>
@@ -75,7 +76,7 @@
   <!-- ===== OVERVIEW ===== -->
   <section class="block" id="overview">
     <h2 class="section-title">Overview of the lab</h2>
-    <p class="section-lede"><a href="lab11-rag.html">Lab 11</a> built the RAG pipeline (documents → chunk → index → retrieve → rerank → select context → prompt → LLM → answer). This lab asks: <b>how do we know whether the RAG system is actually good?</b> A single end-to-end accuracy number is not enough: the answer may not be in the corpus, the chunking may be poor, the retriever may miss the evidence, the reranker may remove it, the prompt may hold irrelevant context, the model may ignore the evidence, the answer may be unsupported, the citation may be wrong.</p>
+    <p class="section-lede"><a href="lab12-rag.html">Lab 12</a> built the RAG pipeline (documents → chunk → index → retrieve → rerank → select context → prompt → LLM → answer). This lab asks: <b>how do we know whether the RAG system is actually good?</b> A single end-to-end accuracy number is not enough: the answer may not be in the corpus, the chunking may be poor, the retriever may miss the evidence, the reranker may remove it, the prompt may hold irrelevant context, the model may ignore the evidence, the answer may be unsupported, the citation may be wrong.</p>
     <div class="rr-pipe">Evaluate the pipeline by stage, not only by final answer quality.</div>
     <ol class="concept-list" style="margin-top:1.2rem;">
       <li><a href="#why">Why RAG evaluation is difficult</a>: three layers.</li>
@@ -104,7 +105,7 @@
   <section class="block algo-section ids" id="why">
     <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part I</span>
     <h2 class="section-title">Why RAG evaluation is difficult</h2>
-    <p class="section-lede">Suppose a system gives the wrong answer. Why? Walk down the questions; the first "no" names the failing stage (the <a href="lab11-rag.html#fail">debugging tree of Lab 11</a>). A final answer metric alone cannot tell us which component failed.</p>
+    <p class="section-lede">Suppose a system gives the wrong answer. Why? Walk down the questions; the first "no" names the failing stage (the <a href="lab12-rag.html#fail">debugging tree of Lab 12</a>). A final answer metric alone cannot tell us which component failed.</p>
     <div class="dbg-tree ev-tree">
       <div class="dbg-n"><span class="dbg-q">Was the information present in the corpus?</span><span class="dbg-a">no → corpus / ingestion failure</span></div>
       <div class="dbg-n"><span class="dbg-q">Was the right chunk created?</span><span class="dbg-a">no → chunking failure</span></div>
@@ -160,7 +161,7 @@
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
       <li><b>Why Recall@k matters for RAG</b>: the generator only sees the selected context. If the necessary evidence is outside the context window, generation cannot reliably use it. <b>Retrieval recall places an upper bound on what the downstream system can do.</b></li>
-      <li><b>Recall and precision pull in different directions</b>: increasing \(k\) may improve evidence recall but may reduce context precision. A familiar IR trade-off (Lab 11's <a href="lab11-rag.html#context">top-k widget</a> shows it on Cranfield).</li>
+      <li><b>Recall and precision pull in different directions</b>: increasing \(k\) may improve evidence recall but may reduce context precision. A familiar IR trade-off (Lab 12's <a href="lab12-rag.html#context">top-k widget</a> shows it on Cranfield).</li>
       <li><b>MRR and nDCG still matter</b>: if one supporting passage is sufficient, MRR asks how early the first supporting chunk appears; if evidence has graded usefulness (primary, secondary, weakly related), nDCG is meaningful. <b>RAG does not invalidate classical IR metrics; it reuses them.</b></li>
     </ul>
   </section>
@@ -276,7 +277,7 @@
       <li><b>Keep evaluation data separate</b>: if you tune chunk size, top-k, RRF parameters, the reranker or the prompt on the examples used for final reporting, you risk overfitting the evaluation set. <b>Development set → tune; test set → final evaluation.</b> The same principle as in classical IR.</li>
     </ul>
     <h4 style="margin:1.4rem 0 0.4rem;">See it: the evaluation set of this lab</h4>
-    <p class="section-lede">Ten short handbook documents (842 words, invented, in the style of Lab 11's regulation) and twelve questions, covering every category above. The gold evidence is stored as sentences, so that it can be matched against any chunking: a chunk <b>supports</b> a question if it contains a whole evidence sentence.</p>
+    <p class="section-lede">Ten short handbook documents (842 words, invented, in the style of Lab 12's regulation) and twelve questions, covering every category above. The gold evidence is stored as sentences, so that it can be matched against any chunking: a chunk <b>supports</b> a question if it contains a whole evidence sentence.</p>
     <div class="table-wrap"><table class="summary sc-small ev-set" id="ev-set"></table></div>
   </section>
 
@@ -359,12 +360,12 @@ def context_precision_at_k(retrieved_ids, gold_ids, k):
   <section class="block algo-section ucs" id="ablation">
     <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Part VIII</span>
     <h2 class="section-title">Ablation studies</h2>
-    <p class="section-lede">An <b>ablation</b> removes or changes one component while keeping the rest as fixed as possible. It answers: <b>which component actually contributed?</b> The outline's four retrieval stacks on Cranfield (the runs of <a href="lab10-hybrid-reranking.html">Lab 10</a>, reranking the top 50, 225 queries):</p>
+    <p class="section-lede">An <b>ablation</b> removes or changes one component while keeping the rest as fixed as possible. It answers: <b>which component actually contributed?</b> The outline's four retrieval stacks on Cranfield (the runs of <a href="lab11-hybrid-reranking.html">Lab 11</a>, reranking the top 50, 225 queries):</p>
     <div class="table-wrap"><table class="summary sc-small rr-num" id="ab-table"></table></div>
     <p class="caption-note">💡 Adding the reranker to dense retrieval helps on every measure; adding it to the hybrid <b>lowers</b> all four. The most complex stack is not the best one on Cranfield. On a real RAG system you would add answer correctness and faithfulness columns, which need a generator and judgments.</p>
     <ul class="concept-list">
       <li><b>Chunking ablation</b>: compare 100-, 300-, 700-token chunks with the retriever fixed; if performance changes, chunking is contributing. On the small collection, dense retrieval with top 3: <span id="ab-chunk"></span></li>
-      <li><b>Top-k ablation</b>: \(k\) = 1, 3, 5, 10, measuring evidence recall, context precision <b>and</b> answer quality. It reveals whether more context helps or hurts (Lab 11's <a href="lab11-rag.html#context">top-k widget</a>).</li>
+      <li><b>Top-k ablation</b>: \(k\) = 1, 3, 5, 10, measuring evidence recall, context precision <b>and</b> answer quality. It reveals whether more context helps or hurts (Lab 12's <a href="lab12-rag.html#context">top-k widget</a>).</li>
     </ul>
   </section>
 
@@ -391,10 +392,11 @@ def context_precision_at_k(retrieved_ids, gold_ids, k):
       <span><a href="lab05-evaluation.html">evaluation</a></span>
       <span><a href="lab06-crawling-pagerank.html">web / link structure</a></span>
       <span><a href="lab07-query-expansion-lm.html">query expansion</a></span>
-      <span><a href="lab08-dense-retrieval.html">neural representations, semantic search</a></span>
-      <span><a href="lab09-ann-faiss.html">vector index / vector database, dense retrieval</a></span>
-      <span><a href="lab10-hybrid-reranking.html">hybrid retrieval, reranking</a></span>
-      <span><a href="lab11-rag.html">RAG</a></span>
+      <span><a href="lab08-dense-retrieval.html">neural representations</a></span>
+      <span><a href="lab09-sentence-embeddings.html">sentence embeddings, semantic search</a></span>
+      <span><a href="lab10-ann-faiss.html">vector index / vector database, dense retrieval</a></span>
+      <span><a href="lab11-hybrid-reranking.html">hybrid retrieval, reranking</a></span>
+      <span><a href="lab12-rag.html">RAG</a></span>
       <span class="end">RAG evaluation</span>
     </div>
   </section>
@@ -419,14 +421,14 @@ def context_precision_at_k(retrieved_ids, gold_ids, k):
 
 </div>
 
-<footer>Class notes by Elitsa Yotkova · Lab 12</footer>
+<footer>Class notes by Elitsa Yotkova · Lab 13</footer>
 </main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <script src="code-cards.js"></script>
-<script src="lab12-eval.js"></script>
-<script src="lab12.js"></script>
+<script src="lab13-eval.js"></script>
+<script src="lab13.js"></script>
 </body>
 </html>

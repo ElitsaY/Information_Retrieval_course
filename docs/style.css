@@ -2528,7 +2528,7 @@ table.summary.rr-num td.gt-bad { background: color-mix(in srgb, #d9546e 16%, var
 @media (max-width: 760px) { .pg-grid.sf-grid { grid-template-columns: minmax(0, 1fr); } }
 #sf-out table.summary th, #sf-out table.summary td { padding: 0.35rem 0.5rem; font-size: 0.82rem; }
 
-/* ---- Lab 09 (IR): dense retrieval, vector indexes, ANN, FAISS, vector databases ---- */
+/* ---- Lab 10 (IR): dense retrieval, vector indexes, ANN, FAISS, vector databases ---- */
 .art-an9 .hero-art .he { stroke: var(--ink-soft); stroke-width: 1.4; opacity: 0.18; } .art-an9 .hero-art .hp { opacity: 0.35; }
 .neg-list { display: grid; gap: 0.4rem; }
 .neg-row { display: grid; grid-template-columns: 8.5rem minmax(0, 1.4fr) minmax(0, 1fr) 3rem; gap: 0.6rem; align-items: center; padding: 0.45rem 0.7rem; border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: 8px; font-size: 0.88rem; }
@@ -2602,7 +2602,7 @@ table.summary.cm-live td.tn { background: color-mix(in srgb, var(--ink) 6%, var(
 .toy-tab .tk-r, .toy-tab .tk-n { display: inline-block; padding: 0.1rem 0.45rem; border-radius: 6px; font-weight: 800; font-size: 0.8rem; }
 .toy-tab .tk-r { background: var(--bfs); color: #fff; } .toy-tab .tk-n { border: 1.5px solid var(--line); color: var(--ink-soft); }
 
-/* ---- Lab 10 (IR): hybrid retrieval, RRF, reranking ---- */
+/* ---- Lab 11 (IR): hybrid retrieval, RRF, reranking ---- */
 .ml-plot .hm-w.cx-x { fill: var(--bfs); } .ml-plot .cx-split { stroke: var(--ink); stroke-width: 1.2; stroke-dasharray: 4 3; opacity: 0.5; }
 .ml-plot .hm-l.cx-l { font-size: 10.5px; cursor: pointer; } .ml-plot .hm-l.cx-l.d { fill: color-mix(in srgb, var(--bfs) 70%, var(--ink)); }
 .art-hy10 .hero-art .hb { opacity: 0.22; } .art-hy10 .hero-art .hb.a { fill: var(--dfs); } .art-hy10 .hero-art .hb.b { fill: var(--ids); } .art-hy10 .hero-art .hb.c { fill: var(--bfs); opacity: 0.3; }
@@ -2621,7 +2621,7 @@ table.summary.cm-live td.tn { background: color-mix(in srgb, var(--ink) 6%, var(
 .pq-list li:has(.hy-src), .pq-list li:has(.rk-mv) { grid-template-columns: auto auto auto minmax(0, 1fr); }
 .rk-mv { font-size: 0.7rem; font-weight: 800; color: var(--ink-soft); min-width: 2rem; font-variant-numeric: tabular-nums; } .rk-mv.up { color: var(--bfs); } .rk-mv.dn { color: var(--red-ink); }
 
-/* ---- Lab 11 (IR): retrieval-augmented generation ---- */
+/* ---- Lab 12 (IR): retrieval-augmented generation ---- */
 .art-rag11 .hero-art .ch { fill: var(--ids); opacity: 0.13; } .art-rag11 .hero-art .ch.pick { fill: var(--dfs); opacity: 0.45; }
 .rg-steps { display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; font-size: 0.86rem; }
 .rg-steps span { padding: 0.2rem 0.6rem; border-radius: 7px; border: 1.5px solid var(--line); background: color-mix(in srgb, var(--bfs) 8%, var(--surface)); font-weight: 600; }
@@ -2648,7 +2648,7 @@ pre.pb-prompt { margin: 0; padding: 0.8rem 1rem; border-radius: var(--radius-sm)
 .dbg-n.off { opacity: 0.38; } .dbg-n.yes { border-left: 4px solid var(--bfs); } .dbg-n.no { border-left: 4px solid #d9546e; background: color-mix(in srgb, #d9546e 9%, var(--surface)); } .dbg-n.ok { border-left: 4px solid var(--bfs); background: color-mix(in srgb, var(--bfs) 12%, var(--surface)); font-weight: 700; }
 .dbg-a { font-weight: 800; font-size: 0.8rem; } .dbg-n.yes .dbg-a { color: color-mix(in srgb, var(--bfs) 70%, var(--ink)); } .dbg-n.no .dbg-a { color: var(--red-ink); }
 
-/* ---- Lab 12 (IR): evaluating RAG systems ---- */
+/* ---- Lab 13 (IR): evaluating RAG systems ---- */
 .art-ev12 .hero-art .eh { fill: var(--ids); opacity: 0.12; } .art-ev12 .hero-art .eh.hit { fill: var(--bfs); opacity: 0.4; }
 .dbg-tree.ev-tree .dbg-n .dbg-a { color: var(--red-ink); }
 .er-list { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.4rem 0 0.8rem; }
@@ -2966,3 +2966,26 @@ button.lt-tok { cursor: pointer; font-size: 0.95rem; color: var(--ink); } button
 .cf-group.nlp .cf-item b { color: color-mix(in srgb, var(--ucs) 60%, var(--ink)); }
 .cf-item span { font-size: 0.9rem; color: var(--ink-soft); }
 @media (max-width: 760px) { .cf-grid { grid-template-columns: 1fr; } }
+/* Lab 08 (IR) Part IV: what is a Transformer, timeline, RNN vs Transformer */
+.tl { list-style: none; margin: 0.6rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem; position: relative; }
+.tl::before { content: ''; position: absolute; left: 0; right: 0; top: 0.62rem; height: 2px; background: var(--line); }
+.tl-i { position: relative; min-width: 0; padding: 1.6rem 0.55rem 0.6rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); font-size: 0.8rem; line-height: 1.4; }
+.tl-i::before { content: ''; position: absolute; top: 0.32rem; left: 0.55rem; width: 0.7rem; height: 0.7rem; border-radius: 999px; background: var(--ucs); }
+.tl-i .tl-y { display: block; font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 0.78rem; color: var(--ink-soft); position: absolute; top: 0.18rem; left: 1.45rem; }
+.tl-i b { display: block; margin-bottom: 0.2rem; font-family: 'Poppins', sans-serif; font-size: 0.86rem; color: var(--ink); } .tl-i .tl-d { color: var(--ink-soft); }
+.tl-i.now { border-color: var(--ucs); box-shadow: 0 0 0 2px var(--ucs); background: color-mix(in srgb, var(--ucs) 10%, var(--surface)); } .tl-i.now::before { background: var(--dfs); }
+@media (max-width: 900px) { .tl { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .tl { grid-template-columns: minmax(0, 1fr); } .tl::before { display: none; } }
+.rt-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.8rem; }
+@media (max-width: 680px) { .rt-pair { grid-template-columns: minmax(0, 1fr); } }
+.rt-fig { margin: 0; min-width: 0; padding: 0.7rem 0.8rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+.rt-fig figcaption { font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 0.92rem; margin-bottom: 0.2rem; } .rt-fig.tr { border-color: var(--ucs); }
+.rt-fig p { margin: 0.3rem 0 0; font-size: 0.84rem; color: var(--ink-soft); }
+.rt-svg { display: block; width: 100%; max-width: 340px; height: auto; margin: 0 auto; }
+.rt-svg .rt-tok { fill: color-mix(in srgb, var(--ucs) 14%, var(--surface)); stroke: color-mix(in srgb, var(--ucs) 55%, var(--surface)); stroke-width: 1.2; }
+.rt-svg .rt-tok.it { fill: color-mix(in srgb, var(--ids) 22%, var(--surface)); stroke: var(--ids); stroke-width: 2; } .rt-svg .rt-tok.an { fill: color-mix(in srgb, var(--bfs) 22%, var(--surface)); stroke: var(--bfs); stroke-width: 2; }
+.rt-svg text { fill: var(--ink); font-family: 'Inter', sans-serif; text-anchor: middle; } .rt-svg .rt-t { font-size: 10.5px; font-weight: 700; } .rt-svg .rt-s { font: 800 11px 'Poppins', sans-serif; fill: var(--ink-soft); }
+.rt-svg .rt-cap { font-size: 10.5px; fill: var(--ink-soft); font-style: italic; }
+.rt-svg .rt-h { fill: color-mix(in srgb, var(--ink-soft) 10%, var(--surface)); stroke: var(--ink-soft); stroke-width: 1.2; }
+.rt-svg .rt-up { stroke: var(--line); stroke-width: 1.5; } .rt-svg .rt-arr { stroke: var(--dfs); stroke-width: 2; } .rt-svg .rt-head { fill: var(--dfs); }
+.rt-svg .rt-arc { fill: none; stroke: color-mix(in srgb, var(--ids) 45%, var(--surface)); stroke-width: 1.8; } .rt-svg .rt-arc.an { stroke: var(--bfs); stroke-width: 3; }

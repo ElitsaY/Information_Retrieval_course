@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab 09 — Sentence Embeddings and Semantic Search | Class Notes</title>
+<meta name="description" content="Interactive notes on sentence embeddings: encoder-only vs decoder-only Transformers, pooling token vectors into one text vector, semantic search vs lexical search and bi-encoders, with real all-MiniLM-L6-v2 outputs.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../style.css">
+<script src="../theme.js"></script>
+</head>
+<body>
+
+<header class="site-nav">
+  <button class="side-toggle" type="button" aria-controls="lab-menu" aria-expanded="false" aria-label="Labs menu"><span></span></button>
+  <a class="brand" href="../index.html"><span class="dot"></span> Class Notes</a>
+  <nav><a href="../index.html">Home</a></nav>
+  <button class="theme-toggle" type="button" aria-label="Switch colour theme"><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+</header>
+
+<div class="lab-layout">
+  <aside class="lab-menu" id="lab-menu" aria-label="Contents">
+    <div class="lm-tabs" role="tablist" aria-label="Menus">
+      <button class="lm-tab" type="button" role="tab" id="lm-t-notes" aria-controls="lm-notes" aria-selected="true">Class notes</button>
+      <button class="lm-tab" type="button" role="tab" id="lm-t-quiz" aria-controls="lm-quiz" aria-selected="false">Quizzes</button>
+    </div>
+    <div class="lm-panel" id="lm-notes" role="tabpanel" aria-labelledby="lm-t-notes">
+    <ol>
+      <li><a href="lab00-introduction.html"><span class="lm-n">00</span>Introduction</a></li>
+      <li><a href="lab01-inverted-index.html"><span class="lm-n">01</span>Inverted Index and Boolean Queries</a></li>
+      <li><a href="lab02-text-preprocessing.html"><span class="lm-n">02</span>Text Preprocessing</a></li>
+      <li><a href="lab03-spelling-correction.html"><span class="lm-n">03</span>Tolerant Retrieval and Spelling Correction</a></li>
+      <li><a href="lab04-ranked-retrieval.html"><span class="lm-n">04</span>Ranked Retrieval: TF-IDF and BM25</a></li>
+      <li><a href="lab05-evaluation.html"><span class="lm-n">05</span>Evaluating IR Systems</a></li>
+      <li><a href="lab06-crawling-pagerank.html"><span class="lm-n">06</span>Web Crawling and PageRank</a></li>
+      <li><a href="lab07-query-expansion-lm.html"><span class="lm-n">07</span>Query Expansion and Language Models</a></li>
+      <li><a href="lab08-dense-retrieval.html"><span class="lm-n">08</span>Neural Text Representations</a></li>
+      <li><a href="lab09-sentence-embeddings.html" aria-current="page"><span class="lm-n">09</span>Sentence Embeddings and Semantic Search</a></li>
+      <li><a href="lab10-ann-faiss.html"><span class="lm-n">10</span>Dense Retrieval and Vector Databases</a></li>
+      <li><a href="lab11-hybrid-reranking.html"><span class="lm-n">11</span>Hybrid Retrieval and Reranking</a></li>
+      <li><a href="lab12-rag.html"><span class="lm-n">12</span>Retrieval-Augmented Generation</a></li>
+      <li><a href="lab13-rag-evaluation.html"><span class="lm-n">13</span>Evaluating RAG Systems</a></li>
+    </ol>
+    </div>
+    <div class="lm-panel" id="lm-quiz" role="tabpanel" aria-labelledby="lm-t-quiz" hidden>
+    <ol>
+      <li><a href="lab01-quiz.html"><span class="lm-n">01</span>Inverted Index and Boolean Queries</a></li>
+    </ol>
+    <p class="lm-note">A quiz follows each lab; more are on the way.</p>
+    </div>
+  </aside>
+  <script>(function(){var b=document.body,t=document.querySelector(".side-toggle"),m=document.getElementById("lab-menu"),c=m.querySelector("[aria-current]");if(c&&m.scrollHeight>m.clientHeight)m.scrollTop=c.offsetTop-m.clientHeight/2;var ts=m.querySelectorAll(".lm-tab");ts.forEach(function(x){x.addEventListener("click",function(){ts.forEach(function(y){var o=y===x;y.setAttribute("aria-selected",o);document.getElementById(y.getAttribute("aria-controls")).hidden=!o})})});function s(o){b.classList.toggle("menu-open",o);t.setAttribute("aria-expanded",o)}t.addEventListener("click",function(e){e.stopPropagation();s(!b.classList.contains("menu-open"))});document.addEventListener("click",function(e){if(b.classList.contains("menu-open")&&!m.contains(e.target))s(false)});document.addEventListener("keydown",function(e){if(e.key==="Escape")s(false)})})();</script>
+<main class="lab-main">
+
+<section class="hero art-hero art-dr8">
+  <svg id="dr-hero-bg" class="hero-art" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+  <div class="wrap">
+    <p class="eyebrow">Lab 09</p>
+    <h1>Sentence Embeddings and Semantic Search</h1>
+    <div class="badges">
+      <span class="badge ids">Encoders</span>
+      <span class="badge bfs">Pooling</span>
+      <span class="badge dfs">Semantic search</span>
+      <span class="badge ucs">Bi-encoders</span>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+
+  <!-- work-in-progress notice: remove from a lab once it is finished -->
+  <div class="wip-note" role="note"><span class="wip-tag">Work in progress</span> These notes are still being written and reviewed: content may change, and some parts may still contain mistakes.</div>
+
+  <!-- ===== WHERE LAB 08 LEFT US ===== -->
+  <section class="block" id="recap">
+    <h2 class="section-title">Where Lab 08 left us</h2>
+    <div class="rr-pipe">text → tokenizer → token IDs → initial token embeddings → Transformer → contextual token vectors</div>
+    <p class="section-lede" style="margin-top:1rem;"><a href="lab08-dense-retrieval.html">Lab 08</a> ended with <b>one context-aware vector per token</b>. Search needs <b>one vector for an entire query or document</b>. This lab covers how we get it (encoders and pooling) and how we search with it (semantic search and bi-encoders).</p>
+  </section>
+
+  <!-- ===== PART I ===== -->
+  <section class="block algo-section ids" id="encoder">
+    <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part I</span>
+    <h2 class="section-title">What is an encoder?</h2>
+    <div class="definition-box">
+      <div class="dbox-label">📐 Encoder</div>
+      <div class="math-block">\[ \operatorname{Encoder}(text) \rightarrow \mathbb{R}^{d} \]</div>
+      <p>A model that consumes an input and returns a <b>representation</b> of that input. For retrieval, <code>vector = encoder("how to repair a car")</code>: the goal is a representation that can later be compared with document representations.</p>
+    </div>
+    <p class="section-lede" style="margin-top:1rem;">❗ <b>Encoder does not mean generator.</b> An encoder produces a representation (text → encoder → vector); a generative model instead repeatedly predicts output tokens.</p>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Three broad Transformer families</h3>
+    <div class="table-wrap">
+      <table class="summary sc-small">
+        <thead><tr><th>Architecture</th><th>Main role</th><th>Example family</th><th>Useful for</th></tr></thead>
+        <tbody>
+          <tr data-s="ids"><td><b>Encoder-only</b></td><td>represent / understand the input</td><td>BERT (and MiniLM)</td><td>classification, token labeling, retrieval embeddings, reranking components</td></tr>
+          <tr data-s="ids"><td><b>Decoder-only</b></td><td>generate autoregressively</td><td>GPT-style models</td><td>text generation; the model behind RAG answers</td></tr>
+          <tr data-s="ids"><td><b>Encoder–decoder</b></td><td>transform one sequence into another</td><td>T5</td><td>translation, summarization, sequence-to-sequence tasks</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="section-lede" style="margin-top:1rem;">These are broad architectural categories, not rigid task boundaries.</p>
+    <ul class="concept-list">
+      <li><b>Encoder-only</b>: input tokens → Transformer encoder → contextual representations. Every token can attend to every other token, left and right.</li>
+      <li><b>Decoder-only</b>: predicts the next token from the previous ones, \(P(x_t \mid x_1, \ldots, x_{t-1})\). Generation is a loop: prompt → predict next token → append it → predict next token → append → … This is the conceptual model needed for RAG. A token may only attend to itself and <b>earlier</b> tokens (a <b>causal mask</b>), since the later ones do not exist yet when it is generated.</li>
+      <li><b>Encoder–decoder</b>: input sequence → encoder → internal representations → decoder → output sequence; the decoder attends to the encoder's representations while it generates.</li>
+    </ul>
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: who can see whom</h4>
+    <p class="section-lede">The attention pattern allowed in an encoder and in a decoder. <b>Click a row</b> to see which tokens that token may attend to. In decoder mode, <b>Generate</b> appends the next word, as in the generation loop.</p>
+    <div class="playground">
+      <div class="pg-controls">
+        <div class="strategy-pick" id="mk-mode"><button type="button" class="strat-btn active" data-m="enc">Encoder (bidirectional)</button><button type="button" class="strat-btn" data-m="dec">Decoder (causal)</button></div>
+        <button type="button" class="strat-btn" id="mk-gen">Generate next word</button>
+        <button type="button" class="strat-btn" id="mk-reset">Reset</button>
+      </div>
+      <div class="pg-grid">
+        <svg id="mk-svg" class="ml-plot cm-click" viewBox="0 0 400 390" aria-label="Attention mask"></svg>
+        <div id="mk-out" class="tf-out"></div>
+      </div>
+      <p class="bt-legend" style="margin:0.4rem 0 0;"><span class="k" style="background:var(--indigo);"></span> itself or an earlier token &nbsp; <span class="k" style="background:var(--bfs);"></span> a later token &nbsp; ✕ not allowed</p>
+    </div>
+  </section>
+
+  <!-- ===== PART II ===== -->
+  <section class="block algo-section bfs" id="pooling">
+    <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Part II</span>
+    <h2 class="section-title">From token vectors to one text vector</h2>
+    <p class="section-lede">After a Transformer we normally have \(h_1, h_2, \ldots, h_n\): one contextual representation per token. But retrieval often wants \(E(text) \in \mathbb{R}^d\): <b>one vector for the whole text</b>. So we need a <b>pooling</b> strategy. A simple one is <b>mean pooling</b>, averaging the token representations:</p>
+    <div class="math-block">\[ E(text) = \frac{1}{n} \sum_{i=1}^{n} h_i \]</div>
+    <p class="section-lede">Other strategies: the representation of a <b>special token</b> such as [CLS], <b>weighted</b> pooling, <b>learned</b> pooling (and max pooling, the largest value per dimension). The exact choice depends on the model: <code>all-MiniLM-L6-v2</code> was trained with mean pooling followed by normalization to length 1.</p>
+    <h4 style="margin:1.4rem 0 0.4rem;">See it: pooling the token vectors</h4>
+    <p class="section-lede">The real last-layer vectors of the 8 tokens of <i>how to repair a car engine</i> (one row each, 384 cells, blue positive, red negative) and the pooled vector. Switch the pooling strategy to see its vector and how it ranks the five demo texts.</p>
+    <div class="playground">
+      <div class="pg-controls"><div class="strategy-pick" id="pl-how"></div></div>
+      <div class="pl-strips" id="pl-strips"></div>
+      <div class="pg-controls" style="margin-top:0.9rem;"><div class="strategy-pick" id="pl-q"></div></div>
+      <div id="pl-out"></div>
+    </div>
+    <p class="caption-note">💡 Mean pooling reproduces <code>model.encode</code> exactly. With the [CLS] vector or max pooling every score lands between about 0.5 and 0.9: <i>banana nutrition</i> gets 0.54 for <i>car repair</i>, where mean pooling gives 0.05. The model was trained to make the <b>mean</b> useful; the other poolings are not what it learned.</p>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">The sentence embedding pipeline</h3>
+    <div class="rr-pipe">text → tokenizer → token embeddings → Transformer → contextual token vectors → pooling → sentence embedding</div>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Why not any Transformer?</h3>
+    <p class="section-lede">A generic Transformer representation is not automatically optimized so that <b>semantically similar sentence → nearby vector</b>. Retrieval models are usually trained with an objective that explicitly encourages useful geometry: <b>similar / relevant pairs move closer, irrelevant pairs move farther apart</b> (<code>all-MiniLM-L6-v2</code> was fine-tuned this way on over a billion sentence pairs). This is why a model trained for sentence embeddings or retrieval is usually preferable to taking arbitrary hidden states from a generic model.</p>
+    <h4 style="margin:1.4rem 0 0.4rem;">See it: a big generic model vs a small trained one</h4>
+    <p class="section-lede"><code>roberta-large</code> (355 million parameters, 24 layers, 1,024 dimensions, pre-trained only to fill in masked words), mean-pooled exactly like MiniLM, against <code>all-MiniLM-L6-v2</code> (22.7 million parameters), on the five demo texts.</p>
+    <div class="playground">
+      <div class="pg-controls"><div class="strategy-pick" id="gm-q"></div></div>
+      <div class="vs-two" id="gm-out"></div>
+    </div>
+    <p class="caption-note">💡 Every <code>roberta-large</code> score lies between 0.988 and 0.996: all texts point in almost the same direction, and the ranking is close to noise (<i>what should I eat to stay healthy</i> ranks <i>how to repair a car engine</i> first). Size is not the point; the training objective is.</p>
+  </section>
+
+  <!-- ===== PART III ===== -->
+  <section class="block algo-section dfs" id="semantic">
+    <span class="badge dfs" style="margin-bottom:0.6rem; display:inline-block;">Part III</span>
+    <h2 class="section-title">Semantic search: what changes?</h2>
+    <div class="vs-two">
+      <div class="vs-card"><p class="al-h">Lexical search asks</p><p>Do the query and document share useful words?</p></div>
+      <div class="vs-card"><p class="al-h">Semantic search asks</p><p>Are the query and document close in a learned representation space?</p></div>
+    </div>
+    <p class="section-lede" style="margin-top:1rem;">Query <i>car repair</i>, document <i>automobile maintenance</i>: a lexical system sees no term overlap; a semantic-search system can still assign high similarity (0.733 here) because the encoder maps the two texts to nearby vectors:</p>
+    <div class="math-block">\[ q \rightarrow E(q) \qquad d \rightarrow E(d) \qquad score(q, d) = sim(E(q), E(d)) \]</div>
+    <p class="section-lede">This is not a separate magical search paradigm. It is still <b>ranked retrieval</b>; the main difference is the representation used to compute the score.</p>
+    <div class="table-wrap">
+      <table class="summary sc-small">
+        <thead><tr><th>Question</th><th>Lexical search</th><th>Semantic search</th></tr></thead>
+        <tbody>
+          <tr data-s="dfs"><td><b>Main signal</b></td><td>term overlap</td><td>embedding similarity</td></tr>
+          <tr data-s="dfs"><td><b>Representation</b></td><td>sparse term vector</td><td>dense learned vector</td></tr>
+          <tr data-s="dfs"><td><b>Good at exact identifiers</b></td><td>usually yes</td><td>variable</td></tr>
+          <tr data-s="dfs"><td><b>Good at paraphrases</b></td><td>limited</td><td>often better</td></tr>
+          <tr data-s="dfs"><td><b>Needs a learned model</b></td><td>no</td><td>yes</td></tr>
+          <tr data-s="dfs"><td><b>Typical methods</b></td><td>BM25, TF-IDF</td><td>bi-encoder + vector search</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="section-lede" style="margin-top:1rem;">A useful course-level view: lexical search <b>retrieves by words</b>, semantic search <b>retrieves by learned representations</b>. Lab 11 combines both.</p>
+    <h4 style="margin:1.4rem 0 0.4rem;">See it: a map of fifteen phrases</h4>
+    <p class="section-lede">Real embeddings of fifteen phrases, projected from 384 to 2 dimensions with PCA. <b>Click a dot</b> (or a phrase in the list): the dashed lines go to its three nearest neighbors by the true 384-dimensional cosine, and the list ranks all the others.</p>
+    <div class="playground">
+      <div class="pg-grid">
+        <svg id="mp-svg" class="ml-plot" viewBox="0 0 460 360" aria-label="Two-dimensional map of phrase embeddings"></svg>
+        <div class="al-out" id="mp-out"></div>
+      </div>
+    </div>
+    <p class="caption-note">💡 The two PCA axes keep only 40% of the variance (22% + 18%). In the picture the food and the history phrases lie on top of each other; in 384 dimensions they are far apart (click one). A 2-D picture of an embedding space is always a distorted one.</p>
+  </section>
+
+  <!-- ===== PART IV ===== -->
+  <section class="block algo-section ucs" id="biencoder">
+    <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Part IV</span>
+    <h2 class="section-title">Bi-encoders</h2>
+    <p class="section-lede">A <b>bi-encoder</b> encodes the query and the document <b>independently</b>, then compares the two vectors, for example with the cosine:</p>
+    <div class="math-block">\[ score(q, d) = sim(q, d) = \cos(E(q), E(d)) \]</div>
+    <div class="be-fig" aria-label="Bi-encoder architecture">
+      <div class="be-col"><span class="be-box be-in">query</span><span class="be-ar">↓</span><span class="be-box be-enc">encoder</span><span class="be-ar">↓</span><span class="be-box be-vec">q vector</span></div>
+      <div class="be-mid"><span class="be-box be-sim">\(sim(q, d)\)</span><span class="be-note">the only point where query and document meet</span></div>
+      <div class="be-col"><span class="be-box be-in">document</span><span class="be-ar">↓</span><span class="be-box be-enc">encoder</span><span class="be-ar">↓</span><span class="be-box be-vec">d vector</span></div>
+    </div>
+    <ul class="concept-list" style="margin-top:1rem;">
+      <li><b>Why bi-encoders are efficient</b>: documents can be encoded <b>once</b> (documents → encoder → stored vectors). At query time only the query is encoded (query → encoder → query vector → compare with the stored vectors). This makes large-scale retrieval possible.</li>
+      <li><b>Same encoder or two encoders?</b> Some systems use the same model for both sides (like <code>all-MiniLM-L6-v2</code>); others use a query encoder and a document encoder with separate parameters or roles. The core idea remains: <b>encode independently, compare vectors</b>.</li>
+      <li>❗ <b>Important limitation</b>: a bi-encoder compresses each text <b>before</b> comparison. The query and the document never interact token by token. This is efficient, but some fine-grained relevance signals may be lost; it motivates <b>cross-encoder reranking</b> in <a href="lab11-hybrid-reranking.html">Lab 11</a>, where query and document go through the model together.</li>
+    </ul>
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: count the model calls</h4>
+    <div class="playground">
+      <div class="pg-controls">
+        <div class="beam-control show" style="margin:0;"><label for="mc-n">documents</label><input type="range" id="mc-n" min="3" max="9" value="6" step="0.5"><span class="val" id="mc-n-val"></span></div>
+        <div class="beam-control show" style="margin:0;"><label for="mc-q">queries per day</label><input type="range" id="mc-q" min="1" max="7" value="4" step="0.5"><span class="val" id="mc-q-val"></span></div>
+      </div>
+      <div id="mc-out"></div>
+    </div>
+  </section>
+
+  <!-- ===== PART I ===== -->
+  <section class="block algo-section ids" id="demo">
+    <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part V</span>
+    <h2 class="section-title">A small embedding demo</h2>
+    <p class="section-lede">A sentence-embedding model, <a href="https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2" target="_blank" rel="noopener"><code>all-MiniLM-L6-v2</code></a>: the encoder-only Transformer of this lab (6 layers, mean pooling, 384 dimensions). All scores on this page are its real outputs, computed in Python (the model does not run in your browser).</p>
+    <details class="code-card" open>
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">embed.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py"># pip install sentence-transformers
+from sentence_transformers import SentenceTransformer
+
+model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+
+texts = [
+    "how to repair a car engine",
+    "automobile maintenance and servicing",
+    "banana nutrition and healthy diets",
+    "treatment for myocardial infarction",
+    "therapy after a heart attack",
+]
+embeddings = model.encode(texts, normalize_embeddings=True)
+print(embeddings.shape)       # one row = one text embedding
+# (5, 384)
+print(embeddings[0][:10])     # not interpretable as words, unlike TF-IDF
+# [-0.08241399  0.06654591  0.06800879 -0.03249352 -0.06150604  0.02232708
+#  -0.04297901  0.01786646 -0.08514726 -0.04902695]</code></pre>
+    </details>
+    <details class="code-card" open>
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">semantic_search.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py">query = "car repair"
+q = model.encode([query], normalize_embeddings=True)
+scores = q @ embeddings.T                 # unit vectors: dot product = cosine
+
+for text, score in sorted(zip(texts, scores[0]), key=lambda x: x[1], reverse=True):
+    print(round(float(score), 3), text)
+# 0.655 how to repair a car engine
+# 0.647 automobile maintenance and servicing
+# 0.187 treatment for myocardial infarction
+# 0.135 therapy after a heart attack
+# 0.047 banana nutrition and healthy diets</code></pre>
+    </details>
+    <p class="section-lede">Before running it: which sentence should rank highest? <i>automobile maintenance and servicing</i> shares <b>no word</b> with <i>car repair</i>, yet scores 0.647, almost as high as the text that contains <i>repair</i> and <i>car</i>.</p>
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: more queries on the five texts</h4>
+    <div class="playground">
+      <div class="pg-controls"><div class="strategy-pick" id="tq-q"></div></div>
+      <div id="tq-out"></div>
+    </div>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;" id="fail">What not to claim</h3>
+    <p class="section-lede">Do not say "the model understands meaning perfectly". Embeddings can fail on <b>negation, numbers, rare entities, specialized terminology, domain shift, long text, ambiguous queries</b>. A learned representation is useful, not magical. Real scores for four candidate texts per query:</p>
+    <div class="playground">
+      <div class="pg-controls"><div class="strategy-pick" id="fl-q"></div></div>
+      <div id="fl-out"></div>
+    </div>
+    <p class="caption-note">💡 Dense: cosine of <code>all-MiniLM-L6-v2</code>. BM25: <code>rank_bm25</code> on the four texts only, so its IDF is crude: a word in half of the texts gets IDF 0 (why every BM25 score is 0 for the negation query). The point is not a winner: <b>semantic retrieval is not uniformly superior</b>, and neither is lexical.</p>
+  </section>
+
+  <!-- ===== SUMMARY ===== -->
+  <section class="block" id="summary">
+    <h2 class="section-title">Summary: key takeaways</h2>
+    <ol class="concept-list">
+      <li>An encoder maps text to a representation; a decoder-style LLM generates tokens autoregressively.</li>
+      <li>Sentence embeddings require a way to turn contextual token vectors into one text vector (pooling).</li>
+      <li>Retrieval models are trained so that vector geometry is useful for relevance or semantic similarity.</li>
+      <li>Semantic search retrieves by learned representations, lexical search by words; neither is uniformly better.</li>
+    </ol>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Optional exercise</h3>
+    <p class="section-lede">Encode <i>car repair</i>, <i>automobile maintenance</i>, <i>banana nutrition</i>, <i>heart attack treatment</i>, <i>therapy for myocardial infarction</i> and create the pairwise cosine-similarity matrix (<code>E @ E.T</code>). The heatmap below shows these five and ten more phrases; click a cell.</p>
+    <div class="playground">
+      <div class="fig-scroll"><table class="hm" id="hm"></table></div>
+      <p class="rr-note" id="hm-cell" style="margin-top:0.6rem;">Click a cell.</p>
+    </div>
+    <div class="dt-ex-list" style="margin-top:1rem;">
+      <details class="dt-ex"><summary><span class="dt-ex-no">1</span><span class="dt-ex-q">Among the five, which pairs are most similar? Are the results what you expected?</span></summary>
+        <div class="dt-ex-sol"><p><i>car repair</i> – <i>automobile maintenance</i> 0.733 and <i>heart attack treatment</i> – <i>therapy for myocardial infarction</i> 0.641: the two paraphrase pairs, with no shared word. Every other pair is below 0.16.</p></div></details>
+      <details class="dt-ex"><summary><span class="dt-ex-no">2</span><span class="dt-ex-q">Can you find one surprising similarity?</span></summary>
+        <div class="dt-ex-sol"><p>The largest cross-topic value among the five is <i>car repair</i> – <i>therapy for myocardial infarction</i> (0.154), about the same as <i>car repair</i> – <i>heart attack treatment</i> (0.153): "repair" and "treatment/therapy" are both about fixing something. Among the fifteen phrases: <i>car repair</i> – <i>cardiac surgery</i> = 0.321, higher than two history phrases score with each other (<i>castles of the middle ages</i> – <i>the fall of the Roman Empire</i>, 0.262).</p></div></details>
+      <details class="dt-ex"><summary><span class="dt-ex-no">3</span><span class="dt-ex-q">Construct examples with negation, numbers, rare names and acronyms. Where does the model behave unexpectedly?</span></summary>
+        <div class="dt-ex-sol"><p>See <a href="#fail">What not to claim</a>: <i>documents not about neural networks</i> is closest to the documents about neural networks; <i>error code 0x80070005</i> is closest to a <b>different</b> error code (0.937); <i>BERT paper 2018</i> ranks RoBERTa (2019) and Sesame Street's Bert above the BERT paper; and the <a href="lab08-dense-retrieval.html#layers">word-order table</a> of Lab 08 shows <i>flights from Sofia to London</i> ≈ <i>flights from London to Sofia</i> (0.993).</p></div></details>
+    </div>
+  </section>
+
+</div>
+
+<footer>Class notes by Elitsa Yotkova · Lab 09</footer>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="code-cards.js"></script>
+<script src="lab08-dense.js"></script>
+<script src="lab09.js"></script>
+</body>
+</html>
