@@ -3108,3 +3108,11 @@ html.presenting .deck { position: fixed; inset: 0; z-index: 200; display: flex; 
 .sl-cols.four { grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
 .sl-tok { display: grid; grid-template-columns: 6.2rem minmax(0, 1fr); align-items: center; gap: 0.5rem; padding: 0.35rem 0; border-top: 1px solid var(--line); }
 .sl-tok > span { font-weight: 700; font-size: 0.85rem; color: var(--ink-soft); }
+/* slides: keep the Lab 02 widgets within one screen (present.js zooms out whatever is still too tall) */
+.slide #pg-flow .fig-scroll svg { max-height: 8rem; }
+.slide #pg-pipe .fig-scroll svg { max-height: 9rem; }
+.slide #pg-pipe .stat-strip { margin: 0.6rem 0; }
+.slide .qq-docs { max-height: 9rem; }
+.slide .pp-tw { max-height: 22rem; } .slide #pp-out { margin-top: 0 !important; } .slide #pp-doc { max-height: 22rem; overflow: auto; }
+.slide #pg-stem .st-h { display: none; } .slide #pg-stem .st-tw { max-height: none; }
+.slide table.st-table th, .slide table.st-table td { padding: 0.4rem 0.7rem; }

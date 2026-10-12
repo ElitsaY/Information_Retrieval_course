@@ -460,7 +460,7 @@ print(len(df), len(df_no_stopwords), len(stemmed_freqs))
       <button type="button" class="strat-btn" id="pp-reset" style="margin:0.4rem 0 0.2rem;">↺ Notebook settings</button>
       <div class="stat-strip" id="pp-stats"></div>
       <div class="fig-scroll"><svg id="pp-funnel" class="ml-plot" viewBox="0 0 760 200" aria-label="Dictionary size after each step"></svg></div>
-      <div class="pg-grid" style="margin-top:0.8rem;">
+      <div class="pg-grid" id="pp-out" style="margin-top:0.8rem;">
         <div class="table-wrap pp-tw"><table class="summary pp-top" id="pp-top"></table></div>
         <div id="pp-doc"></div>
       </div>
@@ -691,12 +691,30 @@ print(len(df), len(df_no_stopwords), len(stemmed_freqs))
     </div>
   </section>
 
+  <section class="slide" data-section="#stemming">
+    <div class="slide-in">
+      <span class="badge ucs">Try it</span>
+      <h2>Words that end up as the same term</h2>
+      <p class="sl-lede">For the words on the previous slide. Try <b>Over-stemming</b> and <b>Under-stemming</b> there.</p>
+      <div class="sl-embed" data-embed="#st-groups"></div>
+    </div>
+  </section>
+
   <section class="slide" data-section="#exercise">
     <div class="slide-in">
       <span class="badge ids">Try it</span>
       <h2>The pipeline on sci.crypt</h2>
       <p class="sl-lede">Switch the steps on and off and watch the dictionary shrink.</p>
       <div class="sl-embed" data-embed="#pg-pipe"></div>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#exercise">
+    <div class="slide-in">
+      <span class="badge ids">Try it</span>
+      <h2>Top terms after your pipeline</h2>
+      <p class="sl-lede">The settings from the previous slide: the most frequent terms, and the first post after preprocessing.</p>
+      <div class="sl-embed" data-embed="#pp-out"></div>
     </div>
   </section>
 
@@ -708,7 +726,15 @@ print(len(df), len(df_no_stopwords), len(stemmed_freqs))
         <div class="sl-card good"><h3>Higher recall</h3><p style="margin:0;"><i>keys</i> → <code>key</code> also finds posts that say <i>key</i>.</p></div>
         <div class="sl-card bad"><h3>Lower precision, or no answer</h3><p style="margin:0;"><i>data</i> → <code>dat</code> matches every <i>Date:</i> header (Lancaster); with numbers dropped, <i>1993</i> has no terms left.</p></div>
       </div>
-      <div class="sl-embed" data-embed="#pg-query" style="margin-top:1.2rem;"></div>
+      <p class="sl-take">Preprocess the query with the same pipeline as the documents.</p>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#querying">
+    <div class="slide-in">
+      <span class="badge bfs">Try it</span>
+      <h2>Query the Lab 01 index and your pipeline</h2>
+      <div class="sl-embed" data-embed="#pg-query"></div>
     </div>
   </section>
 
