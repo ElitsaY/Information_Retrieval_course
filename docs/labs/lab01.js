@@ -184,6 +184,22 @@ function initTokenize() {
   render();
 }
 
+/* ---------- direct index: a document as a plain list of terms ---------- */
+function initDirectIndex() {
+  const sel = document.getElementById('di-pick'), out = document.getElementById('di-out');
+  sel.innerHTML = HEADLINES.map((h, i) => `<option value="${i}">${i} · ${esc(h)}</option>`).join('');
+  sel.value = 2;
+  function render() {
+    const i = +sel.value, terms = HEAD_LOW[i];
+    out.innerHTML = `
+      <div class="ii-step"><span class="ii-step-l">doc ${i}</span><p class="tk-raw">${esc(HEADLINES[i])}</p></div>
+      <div class="ii-step"><span class="ii-step-l">→ terms</span><div class="chip-row">${chipsHtml(terms, false)}</div></div>
+      <p class="note">${new Set(terms).size} distinct terms in this document's direct-index entry.</p>`;
+  }
+  sel.addEventListener('change', render);
+  render();
+}
+
 /* ---------- incidence matrix + Boolean query on bit vectors ---------- */
 const OPS = { AND: (a, b) => a & b, OR: (a, b) => a | b, 'AND NOT': (a, b) => a & (1 - b) };
 function initIncidence() {
@@ -715,6 +731,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initMath();
   initHero();
   initTokenize();
+  initDirectIndex();
   initIncidence();
   initPostingsFig();
   initNormalize();

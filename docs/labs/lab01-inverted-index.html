@@ -77,7 +77,19 @@
   <!-- ===== OVERVIEW ===== -->
   <section class="block" id="overview">
     <h2 class="section-title">Overview of the lab</h2>
-    <p class="section-lede">In this lab we build an inverted index for a collection of documents and answer Boolean queries with it. The lab follows the lectures on Boolean retrieval and on the dictionary and postings (IIR, chapters 1–2).</p>
+    <p class="section-lede"><b>Goal</b>: build an inverted index for a collection of documents and answer Boolean queries with it. The lab goes with the lectures on Boolean retrieval and on the dictionary and postings (IIR, chapters 1–2).</p>
+    <ol class="concept-list">
+      <li><a href="#task">The task: Boolean retrieval</a>: what we build, why, and the indexing pipeline.</li>
+      <li><a href="#direct-index">The direct index</a>: a document as a list of terms, before we invert anything.</li>
+      <li><a href="#incidence">Incidence matrices</a>: the simplest index, on 14 news headlines.</li>
+      <li><a href="#inverted-index">The inverted index</a>: keep only the non-zero entries, as a dictionary and postings.</li>
+      <li><a href="#text">From text to terms</a>: tokenization, normalization, stop words, stemming.</li>
+      <li><a href="#dataset">Dataset and the dictionary part</a>: newsgroup posts, <code>preprocess_document</code>, document frequency.</li>
+      <li><a href="#construction">Building the full index</a>: pairs, sort, merge, split.</li>
+      <li><a href="#boolean">Boolean queries in the index</a>: answering queries by merging postings lists.</li>
+      <li><a href="#faster">Faster query processing</a>: term order by frequency, skip pointers.</li>
+      <li><a href="#phrase">Phrase and proximity queries</a>: biword and positional indexes.</li>
+    </ol>
   </section>
 
   <!-- ===== THE TASK ===== -->
@@ -112,11 +124,27 @@
     <p class="section-lede" style="margin-top:1.2rem;">We build the pipeline twice. First a toy version on 14 news headlines, to see the idea (incidence matrix, then inverted index). Then a real one on newsgroup posts (dictionary, postings, queries).</p>
   </section>
 
+  <!-- ===== DIRECT INDEX ===== -->
+  <section class="block algo-section ids" id="direct-index">
+    <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Foundation</span>
+    <h2 class="section-title">The direct index</h2>
+    <p class="section-lede">Before any indexing, a document is naturally just its list of terms: a <b>direct</b> (or <b>forward</b>) <b>index</b>, <code>doc → terms</code>. To answer a query like <code>kills</code> we would have to scan every document's list in turn — the per-query, whole-collection cost the task above ruled out.</p>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: a document's direct index</h4>
+    <p class="section-lede">Pick a headline and see its direct-index entry: the document, tokenized and lower-cased, as a plain list of terms.</p>
+    <div class="playground">
+      <div class="pg-controls">
+        <label class="ii-lbl" for="di-pick">Document</label>
+        <select id="di-pick" class="ii-select"></select>
+      </div>
+      <div id="di-out" class="ii-steps"></div>
+    </div>
+  </section>
+
   <!-- ===== INCIDENCE MATRICES ===== -->
   <section class="block algo-section ids" id="incidence">
-    <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Foundation</span>
     <h2 class="section-title">Incidence matrices</h2>
-    <p class="section-lede">The simplest possible index: for every term and every document, record whether the term occurs in the document. Our toy collection is <b>14 BBC News headlines</b>, and each headline is one document. Four steps turn them into a table called an <b>incidence matrix</b>. The first two are pipeline stages (the tokenizer and one linguistic module, lower-casing); the last two collect the terms and count.</p>
+    <p class="section-lede">The simplest possible index: for every term and every document, record whether the term occurs in the document. Our toy collection is <b>14 BBC News headlines</b>, one document each. Four steps turn them into this table, an <b>incidence matrix</b>: the tokenizer and one linguistic module (lower-casing) of the pipeline, then counting.</p>
 
     <ol class="concept-list">
       <li><b>Tokenize</b>: split each sentence with NLTK's <code>TweetTokenizer</code>. Punctuation marks become tokens of their own: <code>Istanbul.</code> → <code>Istanbul</code> <code>.</code></li>
