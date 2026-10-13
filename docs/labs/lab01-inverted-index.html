@@ -795,8 +795,185 @@ print(and_query(postings, 'living', 'dead'))   # [36]</code></pre>
     <div class="slide-in">
       <p class="sl-eyebrow">Lab 01 · Information Retrieval</p>
       <h1>Inverted Index and Boolean Queries</h1>
-      <p class="sl-lede">Build an inverted index for a collection of documents and answer Boolean queries with it.</p>
-      <ol class="sl-agenda">
+      <p class="sl-lede">Build an inverted index and answer Boolean queries with it.</p>
+      <!-- cover picture: three of the 14 BBC headlines, five incidence-matrix rows, the same rows as postings, and wedding AND kills (postings from lab01.js) -->
+      <div class="tpc-wrap">
+<svg class="tpc iic" viewBox="0 0 1000 262" role="img" aria-label="Three BBC headlines, five rows of the incidence matrix, the same rows as an inverted index, and the query wedding AND kills answered by merging two postings lists: doc 2">
+<g class="tpc-stage tpc-s1"><circle class="tpc-dot bfs" cx="23" cy="20" r="9"/><text class="tpc-n" x="23" y="24">1</text><text class="tpc-lab" x="37" y="25">Documents</text></g>
+<g class="tpc-stage tpc-s2"><circle class="tpc-dot dfs" cx="211" cy="20" r="9"/><text class="tpc-n" x="211" y="24">2</text><text class="tpc-lab" x="225" y="25">Incidence matrix</text></g>
+<g class="tpc-stage tpc-s3"><circle class="tpc-dot ucs" cx="539" cy="20" r="9"/><text class="tpc-n" x="539" y="24">3</text><text class="tpc-lab" x="553" y="25">Inverted index</text></g>
+<g class="tpc-stage tpc-s4"><circle class="tpc-dot ids" cx="815" cy="20" r="9"/><text class="tpc-n" x="815" y="24">4</text><text class="tpc-lab" x="829" y="25">Query</text></g>
+<g class="tpc-doc">
+<rect class="tpc-card" x="8" y="48" width="176" height="46" rx="10"/><rect class="iic-id" x="16" y="60" width="22" height="22" rx="6"/><text class="tpc-pt" x="27" y="75">2</text>
+<text class="iic-h" x="46" y="67">US <tspan class="iic-w">wedding</tspan> limousine</text>
+<text class="iic-h" x="46" y="83">crash <tspan class="iic-k">kills</tspan> 20</text>
+<rect class="tpc-card" x="8" y="104" width="176" height="46" rx="10"/><rect class="iic-id" x="16" y="116" width="22" height="22" rx="6"/><text class="tpc-pt" x="27" y="131">6</text>
+<text class="iic-h" x="46" y="123">Bull <tspan class="iic-k">kills</tspan> woman at</text>
+<text class="iic-h" x="46" y="139">French festival</text>
+<rect class="tpc-card" x="8" y="160" width="176" height="46" rx="10"/><rect class="iic-id" x="16" y="172" width="22" height="22" rx="6"/><text class="tpc-pt" x="27" y="187">8</text>
+<text class="iic-h" x="46" y="179">Tina Turner reveals</text>
+<text class="iic-h" x="46" y="195"><tspan class="iic-w">wedding</tspan> night ordeal</text>
+<text class="tpc-docid" x="184" y="226">+ 11 more headlines</text>
+</g>
+<g class="tpc-col tpc-s2">
+<text class="iic-cn" x="268.5" y="60">0</text>
+<text class="iic-cn" x="283.5" y="60">1</text>
+<text class="iic-cn" x="298.5" y="60">2</text>
+<text class="iic-cn" x="313.5" y="60">3</text>
+<text class="iic-cn" x="328.5" y="60">4</text>
+<text class="iic-cn" x="343.5" y="60">5</text>
+<text class="iic-cn" x="358.5" y="60">6</text>
+<text class="iic-cn" x="373.5" y="60">7</text>
+<text class="iic-cn" x="388.5" y="60">8</text>
+<text class="iic-cn" x="403.5" y="60">9</text>
+<text class="iic-cn" x="418.5" y="60">10</text>
+<text class="iic-cn" x="433.5" y="60">11</text>
+<text class="iic-cn" x="448.5" y="60">12</text>
+<text class="iic-cn" x="463.5" y="60">13</text>
+<text class="iic-term" x="254" y="82">in</text>
+<rect class="iic-cell" x="262" y="71.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell on" x="277" y="71.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="292" y="71.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell on" x="307" y="71.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="322" y="71.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell on" x="337" y="71.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="352" y="71.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="367" y="71.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="382" y="71.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell on" x="397" y="71.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="412" y="71.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="427" y="71.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell on" x="442" y="71.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="457" y="71.5" width="13" height="13" rx="3"/>
+<text class="iic-term k" x="254" y="112">kills</text>
+<rect class="iic-cell" x="262" y="101.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="277" y="101.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell on k" x="292" y="101.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="307" y="101.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="322" y="101.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="337" y="101.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell on k" x="352" y="101.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="367" y="101.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="382" y="101.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="397" y="101.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="412" y="101.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="427" y="101.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="442" y="101.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="457" y="101.5" width="13" height="13" rx="3"/>
+<text class="iic-term" x="254" y="142">killed</text>
+<rect class="iic-cell" x="262" y="131.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell on" x="277" y="131.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="292" y="131.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell on" x="307" y="131.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="322" y="131.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="337" y="131.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="352" y="131.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="367" y="131.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="382" y="131.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="397" y="131.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="412" y="131.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="427" y="131.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="442" y="131.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="457" y="131.5" width="13" height="13" rx="3"/>
+<text class="iic-term" x="254" y="172">the</text>
+<rect class="iic-cell" x="262" y="161.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell on" x="277" y="161.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="292" y="161.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="307" y="161.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="322" y="161.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="337" y="161.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="352" y="161.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="367" y="161.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="382" y="161.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="397" y="161.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="412" y="161.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell on" x="427" y="161.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="442" y="161.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell on" x="457" y="161.5" width="13" height="13" rx="3"/>
+<text class="iic-term w" x="254" y="202">wedding</text>
+<rect class="iic-cell" x="262" y="191.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="277" y="191.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell on w" x="292" y="191.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="307" y="191.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="322" y="191.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="337" y="191.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="352" y="191.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="367" y="191.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell on w" x="382" y="191.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="397" y="191.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="412" y="191.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="427" y="191.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="442" y="191.5" width="13" height="13" rx="3"/>
+<rect class="iic-cell" x="457" y="191.5" width="13" height="13" rx="3"/>
+<text class="iic-cap" x="367" y="232">5 of 83 rows · 93 of 1,162 cells are 1</text>
+</g>
+<g class="tpc-flow tpc-f2">
+<path d="M476 78 L524 78"/>
+<path d="M476 108 L524 108"/>
+<path d="M476 138 L524 138"/>
+<path d="M476 168 L524 168"/>
+<path d="M476 198 L524 198"/>
+</g>
+<g class="tpc-col tpc-s3">
+<rect class="iic-dict" x="530" y="66" width="64" height="24" rx="6"/><text class="tpc-ct" x="562.0" y="82">in</text>
+<text class="iic-df" x="604" y="82">5</text>
+<path class="tpc-arr" d="M616 78 l7 0"/>
+<rect class="tpc-post" x="626" y="67" width="22" height="22" rx="5"/><text class="tpc-pt" x="637" y="82">1</text>
+<path class="tpc-arr" d="M650 78 l7 0"/>
+<rect class="tpc-post" x="660" y="67" width="22" height="22" rx="5"/><text class="tpc-pt" x="671" y="82">3</text>
+<path class="tpc-arr" d="M684 78 l7 0"/>
+<rect class="tpc-post" x="694" y="67" width="22" height="22" rx="5"/><text class="tpc-pt" x="705" y="82">5</text>
+<path class="tpc-arr" d="M718 78 l7 0"/>
+<rect class="tpc-post" x="728" y="67" width="22" height="22" rx="5"/><text class="tpc-pt" x="739" y="82">9</text>
+<path class="tpc-arr" d="M752 78 l7 0"/>
+<rect class="tpc-post" x="762" y="67" width="22" height="22" rx="5"/><text class="tpc-pt" x="773" y="82">12</text>
+<rect class="iic-dict k" x="530" y="96" width="64" height="24" rx="6"/><text class="tpc-ct" x="562.0" y="112">kills</text>
+<text class="iic-df" x="604" y="112">2</text>
+<path class="tpc-arr" d="M616 108 l7 0"/>
+<rect class="tpc-post k" x="626" y="97" width="22" height="22" rx="5"/><text class="tpc-pt" x="637" y="112">2</text>
+<path class="tpc-arr" d="M650 108 l7 0"/>
+<rect class="tpc-post k" x="660" y="97" width="22" height="22" rx="5"/><text class="tpc-pt" x="671" y="112">6</text>
+<rect class="iic-dict" x="530" y="126" width="64" height="24" rx="6"/><text class="tpc-ct" x="562.0" y="142">killed</text>
+<text class="iic-df" x="604" y="142">2</text>
+<path class="tpc-arr" d="M616 138 l7 0"/>
+<rect class="tpc-post" x="626" y="127" width="22" height="22" rx="5"/><text class="tpc-pt" x="637" y="142">1</text>
+<path class="tpc-arr" d="M650 138 l7 0"/>
+<rect class="tpc-post" x="660" y="127" width="22" height="22" rx="5"/><text class="tpc-pt" x="671" y="142">3</text>
+<rect class="iic-dict" x="530" y="156" width="64" height="24" rx="6"/><text class="tpc-ct" x="562.0" y="172">the</text>
+<text class="iic-df" x="604" y="172">3</text>
+<path class="tpc-arr" d="M616 168 l7 0"/>
+<rect class="tpc-post" x="626" y="157" width="22" height="22" rx="5"/><text class="tpc-pt" x="637" y="172">1</text>
+<path class="tpc-arr" d="M650 168 l7 0"/>
+<rect class="tpc-post" x="660" y="157" width="22" height="22" rx="5"/><text class="tpc-pt" x="671" y="172">11</text>
+<path class="tpc-arr" d="M684 168 l7 0"/>
+<rect class="tpc-post" x="694" y="157" width="22" height="22" rx="5"/><text class="tpc-pt" x="705" y="172">13</text>
+<rect class="iic-dict w" x="530" y="186" width="64" height="24" rx="6"/><text class="tpc-ct" x="562.0" y="202">wedding</text>
+<text class="iic-df" x="604" y="202">2</text>
+<path class="tpc-arr" d="M616 198 l7 0"/>
+<rect class="tpc-post w" x="626" y="187" width="22" height="22" rx="5"/><text class="tpc-pt" x="637" y="202">2</text>
+<path class="tpc-arr" d="M650 198 l7 0"/>
+<rect class="tpc-post w" x="660" y="187" width="22" height="22" rx="5"/><text class="tpc-pt" x="671" y="202">8</text>
+<text class="iic-cap" x="630" y="232">dictionary · df · postings</text>
+</g>
+<g class="tpc-flow tpc-f4">
+<path d="M688 198 C 756 198, 736 92, 794 92"/>
+<path d="M688 108 C 746 108, 736 128, 794 128"/>
+</g>
+<g class="tpc-col tpc-s4">
+<rect class="iic-q" x="806" y="44" width="186" height="26" rx="8"/><text class="tpc-ct" x="899" y="61">wedding AND kills</text>
+<text class="iic-term w" x="852" y="96">wedding</text>
+<rect class="tpc-post w match" x="864" y="81" width="22" height="22" rx="5"/><text class="tpc-pt" x="875" y="96">2</text>
+<rect class="tpc-post w" x="896" y="81" width="22" height="22" rx="5"/><text class="tpc-pt" x="907" y="96">8</text>
+<text class="iic-term k" x="852" y="132">kills</text>
+<rect class="tpc-post k match" x="864" y="117" width="22" height="22" rx="5"/><text class="tpc-pt" x="875" y="132">2</text>
+<rect class="tpc-post k" x="896" y="117" width="22" height="22" rx="5"/><text class="tpc-pt" x="907" y="132">6</text>
+<path class="iic-m" d="M875 104 L875 162"/><path class="iic-m" d="M875 140 L875 162"/>
+<text class="iic-term" x="852" y="180">result</text><rect class="iic-res" x="864" y="163" width="26" height="26" rx="6"/><text class="tpc-pt" x="877" y="181">2</text>
+<text class="iic-hit" x="900" y="181">US wedding</text><text class="iic-hit" x="900" y="196">limousine crash</text><text class="iic-hit" x="900" y="211">kills 20</text>
+</g>
+</svg>
+      </div>
+      <ol class="sl-agenda tpc-agenda six">
         <li class="ids">Boolean retrieval and the pipeline</li>
         <li class="bfs">Incidence matrix and inverted index</li>
         <li class="dfs">From text to terms</li>

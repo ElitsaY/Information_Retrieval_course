@@ -518,7 +518,103 @@ print(len(df), len(df_no_stopwords), len(stemmed_freqs))
       <p class="sl-eyebrow">Lab 02 · Information Retrieval</p>
       <h1>Text Preprocessing</h1>
       <p class="sl-lede">How raw text becomes index terms, and what every step costs.</p>
-      <ol class="sl-agenda">
+      <!-- cover picture: doc 0 of the notebook's hurricane text through the pipeline (outputs from the page's own tokenizer, stopword list and Porter stemmer) -->
+      <div class="tpc-wrap">
+<svg class="tpc" viewBox="0 0 1000 270" role="img" aria-label="Doc 0 of the hurricane text goes through the tokenizer, normalization and the Porter stemmer into a sorted dictionary with postings">
+<g class="tpc-stage tpc-s1"><circle class="tpc-dot bfs" cx="279" cy="20" r="9"/><text class="tpc-n" x="279" y="24">1</text><text class="tpc-lab" x="293" y="25">Tokenize</text></g>
+<g class="tpc-stage tpc-s2"><circle class="tpc-dot dfs" cx="454" cy="20" r="9"/><text class="tpc-n" x="454" y="24">2</text><text class="tpc-lab" x="468" y="25">Normalize</text></g>
+<g class="tpc-stage tpc-s3"><circle class="tpc-dot ucs" cx="619" cy="20" r="9"/><text class="tpc-n" x="619" y="24">3</text><text class="tpc-lab" x="633" y="25">Stem</text></g>
+<g class="tpc-stage tpc-s4"><circle class="tpc-dot ids" cx="844" cy="20" r="9"/><text class="tpc-n" x="844" y="24">4</text><text class="tpc-lab" x="858" y="25">Index</text></g>
+<g class="tpc-doc">
+<rect class="tpc-card" x="8" y="44" width="200" height="190" rx="14"/>
+<circle class="tpc-dot-s" cx="26" cy="62" r="4"/><circle class="tpc-dot-s" cx="40" cy="62" r="4"/><circle class="tpc-dot-s" cx="54" cy="62" r="4"/><text class="tpc-docid" x="194" y="66">doc 0</text>
+<text class="tpc-txt" x="24" y="98">Hurricane-force winds</text>
+<text class="tpc-txt" x="24" y="125">have struck central</text>
+<text class="tpc-txt" x="24" y="152">and northern Portugal,</text>
+<text class="tpc-txt" x="24" y="179">leaving 300,000 homes</text>
+<text class="tpc-txt" x="24" y="206">without power.</text>
+</g>
+<g class="tpc-flow tpc-f1">
+<path d="M212 139 C 250 139, 219.5 62, 259.5 62"/>
+<path d="M212 139 C 250 139, 256.5 92, 296.5 92"/>
+<path d="M212 139 C 250 139, 260.2 122, 300.2 122"/>
+<path d="M212 139 C 250 139, 252.8 152, 292.8 152"/>
+<path d="M212 139 C 250 139, 245.39999999999998 182, 285.4 182"/>
+<path d="M212 139 C 250 139, 271.3 212, 311.3 212"/>
+<path d="M212 139 C 250 139, 256.5 242, 296.5 242"/>
+</g>
+<g class="tpc-col tpc-s1">
+<rect class="tpc-chip bfs" x="259.5" y="51" width="131.0" height="22" rx="11"/><text class="tpc-ct" x="325" y="66">Hurricane-force</text>
+<rect class="tpc-chip bfs" x="296.5" y="81" width="57.0" height="22" rx="11"/><text class="tpc-ct" x="325" y="96">winds</text>
+<rect class="tpc-chip bfs" x="300.2" y="111" width="49.6" height="22" rx="11"/><text class="tpc-ct" x="325" y="126">have</text>
+<rect class="tpc-chip bfs" x="292.8" y="141" width="64.4" height="22" rx="11"/><text class="tpc-ct" x="325" y="156">struck</text>
+<rect class="tpc-chip bfs" x="285.4" y="171" width="79.2" height="22" rx="11"/><text class="tpc-ct" x="325" y="186">Portugal</text>
+<rect class="tpc-chip bfs punct" x="311.3" y="201" width="27.4" height="22" rx="11"/><text class="tpc-ct" x="325" y="216">,</text>
+<rect class="tpc-chip bfs" x="296.5" y="231" width="57.0" height="22" rx="11"/><text class="tpc-ct" x="325" y="246">power</text>
+</g>
+<g class="tpc-flow tpc-f2">
+<path d="M390.5 62 L434.5 62"/>
+<path d="M353.5 92 L471.5 92"/>
+<path d="M349.8 122 L475.2 122"/>
+<path d="M357.2 152 L467.8 152"/>
+<path d="M364.6 182 L460.4 182"/>
+<path d="M338.7 212 L486.3 212"/>
+<path d="M353.5 242 L471.5 242"/>
+</g>
+<g class="tpc-col tpc-s2">
+<rect class="tpc-chip dfs" x="434.5" y="51" width="131.0" height="22" rx="11"/><text class="tpc-ct" x="500" y="66">hurricane-force</text>
+<rect class="tpc-chip dfs" x="471.5" y="81" width="57.0" height="22" rx="11"/><text class="tpc-ct" x="500" y="96">winds</text>
+<rect class="tpc-chip gone" x="475.2" y="111" width="49.6" height="22" rx="11"/><text class="tpc-ct gone" x="500" y="126">have</text><line class="tpc-strike" x1="481.2" y1="122" x2="518.8" y2="122"/><text class="tpc-why" x="532.8" y="126">stopword</text>
+<rect class="tpc-chip dfs" x="467.8" y="141" width="64.4" height="22" rx="11"/><text class="tpc-ct" x="500" y="156">struck</text>
+<rect class="tpc-chip dfs" x="460.4" y="171" width="79.2" height="22" rx="11"/><text class="tpc-ct" x="500" y="186">portugal</text>
+<rect class="tpc-chip gone" x="486.3" y="201" width="27.4" height="22" rx="11"/><text class="tpc-ct gone" x="500" y="216">,</text><line class="tpc-strike" x1="492.3" y1="212" x2="507.7" y2="212"/><text class="tpc-why" x="521.7" y="216">punctuation</text>
+<rect class="tpc-chip dfs" x="471.5" y="231" width="57.0" height="22" rx="11"/><text class="tpc-ct" x="500" y="246">power</text>
+</g>
+<g class="tpc-flow tpc-f3">
+<path d="M565.5 62 L603.2 62"/>
+<path d="M528.5 92 L640.2 92"/>
+<path d="M532.2 152 L632.8 152"/>
+<path d="M539.6 182 L632.8 182"/>
+<path d="M528.5 242 L636.5 242"/>
+</g>
+<g class="tpc-col tpc-s3">
+<rect class="tpc-chip ucs changed" x="603.2" y="51" width="123.6" height="22" rx="11"/><text class="tpc-ct" x="665" y="66">hurricane-forc</text>
+<rect class="tpc-chip ucs changed" x="640.2" y="81" width="49.6" height="22" rx="11"/><text class="tpc-ct" x="665" y="96">wind</text>
+<rect class="tpc-chip ucs" x="632.8" y="141" width="64.4" height="22" rx="11"/><text class="tpc-ct" x="665" y="156">struck</text>
+<rect class="tpc-chip ucs changed" x="632.8" y="171" width="64.4" height="22" rx="11"/><text class="tpc-ct" x="665" y="186">portug</text>
+<rect class="tpc-chip ucs" x="636.5" y="231" width="57.0" height="22" rx="11"/><text class="tpc-ct" x="665" y="246">power</text>
+</g>
+<g class="tpc-flow tpc-f4">
+<path d="M726.8 62 C 776.8 62, 770 74, 820 74"/>
+<path d="M689.8 92 C 739.8 92, 770 226, 820 226"/>
+<path d="M697.2 152 C 747.2 152, 770 188, 820 188"/>
+<path d="M697.2 182 C 747.2 182, 770 112, 820 112"/>
+<path d="M693.5 242 C 743.5 242, 770 150, 820 150"/>
+</g>
+<g class="tpc-col tpc-s4">
+<rect class="tpc-term" x="820" y="61" width="123.6" height="26" rx="6"/><text class="tpc-ct" x="881.8" y="78">hurricane-forc</text>
+<path class="tpc-arr" d="M951.6 74 l12 0"/>
+<rect class="tpc-post" x="967.6" y="63" width="22" height="22" rx="5"/><text class="tpc-pt" x="978.6" y="78">0</text>
+<rect class="tpc-term" x="820" y="99" width="64.4" height="26" rx="6"/><text class="tpc-ct" x="852.2" y="116">portug</text>
+<path class="tpc-arr" d="M892.4 112 l12 0"/>
+<rect class="tpc-post" x="908.4" y="101" width="22" height="22" rx="5"/><text class="tpc-pt" x="919.4" y="116">0</text>
+<rect class="tpc-term" x="820" y="137" width="57.0" height="26" rx="6"/><text class="tpc-ct" x="848.5" y="154">power</text>
+<path class="tpc-arr" d="M885.0 150 l12 0"/>
+<rect class="tpc-post" x="901.0" y="139" width="22" height="22" rx="5"/><text class="tpc-pt" x="912.0" y="154">0</text>
+<path class="tpc-arr" d="M927.0 150 l12 0"/>
+<rect class="tpc-post" x="943.0" y="139" width="22" height="22" rx="5"/><text class="tpc-pt" x="954.0" y="154">3</text>
+<rect class="tpc-term" x="820" y="175" width="64.4" height="26" rx="6"/><text class="tpc-ct" x="852.2" y="192">struck</text>
+<path class="tpc-arr" d="M892.4 188 l12 0"/>
+<rect class="tpc-post" x="908.4" y="177" width="22" height="22" rx="5"/><text class="tpc-pt" x="919.4" y="192">0</text>
+<rect class="tpc-term" x="820" y="213" width="49.6" height="26" rx="6"/><text class="tpc-ct" x="844.8" y="230">wind</text>
+<path class="tpc-arr" d="M877.6 226 l12 0"/>
+<rect class="tpc-post" x="893.6" y="215" width="22" height="22" rx="5"/><text class="tpc-pt" x="904.6" y="230">0</text>
+<path class="tpc-arr" d="M919.6 226 l12 0"/>
+<rect class="tpc-post" x="935.6" y="215" width="22" height="22" rx="5"/><text class="tpc-pt" x="946.6" y="230">1</text>
+</g>
+</svg>
+      </div>
+      <ol class="sl-agenda tpc-agenda">
         <li class="ids">The indexing pipeline</li>
         <li class="bfs">Tokenization</li>
         <li class="dfs">Normalization and stopwords</li>
@@ -532,9 +628,8 @@ print(len(df), len(df_no_stopwords), len(stemmed_freqs))
     <div class="slide-in">
       <span class="badge ids">Big picture</span>
       <h2>From documents to an index</h2>
-      <p class="sl-lede">Documents → <b>tokenizer</b> → <b>linguistic modules</b> → <b>indexer</b>. Step through the notebook's example document.</p>
+      <p class="sl-lede">Doc 0 of the notebook's example, stage by stage. Queries go through the same stages.</p>
       <div class="sl-embed" data-embed="#pg-flow"></div>
-      <p class="sl-take">Documents and queries must go through the same steps.</p>
     </div>
   </section>
 
