@@ -1014,23 +1014,137 @@ print(and_query(postings, 'living', 'dead'))   # [36]</code></pre>
     <div class="slide-in">
       <span class="badge ids">Foundation</span>
       <h2>The incidence matrix</h2>
-      <p class="sl-lede">For every term and every document: does the term occur in the document? Our toy collection is 14 BBC News headlines.</p>
-      <div class="sl-cols">
-        <div class="sl-card ids">
-          <h3>Four steps</h3>
-          <ol class="concept-list">
-            <li><b>Tokenize</b> with <code>TweetTokenizer</code>.</li>
-            <li><b>Lower-case</b>: <code>The</code> = <code>the</code>.</li>
-            <li><b>Unique tokens</b>: 83 terms.</li>
-            <li><b>Matrix</b>: one row per term, one column per document → (83, 14).</li>
-          </ol>
-        </div>
-        <div class="sl-card bad">
-          <h3>Almost all zeros</h3>
-          <span class="sl-num">93 <small>of 1,162 cells are non-zero (8%)</small></span>
-          <p style="margin:0.6rem 0 0;">With millions of documents and hundreds of thousands of terms, almost every cell is 0.</p>
-        </div>
+      <p class="sl-lede">Does each term occur in each document? Our toy collection: 14 BBC News headlines.</p>
+      <ol class="concept-list iim-steps">
+        <li><b>Tokenize</b> with <code>TweetTokenizer</code>.</li>
+        <li><b>Lower-case</b>: <code>The</code> = <code>the</code>.</li>
+        <li><b>Unique tokens</b>: 83 terms.</li>
+        <li><b>Matrix</b>: one row per term, one column per document → (83, 14).</li>
+      </ol>
+      <!-- the whole matrix of the 14 headlines, documents × terms (cells computed from lab01.js) -->
+      <div class="iim-wrap">
+<svg class="iim" viewBox="0 0 882 204" role="img" aria-label="The incidence matrix of the 14 headlines: 14 documents by 83 terms, 93 of 1,162 cells are non-zero">
+<defs><pattern id="iim-grid" width="10" height="10" patternUnits="userSpaceOnUse" x="46" y="34"><rect class="iim-zero" x="0.5" y="0.5" width="8" height="8" rx="2"/></pattern></defs>
+<rect class="iim-col w" x="815" y="32" width="10" height="142" rx="3"/>
+<text class="iim-lab w" x="820.0" y="26">wedding</text>
+<rect class="iim-col k" x="465" y="32" width="10" height="142" rx="3"/>
+<text class="iim-lab k" x="470.0" y="26">kills</text>
+<text class="iim-lab " x="380.0" y="26">in</text>
+<text class="iim-lab " x="680.0" y="26">the</text>
+<rect x="46" y="34" width="830" height="140" fill="url(#iim-grid)"/>
+<text class="iim-doc" x="38" y="41.5">0</text>
+<text class="iim-doc" x="38" y="51.5">1</text>
+<text class="iim-doc" x="38" y="61.5">2</text>
+<text class="iim-doc" x="38" y="71.5">3</text>
+<text class="iim-doc" x="38" y="81.5">4</text>
+<text class="iim-doc" x="38" y="91.5">5</text>
+<text class="iim-doc" x="38" y="101.5">6</text>
+<text class="iim-doc" x="38" y="111.5">7</text>
+<text class="iim-doc" x="38" y="121.5">8</text>
+<text class="iim-doc" x="38" y="131.5">9</text>
+<text class="iim-doc" x="38" y="141.5">10</text>
+<text class="iim-doc" x="38" y="151.5">11</text>
+<text class="iim-doc" x="38" y="161.5">12</text>
+<text class="iim-doc" x="38" y="171.5">13</text>
+<text class="iim-ax" x="38" y="26">doc</text>
+<rect class="iim-on" x="46.5" y="144.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="56.5" y="44.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="66.5" y="54.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="76.5" y="144.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="86.5" y="144.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="96.5" y="144.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="106.5" y="94.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="106.5" y="134.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="116.5" y="124.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="126.5" y="44.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="136.5" y="84.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="146.5" y="64.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="156.5" y="94.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="166.5" y="164.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="176.5" y="34.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="186.5" y="34.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="196.5" y="134.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="206.5" y="134.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="216.5" y="34.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="226.5" y="44.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="236.5" y="124.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="246.5" y="54.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="256.5" y="154.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="266.5" y="144.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="276.5" y="74.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="286.5" y="34.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="296.5" y="144.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="306.5" y="84.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="316.5" y="134.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="326.5" y="94.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="336.5" y="154.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="346.5" y="124.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="356.5" y="94.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="366.5" y="134.5" width="8" height="8" rx="2"/>
+<rect class="iim-on two" x="376.5" y="44.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="376.5" y="64.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="376.5" y="84.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="376.5" y="124.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="376.5" y="154.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="386.5" y="164.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="396.5" y="104.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="406.5" y="34.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="416.5" y="44.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="426.5" y="154.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="436.5" y="64.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="446.5" y="74.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="456.5" y="44.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="456.5" y="64.5" width="8" height="8" rx="2"/>
+<rect class="iim-on k" x="466.5" y="54.5" width="8" height="8" rx="2"/>
+<rect class="iim-on k" x="466.5" y="94.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="476.5" y="54.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="486.5" y="154.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="496.5" y="74.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="506.5" y="164.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="516.5" y="154.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="526.5" y="114.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="536.5" y="164.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="546.5" y="44.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="556.5" y="114.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="566.5" y="64.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="576.5" y="84.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="586.5" y="44.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="596.5" y="74.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="606.5" y="114.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="616.5" y="134.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="626.5" y="44.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="636.5" y="104.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="646.5" y="74.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="656.5" y="124.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="666.5" y="164.5" width="8" height="8" rx="2"/>
+<rect class="iim-on two" x="676.5" y="44.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="676.5" y="144.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="676.5" y="164.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="686.5" y="114.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="696.5" y="104.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="706.5" y="124.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="716.5" y="104.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="726.5" y="44.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="736.5" y="114.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="746.5" y="104.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="756.5" y="54.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="766.5" y="124.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="776.5" y="84.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="786.5" y="144.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="796.5" y="44.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="806.5" y="44.5" width="8" height="8" rx="2"/>
+<rect class="iim-on w" x="816.5" y="54.5" width="8" height="8" rx="2"/>
+<rect class="iim-on w" x="816.5" y="114.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="826.5" y="74.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="836.5" y="164.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="846.5" y="94.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="856.5" y="104.5" width="8" height="8" rx="2"/>
+<rect class="iim-on" x="866.5" y="44.5" width="8" height="8" rx="2"/>
+<text class="iim-ax" x="46" y="196" style="text-anchor:start">Shown transposed: one row per document, one column per term (sorted: , . 20 76 actor …)</text>
+<g class="iim-key"><rect class="iim-on" x="646" y="187" width="8" height="8" rx="2"/><text class="iim-ax" x="658" y="195" style="text-anchor:start">1</text><rect class="iim-on two" x="676" y="187" width="8" height="8" rx="2"/><text class="iim-ax" x="688" y="195" style="text-anchor:start">2 (in, the in doc 1)</text><rect class="iim-zero" x="790" y="187" width="8" height="8" rx="2"/><text class="iim-ax" x="802" y="195" style="text-anchor:start">0</text></g>
+</svg>
       </div>
+      <p class="sl-take">Almost all zeros: 93 of 1,162 cells are non-zero (8%). With millions of documents and hundreds of thousands of terms, almost every cell is 0.</p>
     </div>
   </section>
 

@@ -3200,3 +3200,19 @@ html.presenting .deck { position: fixed; inset: 0; z-index: 200; display: flex; 
   .slide.on .iic .tpc-f4 path { animation-delay: 1.8s; } .slide.on .iic .tpc-s4 { animation-delay: 2.2s; }
 }
 @media (max-width: 760px) { .sl-cover .sl-agenda.tpc-agenda.six { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Lab 01 (IR) slide 4: the whole incidence matrix of the 14 headlines (documents × terms) */
+.iim-wrap { margin-top: 1rem; }
+.iim { display: block; width: 100%; height: auto; font-family: 'Inter', sans-serif; }
+.iim .iim-zero { fill: none; stroke: var(--line); stroke-width: 1; }
+.iim .iim-on { fill: var(--ink-soft); } .iim .iim-on.two { fill: var(--ucs); }
+.iim .iim-on.w { fill: var(--ids); } .iim .iim-on.k { fill: var(--dfs); }
+.iim .iim-col.w { fill: color-mix(in srgb, var(--ids) 14%, transparent); } .iim .iim-col.k { fill: color-mix(in srgb, var(--dfs) 14%, transparent); }
+.iim .iim-lab { font: 700 11px ui-monospace, SFMono-Regular, Menlo, monospace; fill: var(--ink-soft); text-anchor: middle; }
+.iim .iim-lab.w { fill: var(--ids); } .iim .iim-lab.k { fill: var(--dfs); }
+.iim .iim-doc { font-size: 8.5px; font-weight: 600; fill: var(--ink-soft); text-anchor: end; }
+.iim .iim-ax { font-size: 10px; font-weight: 600; fill: var(--ink-soft); text-anchor: end; }
+@media (prefers-reduced-motion: no-preference) {
+  .slide.on .iim .iim-on { animation: tpc-in 0.4s ease both; animation-delay: 0.3s; }
+}
+.slide .iim-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.3rem 1.6rem; } .slide .iim { max-height: 14.5rem; }
+@media (max-width: 760px) { .slide .iim-steps { grid-template-columns: minmax(0, 1fr); } }
