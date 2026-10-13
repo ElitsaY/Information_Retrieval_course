@@ -1169,10 +1169,93 @@ print(and_query(postings, 'living', 'dead'))   # [36]</code></pre>
       <span class="badge bfs">Data structure</span>
       <h2>The inverted index</h2>
       <p class="sl-lede">Keep only the non-zero cells: for each term, the list of documents it occurs in.</p>
-      <div class="sl-cols">
-        <div class="sl-card bfs"><h3>Dictionary</h3><p style="margin:0;">The terms, each with its document frequency <i>df<sub>t</sub></i>: the number of documents that contain <i>t</i>.</p></div>
-        <div class="sl-card bfs"><h3>Postings</h3><p style="margin:0;">For each term, the list of document ids that contain it. One entry is a <b>posting</b>.</p></div>
+      <!-- ten consecutive entries of the 14-headline index (postings computed from lab01.js) -->
+      <div class="iiv-wrap">
+<svg class="iiv" viewBox="0 0 900 222" role="img" aria-label="Ten entries of the inverted index of the 14 headlines: each term with its document frequency and its postings list, sorted by document id">
+<text class="iiv-h" x="8" y="20">term</text><text class="iiv-h" x="123.0" y="20" style="text-anchor:middle">df</text><text class="iiv-h" x="160" y="20">postings, sorted by doc id</text>
+<line class="iiv-rule" x1="8" y1="28" x2="438" y2="28"/>
+<text class="iiv-h" x="462" y="20">term</text><text class="iiv-h" x="577.0" y="20" style="text-anchor:middle">df</text><text class="iiv-h" x="614" y="20">postings, sorted by doc id</text>
+<line class="iiv-rule" x1="462" y1="28" x2="892" y2="28"/>
+<g class="iiv-row">
+<rect class="iiv-term" x="8" y="40" width="96" height="24" rx="6"/><text class="iiv-t" x="18" y="56">in</text>
+<rect class="iiv-df" x="110" y="40" width="26" height="24" rx="6"/><text class="iiv-n" x="123.0" y="56">5</text>
+<path class="iiv-ptr" d="M142 52 l14 0"/><path class="iiv-head" d="M156 48 l6 4 l-6 4z"/>
+<rect class="iiv-post" x="166" y="40" width="26" height="24" rx="5"/><text class="iiv-n" x="179" y="56">1</text>
+<path class="iiv-link" d="M192 52 l9 0"/><path class="iiv-lhead" d="M201 49 l5 3 l-5 3z"/>
+<rect class="iiv-post" x="208" y="40" width="26" height="24" rx="5"/><text class="iiv-n" x="221" y="56">3</text>
+<path class="iiv-link" d="M234 52 l9 0"/><path class="iiv-lhead" d="M243 49 l5 3 l-5 3z"/>
+<rect class="iiv-post" x="250" y="40" width="26" height="24" rx="5"/><text class="iiv-n" x="263" y="56">5</text>
+<path class="iiv-link" d="M276 52 l9 0"/><path class="iiv-lhead" d="M285 49 l5 3 l-5 3z"/>
+<rect class="iiv-post" x="292" y="40" width="26" height="24" rx="5"/><text class="iiv-n" x="305" y="56">9</text>
+<path class="iiv-link" d="M318 52 l9 0"/><path class="iiv-lhead" d="M327 49 l5 3 l-5 3z"/>
+<rect class="iiv-post" x="334" y="40" width="26" height="24" rx="5"/><text class="iiv-n" x="347" y="56">12</text>
+</g>
+<g class="iiv-row">
+<rect class="iiv-term" x="8" y="70" width="96" height="24" rx="6"/><text class="iiv-t" x="18" y="86">indian</text>
+<rect class="iiv-df" x="110" y="70" width="26" height="24" rx="6"/><text class="iiv-n" x="123.0" y="86">1</text>
+<path class="iiv-ptr" d="M142 82 l14 0"/><path class="iiv-head" d="M156 78 l6 4 l-6 4z"/>
+<rect class="iiv-post" x="166" y="70" width="26" height="24" rx="5"/><text class="iiv-n" x="179" y="86">13</text>
+</g>
+<g class="iiv-row">
+<rect class="iiv-term" x="8" y="100" width="96" height="24" rx="6"/><text class="iiv-t" x="18" y="116">indonesia</text>
+<rect class="iiv-df" x="110" y="100" width="26" height="24" rx="6"/><text class="iiv-n" x="123.0" y="116">1</text>
+<path class="iiv-ptr" d="M142 112 l14 0"/><path class="iiv-head" d="M156 108 l6 4 l-6 4z"/>
+<rect class="iiv-post" x="166" y="100" width="26" height="24" rx="5"/><text class="iiv-n" x="179" y="116">7</text>
+</g>
+<g class="iiv-row">
+<rect class="iiv-term" x="8" y="130" width="96" height="24" rx="6"/><text class="iiv-t" x="18" y="146">interpol</text>
+<rect class="iiv-df" x="110" y="130" width="26" height="24" rx="6"/><text class="iiv-n" x="123.0" y="146">1</text>
+<path class="iiv-ptr" d="M142 142 l14 0"/><path class="iiv-head" d="M156 138 l6 4 l-6 4z"/>
+<rect class="iiv-post" x="166" y="130" width="26" height="24" rx="5"/><text class="iiv-n" x="179" y="146">0</text>
+</g>
+<g class="iiv-row">
+<rect class="iiv-term" x="8" y="160" width="96" height="24" rx="6"/><text class="iiv-t" x="18" y="176">istanbul</text>
+<rect class="iiv-df" x="110" y="160" width="26" height="24" rx="6"/><text class="iiv-n" x="123.0" y="176">1</text>
+<path class="iiv-ptr" d="M142 172 l14 0"/><path class="iiv-head" d="M156 168 l6 4 l-6 4z"/>
+<rect class="iiv-post" x="166" y="160" width="26" height="24" rx="5"/><text class="iiv-n" x="179" y="176">1</text>
+</g>
+<g class="iiv-row">
+<rect class="iiv-term" x="462" y="40" width="96" height="24" rx="6"/><text class="iiv-t" x="472" y="56">jogger</text>
+<rect class="iiv-df" x="564" y="40" width="26" height="24" rx="6"/><text class="iiv-n" x="577.0" y="56">1</text>
+<path class="iiv-ptr" d="M596 52 l14 0"/><path class="iiv-head" d="M610 48 l6 4 l-6 4z"/>
+<rect class="iiv-post" x="620" y="40" width="26" height="24" rx="5"/><text class="iiv-n" x="633" y="56">12</text>
+</g>
+<g class="iiv-row">
+<rect class="iiv-term" x="462" y="70" width="96" height="24" rx="6"/><text class="iiv-t" x="472" y="86">journalist</text>
+<rect class="iiv-df" x="564" y="70" width="26" height="24" rx="6"/><text class="iiv-n" x="577.0" y="86">1</text>
+<path class="iiv-ptr" d="M596 82 l14 0"/><path class="iiv-head" d="M610 78 l6 4 l-6 4z"/>
+<rect class="iiv-post" x="620" y="70" width="26" height="24" rx="5"/><text class="iiv-n" x="633" y="86">3</text>
+</g>
+<g class="iiv-row">
+<rect class="iiv-term" x="462" y="100" width="96" height="24" rx="6"/><text class="iiv-t" x="472" y="116">kanye</text>
+<rect class="iiv-df" x="564" y="100" width="26" height="24" rx="6"/><text class="iiv-n" x="577.0" y="116">1</text>
+<path class="iiv-ptr" d="M596 112 l14 0"/><path class="iiv-head" d="M610 108 l6 4 l-6 4z"/>
+<rect class="iiv-post" x="620" y="100" width="26" height="24" rx="5"/><text class="iiv-n" x="633" y="116">4</text>
+</g>
+<g class="iiv-row">
+<rect class="iiv-term" x="462" y="130" width="96" height="24" rx="6"/><text class="iiv-t" x="472" y="146">killed</text>
+<rect class="iiv-df" x="564" y="130" width="26" height="24" rx="6"/><text class="iiv-n" x="577.0" y="146">2</text>
+<path class="iiv-ptr" d="M596 142 l14 0"/><path class="iiv-head" d="M610 138 l6 4 l-6 4z"/>
+<rect class="iiv-post" x="620" y="130" width="26" height="24" rx="5"/><text class="iiv-n" x="633" y="146">1</text>
+<path class="iiv-link" d="M646 142 l9 0"/><path class="iiv-lhead" d="M655 139 l5 3 l-5 3z"/>
+<rect class="iiv-post" x="662" y="130" width="26" height="24" rx="5"/><text class="iiv-n" x="675" y="146">3</text>
+</g>
+<g class="iiv-row k">
+<rect class="iiv-term" x="462" y="160" width="96" height="24" rx="6"/><text class="iiv-t" x="472" y="176">kills</text>
+<rect class="iiv-df" x="564" y="160" width="26" height="24" rx="6"/><text class="iiv-n" x="577.0" y="176">2</text>
+<path class="iiv-ptr" d="M596 172 l14 0"/><path class="iiv-head" d="M610 168 l6 4 l-6 4z"/>
+<rect class="iiv-post" x="620" y="160" width="26" height="24" rx="5"/><text class="iiv-n" x="633" y="176">2</text>
+<path class="iiv-link" d="M646 172 l9 0"/><path class="iiv-lhead" d="M655 169 l5 3 l-5 3z"/>
+<rect class="iiv-post" x="662" y="160" width="26" height="24" rx="5"/><text class="iiv-n" x="675" y="176">6</text>
+</g>
+<text class="iiv-more" x="8" y="212">… 33 terms before (, . 20 … german) and 40 after (limousine … writer)</text>
+<text class="iiv-sum" x="892" y="212">83 terms · 93 postings, instead of 1,162 matrix cells</text>
+</svg>
       </div>
+      <ul class="concept-list iim-steps">
+        <li><b>Dictionary</b>: the terms, each with its document frequency <i>df<sub>t</sub></i>, the number of documents that contain <i>t</i>.</li>
+        <li><b>Postings</b>: for each term, the list of document ids that contain it. One entry is a <b>posting</b>.</li>
+      </ul>
       <p class="sl-take">❗ Postings lists are sorted by document id. The query algorithms depend on this.</p>
     </div>
   </section>

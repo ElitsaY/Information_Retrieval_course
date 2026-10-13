@@ -3216,3 +3216,27 @@ html.presenting .deck { position: fixed; inset: 0; z-index: 200; display: flex; 
 }
 .slide .iim-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.3rem 1.6rem; } .slide .iim { max-height: 14.5rem; }
 @media (max-width: 760px) { .slide .iim-steps { grid-template-columns: minmax(0, 1fr); } }
+/* Lab 01 (IR) slide 7: ten entries of the inverted index (dictionary + postings lists) */
+.iiv-wrap { margin: 0.2rem 0 0.8rem; }
+.iiv { display: block; width: 100%; height: auto; font-family: 'Inter', sans-serif; }
+.iiv .iiv-h { font: 800 11px 'Inter', sans-serif; fill: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; }
+.iiv .iiv-rule { stroke: var(--line); stroke-width: 1.5; }
+.iiv .iiv-term { fill: color-mix(in srgb, var(--bfs) 14%, var(--surface)); stroke: var(--bfs); stroke-width: 1.4; }
+.iiv .iiv-t { font: 700 13px ui-monospace, SFMono-Regular, Menlo, monospace; fill: var(--ink); }
+.iiv .iiv-df { fill: var(--surface); stroke: var(--ink-soft); stroke-width: 1.2; }
+.iiv .iiv-n { font: 700 12px 'Inter', sans-serif; fill: var(--ink); text-anchor: middle; }
+.iiv .iiv-ptr { stroke: var(--bfs); stroke-width: 1.8; } .iiv .iiv-head { fill: var(--bfs); }
+.iiv .iiv-post { fill: var(--surface); stroke: var(--ids); stroke-width: 1.4; }
+.iiv .iiv-link { stroke: var(--ink-soft); stroke-width: 1.3; } .iiv .iiv-lhead { fill: var(--ink-soft); }
+.iiv .iiv-row.k .iiv-term { stroke: var(--dfs); fill: color-mix(in srgb, var(--dfs) 16%, var(--surface)); }
+.iiv .iiv-row.k .iiv-post { stroke: var(--dfs); }
+.iiv .iiv-more { font: 600 11px 'Inter', sans-serif; fill: var(--ink-soft); }
+.iiv .iiv-sum { font: 800 12px 'Inter', sans-serif; fill: var(--indigo); text-anchor: end; }
+@media (prefers-reduced-motion: no-preference) {
+  .slide.on .iiv .iiv-row { animation: tpc-in 0.4s ease both; }
+  .slide.on .iiv .iiv-row:nth-of-type(2) { animation-delay: 0.08s; } .slide.on .iiv .iiv-row:nth-of-type(3) { animation-delay: 0.16s; }
+  .slide.on .iiv .iiv-row:nth-of-type(4) { animation-delay: 0.24s; } .slide.on .iiv .iiv-row:nth-of-type(5) { animation-delay: 0.32s; }
+  .slide.on .iiv .iiv-row:nth-of-type(6) { animation-delay: 0.4s; } .slide.on .iiv .iiv-row:nth-of-type(7) { animation-delay: 0.48s; }
+  .slide.on .iiv .iiv-row:nth-of-type(8) { animation-delay: 0.56s; } .slide.on .iiv .iiv-row:nth-of-type(9) { animation-delay: 0.64s; }
+  .slide.on .iiv .iiv-row:nth-of-type(10) { animation-delay: 0.72s; }
+}
