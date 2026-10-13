@@ -3116,3 +3116,11 @@ html.presenting .deck { position: fixed; inset: 0; z-index: 200; display: flex; 
 .slide .pp-tw { max-height: 22rem; } .slide #pp-out { margin-top: 0 !important; } .slide #pp-doc { max-height: 22rem; overflow: auto; }
 .slide #pg-stem .st-h { display: none; } .slide #pg-stem .st-tw { max-height: none; }
 .slide table.st-table th, .slide table.st-table td { padding: 0.4rem 0.7rem; }
+/* slides: keep the Lab 01 (IR) widgets within one screen */
+.slide #pg-im .im-scroll { max-height: 14rem; overflow: auto; } .slide #pg-im .al-out { max-height: 14rem; overflow: auto; }
+.slide #pg-pl .fig-scroll svg { max-height: 12rem; } .slide #pl-out { max-height: 9rem; overflow: auto; }
+.slide #pg-nm .ii-text { height: 3.4rem; } .slide #nm-out { max-height: 10rem; overflow: auto; }
+.slide #df-hist { max-height: 14rem; } .slide #pg-df .al-out { max-height: 15rem; overflow: auto; }
+.slide #pg-mg .fig-scroll svg, .slide #pg-sk .fig-scroll svg { max-height: 12rem; }
+.slide #pg-mg .log-box, .slide #pg-sk .log-box { max-height: 5rem; }
+.slide #qp-svg { max-height: 13rem; }

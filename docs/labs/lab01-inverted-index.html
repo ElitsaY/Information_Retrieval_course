@@ -93,7 +93,7 @@
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">The indexing pipeline</h3>
     <p class="section-lede">Every index in this lab goes through the same stages (the lecture calls them the <i>basic indexing pipeline</i>). Each card says where in the lab we build that stage.</p>
-    <div class="pipe">
+    <div class="pipe" id="pipe-cards">
       <div class="pipe-card"><span class="pipe-l">Documents</span><p class="pipe-ex">Friends, Romans, countrymen.</p><p class="pipe-lab">14 BBC headlines, then 20 Newsgroups posts</p></div>
       <span class="pipe-arrow" aria-hidden="true">→</span>
       <div class="pipe-card stage"><span class="pipe-l">Tokenizer</span><p class="pipe-ex"><code>Friends</code> <code>Romans</code> <code>countrymen</code></p><p class="pipe-lab">NLTK's <code>TweetTokenizer</code>: <a href="#incidence">Incidence matrices</a></p></div>
@@ -127,7 +127,7 @@
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: tokenize a headline</h4>
     <p class="section-lede">Pick a headline and see each step. Punctuation tokens are marked in red.</p>
-    <div class="playground">
+    <div class="playground" id="pg-tk">
       <div class="pg-controls">
         <label class="ii-lbl" for="tk-pick">Document</label>
         <select id="tk-pick" class="ii-select"></select>
@@ -142,7 +142,7 @@
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: answer a Boolean query with the matrix</h4>
     <p class="section-lede">Each term's row is a <b>bit vector</b> over the 14 documents. A Boolean query is a bitwise operation on rows: <code>AND</code>, <code>OR</code>, <code>AND NOT</code>. Rows are in alphabetical order here, because a Python <code>set</code> has no fixed order.</p>
-    <div class="playground">
+    <div class="playground" id="pg-im">
       <div class="pg-controls">
         <select id="im-a" class="ii-select" aria-label="First term"></select>
         <div class="strategy-pick" id="im-op"></div>
@@ -221,7 +221,7 @@ print(incidence_matrix.shape)   # (83, 14)</code></pre>
 
     <h4 style="margin:1.4rem 0 0.4rem;">See it with the headlines: from a matrix row to a postings list</h4>
     <p class="section-lede">Pick a term. The top row is its row in the incidence matrix. Below it is the same information as a dictionary entry and a postings list.</p>
-    <div class="playground">
+    <div class="playground" id="pg-pl">
       <div class="pg-controls">
         <div class="strategy-pick" id="pl-pick"></div>
         <select id="pl-sel" class="ii-select" aria-label="Any term"></select>
@@ -240,7 +240,7 @@ print(incidence_matrix.shape)   # (83, 14)</code></pre>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Tokenization</h3>
     <p class="section-lede">Splitting at spaces and punctuation is a start, but many cases are unclear. The last column shows what the notebook's <code>TweetTokenizer</code> does with the lecture's examples.</p>
-    <div class="table-wrap">
+    <div class="table-wrap" id="tz-cases">
       <table class="summary tz-table">
         <thead><tr><th>Text</th><th>Question</th><th><code>TweetTokenizer</code></th></tr></thead>
         <tbody>
@@ -288,7 +288,7 @@ print(incidence_matrix.shape)   # (83, 14)</code></pre>
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: which terms end up in the dictionary?</h4>
     <p class="section-lede">Switch the linguistic modules on and off. Each line is one document. Highlighted terms merge several tokens, and struck-out tokens are removed. The stop list is the 25-word example list from IIR, and the stemmer is Porter's original algorithm.</p>
-    <div class="playground">
+    <div class="playground" id="pg-nm">
       <div class="pg-controls"><div class="strategy-pick" id="nm-src"></div></div>
       <textarea id="nm-text" class="ii-text" rows="4" spellcheck="false" aria-label="Documents, one per line"></textarea>
       <div class="pg-controls nm-opts" id="nm-opts" style="margin-top:0.8rem;"></div>
@@ -314,7 +314,7 @@ print(incidence_matrix.shape)   # (83, 14)</code></pre>
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: preprocess_document</h4>
     <p class="section-lede">The default text is the notebook's example, and the output matches its 12 tokens. Edit it, or load the start of a newsgroup post or the lecture's tokenization examples.</p>
-    <div class="playground">
+    <div class="playground" id="pg-pp">
       <div class="pg-controls">
         <div class="strategy-pick" id="pp-presets"></div>
       </div>
@@ -390,7 +390,7 @@ print(Counter(df).most_common(10))
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: the dictionary of sci.crypt</h4>
     <p class="section-lede">These are the real document frequencies from the notebook's run on the 100 <code>sci.crypt</code> posts. Search a term, or click a bar to list the terms in that range.</p>
-    <div class="playground">
+    <div class="playground" id="pg-df">
       <div class="stat-strip" id="df-stats" style="margin-top:0;"></div>
       <div class="pg-grid">
         <div>
@@ -422,7 +422,7 @@ print(Counter(df).most_common(10))
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: build an index step by step</h4>
     <p class="section-lede">Four short documents: three BBC headlines and one we made up (doc 3), so that a term repeats inside a document. Edit any document and the index rebuilds. Click a term to follow it through the steps.</p>
-    <div class="playground">
+    <div class="playground" id="pg-ib">
       <div class="ib-docs" id="ib-docs"></div>
       <div class="pg-controls" style="margin-top:1rem;">
         <div class="strategy-pick" id="ib-steps"></div>
@@ -534,7 +534,7 @@ print(postings['zip'], postings['zaphod.mps.ohio-state.edu'][:3])   # [(49, 2)] 
 
     <h4 style="margin:1.4rem 0 0.4rem;" id="merge-widget">Try it: merge two postings lists</h4>
     <p class="section-lede">Step through the merge. Switch the operator to see how <code>OR</code> and <code>AND NOT</code> change it. The lists are editable.</p>
-    <div class="playground">
+    <div class="playground" id="pg-mg">
       <div class="pg-controls">
         <div class="strategy-pick" id="mg-preset"></div>
       </div>
@@ -633,7 +633,7 @@ print(and_query(postings, 'living', 'dead'))   # [36]</code></pre>
     <p class="section-lede">For an <code>AND</code> of many terms, first merge the two terms with the smallest \(df\), then merge the result with the next rarest term, and so on. The intermediate result is never longer than the shortest list, so every later merge is cheaper.</p>
     <h4 style="margin:1.4rem 0 0.4rem;" id="planner">Try it: query planner for sci.crypt</h4>
     <p class="section-lede">Type an <code>AND</code> query. Using the real \(df\) values of <code>sci.crypt</code>, the widget compares the largest possible intermediate result for two orders: the terms as you typed them, and the terms by increasing frequency.</p>
-    <div class="playground">
+    <div class="playground" id="pg-qp">
       <input id="qp-in" class="ii-input" spellcheck="false" autocomplete="off">
       <div class="pg-grid" style="margin-top:0.9rem;">
         <div>
@@ -657,7 +657,7 @@ print(and_query(postings, 'living', 'dead'))   # [36]</code></pre>
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: intersect with skip pointers</h4>
     <p class="section-lede">The arcs above a list are its skip pointers, and a thick arc is a skip that the merge takes. Compare the steps with and without skips on the three examples.</p>
-    <div class="playground">
+    <div class="playground" id="pg-sk">
       <div class="pg-controls">
         <div class="strategy-pick" id="sk-preset"></div>
       </div>
@@ -699,7 +699,7 @@ print(and_query(postings, 'living', 'dead'))   # [36]</code></pre>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Solution 2: positional indexes</h3>
     <p class="section-lede">In the postings, store for each document the <b>positions</b> at which the term occurs:</p>
-    <pre class="ph-pre">&lt;be: 993427;
+    <pre class="ph-pre" id="ph-example">&lt;be: 993427;
   1: 7, 18, 33, 72, 86, 231;
   2: 3, 149;
   4: 17, 191, 291, 430, 434;
@@ -711,7 +711,7 @@ print(and_query(postings, 'living', 'dead'))   # [36]</code></pre>
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: phrase and proximity queries</h4>
     <p class="section-lede">These are the four documents from the <a href="#construction">index builder</a> (edit them there). Compare what each kind of index returns for the same query. Positions start at 0.</p>
-    <div class="playground">
+    <div class="playground" id="pg-ph">
       <div class="pg-controls">
         <input id="ph-q" class="ii-input" style="max-width:16rem;" spellcheck="false" autocomplete="off" aria-label="Query">
         <div class="strategy-pick" id="ph-mode"></div>
@@ -788,6 +788,311 @@ print(and_query(postings, 'living', 'dead'))   # [36]</code></pre>
 </main>
 </div>
 
+<!-- ===== PRESENTATION MODE: the slides (present.js); data-embed borrows a widget from the notes ===== -->
+<template id="slides" data-title="Lab 01 · Inverted Index and Boolean Queries">
+
+  <section class="slide sl-cover" data-section="#overview">
+    <div class="slide-in">
+      <p class="sl-eyebrow">Lab 01 · Information Retrieval</p>
+      <h1>Inverted Index and Boolean Queries</h1>
+      <p class="sl-lede">Build an inverted index for a collection of documents and answer Boolean queries with it.</p>
+      <ol class="sl-agenda">
+        <li class="ids">Boolean retrieval and the pipeline</li>
+        <li class="bfs">Incidence matrix and inverted index</li>
+        <li class="dfs">From text to terms</li>
+        <li class="ucs">Building the index</li>
+        <li class="bfs">Boolean queries and faster merges</li>
+        <li class="ucs">Phrase queries</li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#task">
+    <div class="slide-in">
+      <span class="badge ids">The task</span>
+      <h2>Boolean retrieval</h2>
+      <p class="sl-lede">Given a large collection and a query such as <code>wedding AND kills</code>, return every document that satisfies the query.</p>
+      <div class="sl-cols three">
+        <div class="sl-card ids"><h3>Document</h3><p style="margin:0;">The unit we index and return: first one news headline, later one newsgroup post.</p></div>
+        <div class="sl-card ids"><h3>Collection</h3><p style="margin:0;">All the documents we search (the corpus).</p></div>
+        <div class="sl-card ids"><h3>Boolean query</h3><p style="margin:0;">Terms with <code>AND</code>, <code>OR</code>, <code>NOT</code>. The answer is a <b>set</b>: no ranking.</p></div>
+      </div>
+      <p class="sl-take">Scanning every document (like <code>grep</code>) costs time for the whole collection, again for every query. We build an index once, in advance.</p>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#task">
+    <div class="slide-in">
+      <span class="badge ids">The task</span>
+      <h2>The indexing pipeline</h2>
+      <div class="sl-embed" data-embed="#pipe-cards"></div>
+      <div class="sl-cols" style="margin-top:1.2rem;">
+        <div class="sl-card ids"><h3>Token</h3><p style="margin:0;">One occurrence of a character sequence in a document: <code>Friends</code>.</p></div>
+        <div class="sl-card bfs"><h3>Term</h3><p style="margin:0;">The normalized form stored in the dictionary: <code>friend</code>.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#incidence">
+    <div class="slide-in">
+      <span class="badge ids">Foundation</span>
+      <h2>The incidence matrix</h2>
+      <p class="sl-lede">For every term and every document: does the term occur in the document? Our toy collection is 14 BBC News headlines.</p>
+      <div class="sl-cols">
+        <div class="sl-card ids">
+          <h3>Four steps</h3>
+          <ol class="concept-list">
+            <li><b>Tokenize</b> with <code>TweetTokenizer</code>.</li>
+            <li><b>Lower-case</b>: <code>The</code> = <code>the</code>.</li>
+            <li><b>Unique tokens</b>: 83 terms.</li>
+            <li><b>Matrix</b>: one row per term, one column per document → (83, 14).</li>
+          </ol>
+        </div>
+        <div class="sl-card bad">
+          <h3>Almost all zeros</h3>
+          <span class="sl-num">93 <small>of 1,162 cells are non-zero (8%)</small></span>
+          <p style="margin:0.6rem 0 0;">With millions of documents and hundreds of thousands of terms, almost every cell is 0.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#incidence">
+    <div class="slide-in">
+      <span class="badge ids">Try it</span>
+      <h2>Tokenize a headline</h2>
+      <div class="sl-embed" data-embed="#pg-tk"></div>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#incidence">
+    <div class="slide-in">
+      <span class="badge ids">Try it</span>
+      <h2>A Boolean query on the matrix: bitwise operations on rows</h2>
+      <div class="sl-embed" data-embed="#pg-im"></div>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#inverted-index">
+    <div class="slide-in">
+      <span class="badge bfs">Data structure</span>
+      <h2>The inverted index</h2>
+      <p class="sl-lede">Keep only the non-zero cells: for each term, the list of documents it occurs in.</p>
+      <div class="sl-cols">
+        <div class="sl-card bfs"><h3>Dictionary</h3><p style="margin:0;">The terms, each with its document frequency <i>df<sub>t</sub></i>: the number of documents that contain <i>t</i>.</p></div>
+        <div class="sl-card bfs"><h3>Postings</h3><p style="margin:0;">For each term, the list of document ids that contain it. One entry is a <b>posting</b>.</p></div>
+      </div>
+      <p class="sl-take">❗ Postings lists are sorted by document id. The query algorithms depend on this.</p>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#inverted-index">
+    <div class="slide-in">
+      <span class="badge bfs">See it</span>
+      <h2>From a matrix row to a postings list</h2>
+      <div class="sl-embed" data-embed="#pg-pl"></div>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#text">
+    <div class="slide-in">
+      <span class="badge dfs">From text to terms</span>
+      <h2>Tokenization: where to split?</h2>
+      <div class="sl-embed" data-embed="#tz-cases"></div>
+      <p class="sl-take">Tokenization depends on the language: German compounds, no spaces in Chinese and Japanese, right-to-left Arabic and Hebrew.</p>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#text">
+    <div class="slide-in">
+      <span class="badge dfs">From text to terms</span>
+      <h2>Normalization and stop words</h2>
+      <div class="sl-cols">
+        <div class="sl-card dfs">
+          <h3>Normalization</h3>
+          <ul class="concept-list">
+            <li><b>Equivalence classes</b>: <code>U.S.A.</code> = <code>USA</code>.</li>
+            <li><b>Case folding</b>: lower-case everything; <code>US</code> becomes <code>us</code>.</li>
+            <li><b>Accents</b>: <code>résumé</code> vs <code>resume</code>.</li>
+            <li><b>Thesauri</b>: <code>car</code> = <code>automobile</code>.</li>
+          </ul>
+        </div>
+        <div class="sl-card dfs">
+          <h3>Stop words</h3>
+          <ul class="concept-list">
+            <li><b>For</b>: about 30% of the postings belong to the 30 most common words.</li>
+            <li><b>Against</b>: <i>"To be or not to be"</i>, <i>flights to London</i>.</li>
+            <li>Lists shrink: 200–300 words, then 7–12, then none.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#text">
+    <div class="slide-in">
+      <span class="badge dfs">From text to terms</span>
+      <h2>Lemmatization and stemming</h2>
+      <div class="sl-cols">
+        <div class="sl-card ids">
+          <h3>Lemmatization</h3>
+          <div class="sl-pair"><code>am</code> <code>are</code> <code>is</code><span class="arr">→</span><code>be</code></div>
+          <div class="sl-pair"><code>car</code> <code>cars</code> <code>car's</code><span class="arr">→</span><code>car</code></div>
+          <p style="margin:0.6rem 0 0;">The dictionary headword.</p>
+        </div>
+        <div class="sl-card ucs">
+          <h3>Porter stemmer</h3>
+          <div class="sl-pair"><code>sses → ss</code> <code>ies → i</code> <code>ational → ate</code></div>
+          <div class="sl-pair"><code>(m&gt;1) ement →</code>: <code>replacement</code><span class="arr">→</span><code>replac</code>, <code>cement</code> stays</div>
+          <div class="sl-pair">Stems need not be words: <code>wedding</code><span class="arr">→</span><code>wed</code>, <code>monkey</code><span class="arr">→</span><code>monkei</code></div>
+        </div>
+      </div>
+      <p class="sl-take">Stemming helps recall for some queries and hurts precision for others.</p>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#text">
+    <div class="slide-in">
+      <span class="badge dfs">Try it</span>
+      <h2>Which terms end up in the dictionary?</h2>
+      <div class="sl-embed" data-embed="#pg-nm"></div>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#dataset">
+    <div class="slide-in">
+      <span class="badge ucs">Dictionary</span>
+      <h2>The dictionary of sci.crypt</h2>
+      <p class="sl-lede">100 posts from <code>mini_newsgroups</code>, headers included. <i>df<sub>t</sub></i> is also the length of the term's postings list.</p>
+      <div class="sl-embed" data-embed="#pg-df"></div>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#construction">
+    <div class="slide-in">
+      <span class="badge ids">Index construction</span>
+      <h2>Pairs, sort, merge, split</h2>
+      <ol class="concept-list">
+        <li><b>Pairs</b>: one <code>(token, doc_id)</code> per token, in document order.</li>
+        <li><b>Sort by token</b>: brings all occurrences of a term together. Python's sort is stable, so doc ids stay ascending.</li>
+        <li><b>Merge</b>: equal <code>(token, doc_id)</code> neighbours become <code>(token, doc_id, term_freq)</code>.</li>
+        <li><b>Split</b>: dictionary <code>term → (doc_freq, total_freq)</code>, postings <code>term → [(doc_id, term_freq), …]</code>.</li>
+      </ol>
+      <p class="sl-take">On rec.autos: <code>zip</code> → (1, 2), [(49, 2)].</p>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#construction">
+    <div class="slide-in">
+      <span class="badge ids">Try it</span>
+      <h2>Build an index step by step</h2>
+      <div class="sl-embed" data-embed="#pg-ib"></div>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#boolean">
+    <div class="slide-in">
+      <span class="badge bfs">Querying</span>
+      <h2>AND: merge two postings lists</h2>
+      <div class="sl-cols">
+        <div class="sl-card bfs">
+          <h3><i>living</i> AND <i>dead</i></h3>
+          <div class="sl-pair"><b>living</b> 1 → 2 → 5 → 17 → 30 → 31 → 44 → 45 → 47</div>
+          <div class="sl-pair"><b>dead</b> 5 → 17 → 44</div>
+          <div class="sl-pair"><b>result</b> 5 → 17 → 44</div>
+        </div>
+        <div class="sl-card ids">
+          <h3>The merge</h3>
+          <p style="margin:0;">One pointer per list. Equal ids → add to the result, move both. Otherwise move the pointer at the smaller id.</p>
+          <span class="sl-num" style="margin-top:0.6rem;"><i>O</i>(<i>x</i> + <i>y</i>)</span>
+        </div>
+      </div>
+      <p class="sl-take"><code>OR</code> and <code>AND NOT</code> are also <i>O</i>(<i>x</i> + <i>y</i>) merges; a lone <code>NOT x</code> scans all <i>N</i> ids, <i>O</i>(<i>N</i>).</p>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#boolean">
+    <div class="slide-in">
+      <span class="badge bfs">Try it</span>
+      <h2>Merge two postings lists</h2>
+      <div class="sl-embed" data-embed="#pg-mg"></div>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#faster">
+    <div class="slide-in">
+      <span class="badge dfs">Optimization</span>
+      <h2>Process terms by increasing <i>df</i></h2>
+      <p class="sl-lede">For an <code>AND</code> of many terms, start with the rarest. The intermediate result is never longer than the shortest list.</p>
+      <div class="sl-embed" data-embed="#pg-qp"></div>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#faster">
+    <div class="slide-in">
+      <span class="badge dfs">Optimization</span>
+      <h2>Skip pointers</h2>
+      <ul class="concept-list">
+        <li><b>Use</b>: if the skip target is still ≤ the other list's current id, jump over everything in between.</li>
+        <li><b>Tradeoff</b>: more skips are taken more often but cost more comparisons; fewer skips span too far.</li>
+        <li><b>Heuristic</b>: √<i>L</i> evenly spaced skips for a list of length <i>L</i>.</li>
+        <li><b>Only for <code>AND</code></b>: an <code>OR</code> visits every posting anyway.</li>
+      </ul>
+      <p class="sl-take">❗ On modern hardware they may not help: loading the bigger list can cost more than the merge saves.</p>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#faster">
+    <div class="slide-in">
+      <span class="badge dfs">Try it</span>
+      <h2>Intersect with skip pointers</h2>
+      <div class="sl-embed" data-embed="#pg-sk"></div>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#phrase">
+    <div class="slide-in">
+      <span class="badge ucs">Phrases</span>
+      <h2>Phrase queries: <code>"stanford university"</code></h2>
+      <div class="sl-cols">
+        <div class="sl-card bad">
+          <h3>Biword index</h3>
+          <p style="margin:0;">Index pairs of consecutive terms: <code>friends romans</code>, <code>romans countrymen</code>. Longer phrases become an <code>AND</code> of biwords, so there can be <b>false positives</b>.</p>
+        </div>
+        <div class="sl-card good">
+          <h3>Positional index</h3>
+          <p style="margin:0 0 0.4rem;">Store the positions of each term in each document:</p>
+          <div class="sl-embed" data-embed="#ph-example"></div>
+        </div>
+      </div>
+      <p class="sl-take">A positional index also answers proximity queries (<code>/k</code>: within <i>k</i> words). It is 2–4 times as large.</p>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#phrase">
+    <div class="slide-in">
+      <span class="badge ucs">Try it</span>
+      <h2>Phrase and proximity queries</h2>
+      <div class="sl-embed" data-embed="#pg-ph"></div>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#summary">
+    <div class="slide-in">
+      <h2>Key takeaways</h2>
+      <ol class="concept-list">
+        <li><b>Boolean retrieval</b> returns a set of documents; an index built once replaces scanning the text.</li>
+        <li><b>Inverted index</b>: a dictionary of terms with their <i>df</i>, each pointing to a postings list sorted by doc id.</li>
+        <li><b>Tokens to terms</b>: tokenization, normalization, stop words, stemming; each choice trades recall against precision.</li>
+        <li><b>Construction</b>: pairs → sort → merge → split.</li>
+        <li><b>Queries</b> are linear merges, <i>O</i>(<i>x</i> + <i>y</i>); process terms by increasing <i>df</i>, skip pointers for <code>AND</code>.</li>
+        <li><b>Phrases</b>: biwords give false positives; positional indexes answer phrase and proximity queries.</li>
+      </ol>
+    </div>
+  </section>
+
+</template>
+<script src="../present.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <script src="code-cards.js"></script>
