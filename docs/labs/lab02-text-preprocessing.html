@@ -120,7 +120,7 @@
     </ul>
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: split into sentences</h4>
-    <p class="section-lede">The outputs were computed with NLTK 3.9. Compare the two models on <b>Abbreviations</b>.</p>
+    <p class="section-lede">The outputs were computed with NLTK 3.9. Compare the two models on <b>Abbreviations</b>; on <b>Newsgroup post</b> (a real <code>sci.crypt</code> message), training doesn't help.</p>
     <div class="playground" id="pg-sent">
       <div class="pg-controls"><div class="strategy-pick" id="ss-pre"></div></div>
       <div class="pg-controls"><div class="strategy-pick" id="ss-model"></div></div>
@@ -640,6 +640,7 @@ print(len(df), len(df_no_stopwords), len(stemmed_freqs))
       <ul class="concept-list">
         <li><b>Unsupervised</b>: learns abbreviations, collocations and sentence starters from a corpus.</li>
         <li><b><code>PunktSentenceTokenizer()</code></b>: untrained, so it knows no abbreviations. <b><code>sent_tokenize</code></b>: pre-trained on English.</li>
+        <li><b>Newsgroup post</b>: training fixes abbreviations, not Usenet's <code>&gt;</code> quoting — both models still fail on it.</li>
       </ul>
       <div class="sl-embed" data-embed="#pg-sent" style="margin-top:1rem;"></div>
     </div>

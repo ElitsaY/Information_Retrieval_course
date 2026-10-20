@@ -132,7 +132,7 @@
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: a document's direct index</h4>
     <p class="section-lede">Pick a headline and see its direct-index entry: the document, tokenized and lower-cased, as a plain list of terms.</p>
-    <div class="playground">
+    <div class="playground" id="pg-di">
       <div class="pg-controls">
         <label class="ii-lbl" for="di-pick">Document</label>
         <select id="di-pick" class="ii-select"></select>
@@ -744,7 +744,7 @@ print(and_query(postings, 'living', 'dead'))   # [36]</code></pre>
         <input id="ph-q" class="ii-input" style="max-width:16rem;" spellcheck="false" autocomplete="off" aria-label="Query">
         <div class="strategy-pick" id="ph-mode"></div>
       </div>
-      <div class="beam-control" id="ph-k-row" style="margin:0 0 0.8rem;"><label for="ph-k">Within \(k\) words</label><input type="range" id="ph-k" min="1" max="6" value="2" step="1"><span class="val" id="ph-k-val">2</span></div>
+      <div class="beam-control" id="ph-k-row" style="margin:0 0 0.8rem;"><label for="ph-k">Within \(k\) words</label><input type="range" id="ph-k" min="1" max="6" value="1" step="1"><span class="val" id="ph-k-val">1</span></div>
       <div class="pg-grid">
         <div id="ph-docs"></div>
         <div class="al-out" id="ph-out"></div>
@@ -1035,6 +1035,15 @@ print(and_query(postings, 'living', 'dead'))   # [36]</code></pre>
         <div class="sl-card ids"><h3>Token</h3><p style="margin:0;">One occurrence of a character sequence in a document: <code>Friends</code>.</p></div>
         <div class="sl-card bfs"><h3>Term</h3><p style="margin:0;">The normalized form stored in the dictionary: <code>friend</code>.</p></div>
       </div>
+    </div>
+  </section>
+
+  <section class="slide" data-section="#direct-index">
+    <div class="slide-in">
+      <span class="badge ids">Foundation</span>
+      <h2>The direct index</h2>
+      <p class="sl-lede">A document is naturally just its list of terms: <code>doc → terms</code>. To answer <code>kills</code> we'd have to scan every document in turn.</p>
+      <div class="sl-embed" data-embed="#pg-di"></div>
     </div>
   </section>
 
