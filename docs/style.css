@@ -1979,11 +1979,16 @@ table.summary thead code { background: rgba(255, 255, 255, 0.18); border-color: 
 .qq-docs li.minus { border-left-color: #d9546e; background: color-mix(in srgb, #d9546e 9%, var(--surface)); }
 @media (max-width: 760px) { .qq-cols { grid-template-columns: minmax(0, 1fr); } .pp-row > .ii-lbl { flex-basis: 100%; } .pp-row > .pp-n { display: none; } .tz-pre { flex-wrap: wrap; } }
 
-/* ---- Lab 03 (IR): tolerant retrieval and spelling correction ---- */
+/* ---- Lab 03 (IR): spelling correction ---- */
 .art-sc .hero-art .cell { fill: none; stroke: var(--indigo); stroke-width: 1.2; opacity: 0.22; }
 .art-sc .hero-art .cell.diag { fill: color-mix(in srgb, var(--bfs) 30%, transparent); stroke: var(--bfs); opacity: 0.35; }
 .art-sc .hero-art .dig { font-size: 11px; font-weight: 700; fill: var(--ink-soft); opacity: 0.35; font-family: 'Poppins', sans-serif; }
 table.summary.sc-small th, table.summary.sc-small td { padding: 0.45rem 0.7rem; font-size: 0.86rem; }
+ol.concept-list.steps { counter-reset: step; }
+ol.concept-list.steps > li { counter-increment: step; padding-left: 1.9rem; }
+ol.concept-list.steps > li::before { content: counter(step); top: 0.1em; width: 1.35rem; height: 1.35rem; color: #fff; font: 700 0.78rem/1.35rem 'Poppins', sans-serif; text-align: center; }
+.tr-rows code { white-space: nowrap; }
+table.summary.tr-rows td.hl { background: color-mix(in srgb, var(--ucs) 16%, var(--surface)); }
 .ed-grid { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: start; }
 .ed-scroll { overflow-x: auto; }
 .ed-table { border-collapse: separate; border-spacing: 3px; font-variant-numeric: tabular-nums; margin: 0 auto; }
@@ -2016,8 +2021,6 @@ table.summary.sc-small th, table.summary.sc-small td { padding: 0.45rem 0.7rem; 
 .ml-plot .tr-node.off { opacity: 0.35; } .ml-plot .tr-node.off circle { stroke: var(--ink-soft); stroke-dasharray: 3 3; }
 .ml-plot .tr-ch { font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 800; fill: var(--ink); }
 .ml-plot .tr-v { font-family: 'Poppins', sans-serif; font-size: 11px; font-weight: 800; fill: var(--indigo); }
-.sx-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--indigo); font-size: 1rem; }
-.sc-query { font-size: 0.95rem; padding: 0.4rem 0.7rem !important; }
 
 /* ---- Lab 04 (IR): ranked retrieval, TF-IDF, cosine, BM25 ---- */
 .art-rr .hero-art .bar { opacity: 0.22; } .art-rr .hero-art .bar.b0 { fill: var(--indigo); } .art-rr .hero-art .bar.b1 { fill: var(--bfs); } .art-rr .hero-art .bar.b2 { fill: var(--ucs); }

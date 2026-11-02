@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lab 03 — Tolerant Retrieval and Spelling Correction | Class Notes</title>
-<meta name="description" content="Interactive notes on tolerant retrieval: edit distance, n-gram overlap and the Jaccard coefficient, tries, context-sensitive correction, and Soundex.">
+<title>Lab 03 — Spelling Correction | Class Notes</title>
+<meta name="description" content="Interactive notes on spelling correction: edit distance, n-gram overlap and the Jaccard coefficient, and tries.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
@@ -31,7 +31,7 @@
       <li><a href="lab00-introduction.html"><span class="lm-n">00</span>Introduction</a></li>
       <li><a href="lab01-inverted-index.html"><span class="lm-n">01</span>Inverted Index and Boolean Queries</a></li>
       <li><a href="lab02-text-preprocessing.html"><span class="lm-n">02</span>Text Preprocessing</a></li>
-      <li><a href="lab03-spelling-correction.html" aria-current="page"><span class="lm-n">03</span>Tolerant Retrieval and Spelling Correction</a></li>
+      <li><a href="lab03-spelling-correction.html" aria-current="page"><span class="lm-n">03</span>Spelling Correction</a></li>
       <li><a href="lab04-ranked-retrieval.html"><span class="lm-n">04</span>Ranked Retrieval: TF-IDF and BM25</a></li>
       <li><a href="lab05-evaluation.html"><span class="lm-n">05</span>Evaluating IR Systems</a></li>
       <li><a href="lab06-crawling-pagerank.html"><span class="lm-n">06</span>Web Crawling and PageRank</a></li>
@@ -58,11 +58,10 @@
   <svg id="sc-hero-bg" class="hero-art" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
   <div class="wrap">
     <p class="eyebrow">Lab 03</p>
-    <h1>Tolerant Retrieval and Spelling Correction</h1>
+    <h1>Spelling Correction</h1>
     <div class="badges">
       <span class="badge bfs">Edit distance</span>
       <span class="badge dfs">n-gram overlap</span>
-      <span class="badge ucs">Soundex</span>
     </div>
   </div>
 </section>
@@ -75,14 +74,11 @@
   <!-- ===== OVERVIEW ===== -->
   <section class="block" id="overview">
     <h2 class="section-title">Overview of the lab</h2>
-    <p class="section-lede"><b>Goal</b>: find documents even when the query does not match the dictionary exactly: the user misspells a word or spells a name as it sounds. The lab goes with the lecture on tolerant retrieval (IIR, chapter 3).</p>
+    <p class="section-lede"><b>Goal</b>: find documents even when the query does not match the dictionary exactly: the user misspells a word. The lab goes with the lecture on tolerant retrieval (IIR, chapter 3).</p>
     <ol class="concept-list">
       <li><a href="#task">Spelling correction</a>: its uses and flavors, and what we need before we start (a list of correct words).</li>
       <li><a href="#edit">Edit distance</a>: how far apart two words are, computed by dynamic programming.</li>
       <li><a href="#ngram">Finding candidates fast</a>: n-gram overlap, the Jaccard coefficient, tries.</li>
-      <li><a href="#context">Context and choosing a suggestion</a>: <i>flew form Heathrow</i>, "Did you mean", thesauri.</li>
-      <li><a href="#soundex">Soundex</a>: matching names by how they sound.</li>
-      <li><a href="#engine">Putting it together</a>: which queries the engine can now answer.</li>
     </ol>
   </section>
 
@@ -268,7 +264,7 @@ print(nltk.jaccard_distance(set('mapping'), set('mappings')))      # 0.142857142
       <div class="dbox-label">📐 Jaccard coefficient</div>
       <p>For two sets \(X\) and \(Y\) (here: the n-grams of two words). It is 1 when the sets are equal and 0 when they are disjoint; the sets need not have the same size.</p>
       <div class="math-block">\[ J(X, Y) = \frac{|X \cap Y|}{|X \cup Y|} \]</div>
-      <p>The union does not have to be built: \(|X \cup Y| = |X| + |Y| - |X \cap Y|\). The intersection size is exactly the count from the merge above.</p>
+      <p>\(|X \cup Y| = |X| + |Y| - |X \cap Y|\). The intersection size is exactly the count from the merge above.</p>
       <p>Our example: the query <i>bord</i> has \(|X| = 3\) bigrams (<code>bo</code> <code>or</code> <code>rd</code>). For each word from the postings lists (shared bigrams highlighted):</p>
       <div class="table-wrap"><table class="summary sc-small rr-num ng-post">
         <thead><tr><th>word</th><th>its bigrams</th><th>\(|Y|\)</th><th>shared</th><th>\(J\) = shared / (\(3 + |Y|\) − shared)</th></tr></thead>
@@ -383,9 +379,10 @@ def ngram_spellcheck(word, postings, n, jaccard_threshold=0.7):
         <li><i>lord</i>: overlap \(2/3 = 0.67\), Jaccard \(2/4 = 0.50\)</li>
         <li><i>boardroom</i>: overlap \(2/3 = 0.67\), Jaccard \(2/9 = 0.22\)</li>
       </ul>
-      <p>The overlap coefficient gives <i>lord</i> and <i>boardroom</i> the same score, because it ignores the 6 extra bigrams of <i>boardroom</i>. For spelling correction this favours long words: <i>car</i> has all its bigrams in <i>carbon</i>, so their overlap coefficient is 1, while Jaccard gives \(2/5 = 0.40\).</p>
+      <p>The overlap coefficient gives <i>lord</i> and <i>boardroom</i> the same score, because it ignores the 6 extra bigrams of <i>boardroom</i>.</p>
+      <p>❗ <b>For spelling correction this favours long words.</b> For example, <i>car</i> has all its bigrams in <i>carbon</i>, so their overlap coefficient is 1, while Jaccard gives \(2/5 = 0.40\).</p>
     </div>
-    <p class="section-lede"><b>Exercise 5</b>: we have two sets \(A\) and \(B\) with 50 words in common, and the combined set has 100 words. What is the Jaccard coefficient? Does it change if we remove 10 words from \(A\) and add 10 to \(B\), keeping the 50 shared words? Compare with the <b>overlap coefficient</b>, \(|A \cap B| / \min(|A|, |B|)\).</p>
+    <p class="section-lede"><b>Exercise 4</b>: we have two sets \(A\) and \(B\) with 50 words in common, and the combined set has 100 words. What is the Jaccard coefficient? Does it change if we remove 10 words from \(A\) and add 10 to \(B\), keeping the 50 shared words? Compare with the <b>overlap coefficient</b>, \(|A \cap B| / \min(|A|, |B|)\).</p>
     <div class="playground">
       <div class="beam-control show" style="margin:0 0 0.8rem;"><label for="jc-a">\(|A|\)</label><input type="range" id="jc-a" min="50" max="100" value="75" step="5"><span class="val" id="jc-a-val">75</span></div>
       <div class="pg-grid">
@@ -395,12 +392,31 @@ def ngram_spellcheck(word, postings, n, jaccard_threshold=0.7):
     </div>
     <div class="dt-ex-list" style="margin-top:1rem;">
       <details class="dt-ex">
-        <summary><span class="dt-ex-no">5</span><span class="dt-ex-q">Answer to Exercise 5.</span></summary>
+        <summary><span class="dt-ex-no">4</span><span class="dt-ex-q">Answer to Exercise 4.</span></summary>
         <div class="dt-ex-sol">
           <p><b>Jaccard</b>: \(50 / 100 = 0.5\), and it does not change: moving 10 words from \(A\) to \(B\) keeps the intersection (50) and the union (100).</p>
           <p><b>Overlap coefficient</b>: \(|A| + |B| = 100 + 50 = 150\). With \(|A| = |B| = 75\) it is \(50 / 75 \approx 0.67\); with \(|A| = 65, |B| = 85\) it is \(50 / 65 \approx 0.77\). It grows as the smaller set shrinks and reaches 1 when one set is contained in the other, however large the other is. Jaccard only looks at intersection and union, so it does not care how the rest is split.</p>
         </div>
       </details>
+    </div>
+
+    <div class="definition-box" style="margin-top:1.8rem;">
+      <div class="dbox-label">Recap: Jaccard or overlap coefficient?</div>
+      <div class="table-wrap"><table class="summary sc-small">
+        <thead><tr><th></th><th>Jaccard</th><th>Overlap coefficient</th></tr></thead>
+        <tbody>
+          <tr><td style="white-space:nowrap;"><b>Divides by</b></td><td>the union, \(|X \cup Y|\)</td><td>the smaller set, \(\min(|X|, |Y|)\)</td></tr>
+          <tr><td style="white-space:nowrap;"><b>Is 1 when</b></td><td>both words have exactly the same n-grams</td><td>the smaller set is inside the larger one</td></tr>
+          <tr><td style="white-space:nowrap;"><b>Longer words</b></td><td>every extra n-gram lowers the score</td><td>extra n-grams are ignored</td></tr>
+          <tr><td style="white-space:nowrap;"><b>Pros</b></td><td>Prefers candidates of about the same length as the query.</td><td>Gives a short string inside a long one the full score, however long the long one is.</td></tr>
+          <tr><td style="white-space:nowrap;"><b>Cons</b></td><td>A word that contains the whole query still scores low if it is much longer: <i>inform</i> vs <i>information</i> gets \(5/10 = 0.50\) (overlap: 1).</td><td>Cannot tell an equal word from a longer word that contains it: <i>car</i> and <i>carbon</i> get 1, and <i>lord</i> and <i>boardroom</i> tie. Many candidates end up tied at 1.</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Which one to use?</b> Ask whether the two strings should be the same word.</p>
+      <ul>
+        <li><b>Jaccard</b>: when the answer should be the query word without its typos, as in spelling correction. A misspelled word is usually about as long as the correct one, so penalising extra n-grams pushes longer words like <i>boardroom</i> down. This is the measure IIR uses with the n-gram index.</li>
+        <li><b>Overlap coefficient</b>: when the query is expected to be a part of the answer. Examples are a prefix the user is still typing (autocomplete), a short name searched inside long titles, or a paragraph copied into a longer document. Here Jaccard's length penalty would push the right answers down.</li>
+      </ul>
     </div>
 
     <div class="definition-box" style="margin-top:1.8rem;">
@@ -411,6 +427,102 @@ def ngram_spellcheck(word, postings, n, jaccard_threshold=0.7):
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Solution 2: tries</h3>
     <p class="section-lede">To correct <i>lates</i> we might compute the edit distance to <i>late</i>, <i>latest</i> and <i>latte</i>, and every time we recompute the rows for the common prefix <i>lat</i>. Store the whole vocabulary in a <b>trie</b>, where each node is one letter and its branches are the letters that can follow; then each prefix's row of the edit-distance table is computed <b>once</b>, and branches whose row is already above the limit are cut off (<a href="http://stevehanov.ca/blog/index.php?id=114" target="_blank" rel="noopener">Steve Hanov's post</a>).</p>
+
+    <div class="definition-box">
+      <div class="dbox-label">📐 The limit</div>
+      <p>The largest edit distance we still accept as a correction. A dictionary word more than <i>limit</i> edits away from the query counts as a different word, and we ignore it. Without a limit every word in the dictionary would be a correction, only a worse one.</p>
+      <p>With the lecture's five words and the query <i>gold</i>:</p>
+      <ul>
+        <li>edit distances: <i>good</i> 1, <i>gong</i> 2, <i>bill</i> 3, <i>big</i> 4, <i>bigger</i> 5</li>
+        <li>limit 1 keeps <i>good</i>; limit 2 keeps <i>good</i> and <i>gong</i>; limit 3 also keeps <i>bill</i></li>
+      </ul>
+      <p>A small limit can miss the right word when the user made two typos. A big limit lets in more wrong words and cuts fewer branches, so the search is slower. Most typos are one or two edits, so the limit is usually 1 or 2. It plays the same role as the Jaccard threshold in Solution 1.</p>
+    </div>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">The search algorithm</h4>
+    <p class="section-lede">Each trie node is a prefix (<i>g</i>, <i>go</i>, <i>goo</i>, …). For each node we compute <b>one row</b> of the edit-distance table: the distance from that prefix to <code>""</code>, <i>g</i>, <i>go</i>, <i>gol</i> and <i>gold</i>. The row comes from the parent's row and the node's letter, with the same three moves as in the edit distance algorithm. So the row for <i>go</i> is computed once and used for both <i>good</i> and <i>gong</i>. Two cells of the row tell us what to do:</p>
+    <ul class="concept-list">
+      <li><b>Last cell</b>: the edit distance from the prefix to the whole query. If the node ends a word and the last cell is \(\le\) limit, the word is a <b>result</b>.</li>
+      <li><b>Smallest cell</b>: the best that any longer word with this prefix can still reach. If it is \(&gt;\) limit, we <b>cut</b> the branch and never visit the nodes below it.</li>
+    </ul>
+    <ol class="concept-list steps">
+      <li>Start at the root with the row \(0, 1, \dots, |q|\): the empty prefix against each prefix of the query \(q\).</li>
+      <li>For each child, compute its row from the parent's row and the child's letter.</li>
+      <li>If the child ends a word and its last cell is \(\le\) limit, add the word to the results.</li>
+      <li>If the smallest cell is \(\le\) limit, repeat step 2 for the child's children. Otherwise stop there.</li>
+    </ol>
+
+    <h4 style="margin:1.4rem 0 0.4rem;">Example: <i>gold</i> with limit 2</h4>
+    <p class="section-lede">The columns of each row are the query prefixes <code>""</code>, <i>g</i>, <i>go</i>, <i>gol</i>, <i>gold</i>. The root's row is <code>0 1 2 3 4</code>. The nodes are visited depth-first, in this order:</p>
+    <div class="table-wrap"><table class="summary sc-small tr-rows">
+      <thead><tr><th>node</th><th>row</th><th>smallest</th><th>last</th><th>step</th></tr></thead>
+      <tbody>
+        <tr><td><i>b</i></td><td><code>1 1 2 3 4</code></td><td>1</td><td>4</td><td>go on</td></tr>
+        <tr><td><i>bi</i></td><td><code>2 2 2 3 4</code></td><td>2</td><td>4</td><td>go on</td></tr>
+        <tr><td><i>big</i></td><td><code>3 2 3 3 4</code></td><td>2</td><td>4</td><td>a word, but 4 &gt; 2; go on</td></tr>
+        <tr><td><i>bigg</i></td><td><code>4 3 3 4 4</code></td><td><b>3</b></td><td>4</td><td><b>cut</b>: <i>bigge</i> and <i>bigger</i> are never visited</td></tr>
+        <tr><td><i>bil</i></td><td><code>3 3 3 2 3</code></td><td>2</td><td>3</td><td>go on</td></tr>
+        <tr><td><i>bill</i></td><td><code>4 4 4 3 3</code></td><td><b>3</b></td><td>3</td><td>a word, but 3 &gt; 2; <b>cut</b></td></tr>
+        <tr><td><i>g</i></td><td><code>1 0 1 2 3</code></td><td>0</td><td>3</td><td>go on</td></tr>
+        <tr><td><i>go</i></td><td><code>2 1 0 1 2</code></td><td>0</td><td>2</td><td>go on</td></tr>
+        <tr><td><i>goo</i></td><td><code>3 2 1 1 2</code></td><td>1</td><td>2</td><td>go on</td></tr>
+        <tr><td class="hl"><i>good</i></td><td class="hl"><code>4 3 2 2 1</code></td><td class="hl">1</td><td class="hl"><b>1</b></td><td class="hl">a word, 1 \(\le\) 2: <b>result</b></td></tr>
+        <tr><td><i>gon</i></td><td><code>3 2 1 1 2</code></td><td>1</td><td>2</td><td>go on</td></tr>
+        <tr><td class="hl"><i>gong</i></td><td class="hl"><code>4 3 2 2 2</code></td><td class="hl">2</td><td class="hl"><b>2</b></td><td class="hl">a word, 2 \(\le\) 2: <b>result</b></td></tr>
+      </tbody>
+    </table></div>
+    <p>The results are <i>good</i> (1 edit) and <i>gong</i> (2 edits). We computed 12 rows plus the root's, 13 in total. Comparing the query with each of the five words separately needs 26 rows, one per letter plus the empty prefix.</p>
+
+    <p class="caption-note">💡 We cut on the smallest cell, never on the last one. At <i>big</i> the last cell is already 4, above the limit, but a longer word can still come back down. The prefix <i>x</i> has the row <code>1 1 2 3 4</code> and its last cell is 4, yet the word <i>xgold</i> is only 1 edit from <i>gold</i>.</p>
+
+    <details class="code-card">
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">trie_search.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py">class TrieNode:
+    def __init__(self):
+        self.children = {}   # letter -&gt; TrieNode
+        self.word = None     # set on the node where a word ends
+
+def build_trie(words):
+    root = TrieNode()
+    for w in words:
+        node = root
+        for letter in w:
+            node = node.children.setdefault(letter, TrieNode())
+        node.word = w
+    return root
+
+def search(root, query, limit):
+    first_row = list(range(len(query) + 1))   # the empty prefix vs "", q[:1], q[:2], ...
+    results = []
+    for letter, child in root.children.items():
+        search_node(child, letter, query, first_row, limit, results)
+    return results
+
+def search_node(node, letter, query, prev_row, limit, results):
+    row = [prev_row[0] + 1]
+    for j in range(1, len(query) + 1):
+        delete = prev_row[j] + 1                              # from above
+        insert = row[j - 1] + 1                               # from the left
+        replace = prev_row[j - 1] + (query[j - 1] != letter)  # diagonal
+        row.append(min(delete, insert, replace))
+
+    if node.word is not None and row[-1] &lt;= limit:   # a word, close enough
+        results.append((node.word, row[-1]))
+    if min(row) &lt;= limit:                            # otherwise cut the branch
+        for next_letter, child in node.children.items():
+            search_node(child, next_letter, query, row, limit, results)
+
+trie = build_trie(['big', 'bigger', 'bill', 'good', 'gong'])
+print(search(trie, 'gold', 2))   # [('good', 1), ('gong', 2)]
+print(search(trie, 'gold', 1))   # [('good', 1)]
+print(search(trie, 'gold', 3))   # [('bill', 3), ('good', 1), ('gong', 2)]</code></pre>
+    </details>
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: edit distance on a trie</h4>
     <p class="section-lede">The lecture's five words. Each node shows the edit distance between its prefix and the query; a word ending is a double circle. Nodes whose whole row is above the limit are pruned (grey), with their subtrees.</p>
@@ -423,85 +535,6 @@ def ngram_spellcheck(word, postings, n, jaccard_threshold=0.7):
       <div class="fig-scroll"><svg id="tr-svg" class="ml-plot" viewBox="0 0 700 330" aria-label="Trie of the vocabulary"></svg></div>
       <div class="al-out" id="tr-out" style="margin-top:0.6rem;"></div>
     </div>
-
-    <p class="caption-note" style="margin-top:1.4rem;"><b>Exercise 4</b>: if you already know your project, build and tune your own spellchecker, maybe even one for Bulgarian. Choose an implementation and a list of words (TextBlob's spellchecker is trained on Gutenberg's data), run your corpus through it, find words that were "corrected" although they were spelled correctly, and add them to your word list. 💡 A Grammarly-like spelling and grammar corrector for Bulgarian can be a good course project; if you are interested, we can discuss how to collect data and approach the task.</p>
-  </section>
-
-  <!-- ===== CONTEXT ===== -->
-  <section class="block algo-section ucs" id="context">
-    <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Lecture</span>
-    <h2 class="section-title">Context and choosing a suggestion</h2>
-    <p class="section-lede">Isolated-word correction cannot fix <i>flew <u>form</u> Heathrow</i>: every word is spelled correctly. If the phrase query matches no documents, we would like to answer <i>Did you mean "flew from Heathrow"?</i></p>
-    <ul class="concept-list">
-      <li><b>First idea</b>: for each query word, retrieve the dictionary terms close to it in (weighted) edit distance, then try the phrases with <b>one word replaced at a time</b> (<i>flew from heathrow</i>, <i>fled form heathrow</i>, <i>flea form heathrow</i>, …) and suggest the one with many hits. With 7 alternatives for <i>flew</i>, 19 for <i>form</i> and 3 for <i>heathrow</i> that is 7 + 19 + 3 = 29 phrases; trying every combination would be far more (8 · 20 · 4 = 640, counting each original word as an option).</li>
-      <li><b>Another approach</b>: break the phrase into a conjunction of biwords (Lab 01), look for biwords that need only one term corrected, and keep only frequent ones (<i>flew from</i> rather than <i>fled fore</i>) before extending them to the next word.</li>
-      <li><b>Which suggestion to show?</b> Many alternatives are enumerated for "Did you mean"; show one or a few. Heuristics: the alternative that hits the most documents, and query-log analysis for especially popular, topical queries.</li>
-      <li><b>Cost</b>: spelling correction is computationally expensive. Run it only on queries that matched few documents, not routinely on every query.</li>
-      <li><b>Caveat</b>: everything depends on what the index token is. In Chinese and Japanese, spelling correction is poorly defined.</li>
-    </ul>
-
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Thesauri and query expansion</h3>
-    <ul class="concept-list">
-      <li><b>Thesaurus</b>: a language-specific list of synonyms for terms likely to be queried (<i>car → automobile</i>); a hand-made alternative to edit distance. Machine learning can help build it.</li>
-      <li><b>Query expansion, not index expansion</b>: rewrite the query rather than the index. No index blow-up, but query processing slows down. It may retrieve more junk: <i>puma → jaguar</i> retrieves documents about cars instead of sneakers.</li>
-    </ul>
-  </section>
-
-  <!-- ===== SOUNDEX ===== -->
-  <section class="block algo-section ids" id="soundex">
-    <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Lecture</span>
-    <h2 class="section-title">Soundex</h2>
-    <p class="section-lede">Some misspellings come from typing a word as it sounds, mostly names: <i>chebyshev</i> vs <i>tchebycheff</i>. Soundex heuristics give every term a <b>phonetic hash</b> so that similar-sounding terms get the same code. Language specific, mainly for names.</p>
-    <ul class="concept-list">
-      <li><b>Index</b>: turn every token into a 4-character code and build an index from codes to terms; do the same with query terms, and search this index when the query asks for a Soundex match.</li>
-      <li><b>Why it works</b>: vowels are treated as interchangeable when transcribing names, and consonants with similar sounds (like D and T) share a digit.</li>
-    </ul>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Soundex, the typical algorithm</div>
-      <ol class="concept-list" style="margin:0.3rem 0 0;">
-        <li>Keep the first letter of the word.</li>
-        <li>Change A, E, I, O, U, H, W, Y to <code>0</code>.</li>
-        <li>Change letters to digits: B F P V → 1; C G J K Q S X Z → 2; D T → 3; L → 4; M N → 5; R → 6.</li>
-        <li>Repeatedly remove one out of each pair of consecutive identical digits.</li>
-        <li>Remove all zeros.</li>
-        <li>Pad with trailing zeros and return the first four positions: a letter and three digits. <i>Herman</i> becomes <code>H655</code>.</li>
-      </ol>
-    </div>
-    <p class="caption-note">💡 Step 4 on the slide reads "remove all pairs of consecutive digits". It should be one of each pair of <b>identical</b> consecutive digits (IIR): <i>Hermann</i> → H 0 6 5 0 5 5 → H 0 6 5 0 5 → H655, the same code as <i>Herman</i>.</p>
-
-    <h4 style="margin:1.4rem 0 0.4rem;">Try it: Soundex codes</h4>
-    <p class="section-lede">Type names separated by commas; each row shows the steps. Names with the same code are grouped.</p>
-    <div class="playground">
-      <input id="sx-in" class="ii-input" spellcheck="false" autocomplete="off" aria-label="Names">
-      <div class="table-wrap" style="margin-top:0.9rem;"><table class="summary sc-small sx-table" id="sx-table"></table></div>
-      <div class="al-out" id="sx-out" style="margin-top:0.8rem;"></div>
-    </div>
-    <p class="caption-note">💡 Soundex keeps the first letter, so the lecture's own example does not match: <i>chebyshev</i> is <code>C121</code> and <i>tchebycheff</i> is <code>T212</code>. Such rules depend on the writing system; for Chinese names in Wade-Giles vs Pinyin, Soundex maps both <i>hs</i> and <i>x</i> to 2 but maps <i>j</i> and <i>r</i> differently.</p>
-  </section>
-
-  <!-- ===== ENGINE ===== -->
-  <section class="block algo-section bfs" id="engine">
-    <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Big picture</span>
-    <h2 class="section-title">Putting it together</h2>
-    <p class="section-lede">We now have a basic inverted index with skip pointers, spelling correction and Soundex. Together they can answer queries such as</p>
-    <div class="math-block"><code class="sc-query">(SPELL(moriset) /3 toronto) OR SOUNDEX(chaikofski)</code></div>
-    <ul class="concept-list">
-      <li><b>Language detection</b>: many of these components need to know the language. For documents and paragraphs there is enough text for machine learning; for queries it is much harder, so add other cues (client settings, the domain the query comes from).</li>
-      <li><b>Results caching</b>: if 25% of your users search for <i>britney AND spears</i>, you probably need spelling correction, but you do not need to keep intersecting those two postings lists. The web query distribution is extremely skewed, so caching results for common queries pays off.</li>
-      <li><b>Design choices</b>: does stemming happen before the Soundex index? What about n-grams? How is a query parsed and dispatched to the different indexes?</li>
-    </ul>
-  </section>
-
-  <!-- ===== SUMMARY ===== -->
-  <section class="block" id="summary">
-    <h2 class="section-title">Summary: key takeaways</h2>
-    <ol class="concept-list">
-      <li><b>Tolerant retrieval</b>: map a query term to the dictionary terms the user meant, then run the normal query; correction needs a lexicon of correct words.</li>
-      <li><b>Edit distance</b>: insert, delete, replace; a dynamic-programming table in \(O(|s_1| \cdot |s_2|)\); weighted and transposition variants.</li>
-      <li><b>Candidates</b>: never compare the query with every term. Use an n-gram index and the Jaccard coefficient to shortlist, then rank by edit distance; a trie shares the work for common prefixes.</li>
-      <li><b>Context</b>: fix one word at a time or use biwords, choose the suggestion with the most hits, and run correction only when a query finds little.</li>
-      <li><b>Soundex</b>: a 4-character phonetic code (letter + 3 digits) for matching names that sound alike.</li>
-    </ol>
   </section>
 
 </div>

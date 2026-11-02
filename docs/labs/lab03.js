@@ -233,33 +233,6 @@ function initTrie() {
   render();
 }
 
-/* ---------- Soundex ---------- */
-const SX = { b: 1, f: 1, p: 1, v: 1, c: 2, g: 2, j: 2, k: 2, q: 2, s: 2, x: 2, z: 2, d: 3, t: 3, l: 4, m: 5, n: 5, r: 6 };
-function soundexSteps(name) {
-  const w = name.toLowerCase().replace(/[^a-z]/g, '');
-  if (!w) return null;
-  const digits = [...w.slice(1)].map(c => ('aeiouhwy'.includes(c) ? '0' : String(SX[c])));
-  const collapsed = digits.filter((d, i) => i === 0 || d !== digits[i - 1]);        // one of each pair of identical neighbours
-  const noZero = collapsed.filter(d => d !== '0');
-  const code = (w[0].toUpperCase() + noZero.join('') + '000').slice(0, 4);
-  return { w, digits: digits.join(''), collapsed: collapsed.join(''), noZero: noZero.join(''), code };
-}
-function initSoundex() {
-  const inp = document.getElementById('sx-in'), table = document.getElementById('sx-table'), out = document.getElementById('sx-out');
-  inp.value = 'Herman, Hermann, Robert, Rupert, Chebyshev, Tchebycheff, Elitsa';
-  function render() {
-    const rows = inp.value.split(',').map(s => s.trim()).filter(Boolean).slice(0, 14).map(n => [n, soundexSteps(n)]).filter(r => r[1]);
-    table.innerHTML = '<thead><tr><th>Name</th><th>1–3: letter + digits</th><th>4: collapse pairs</th><th>5: drop zeros</th><th>6: code</th></tr></thead><tbody>' +
-      rows.map(([n, s]) => `<tr data-s="ids"><td>${esc(n)}</td><td><code>${s.w[0].toUpperCase()} ${s.digits}</code></td><td><code>${s.w[0].toUpperCase()} ${s.collapsed}</code></td><td><code>${s.w[0].toUpperCase()} ${s.noZero || '—'}</code></td><td><b class="sx-code">${s.code}</b></td></tr>`).join('') + '</tbody>';
-    const groups = new Map();
-    rows.forEach(([n, s]) => { if (!groups.has(s.code)) groups.set(s.code, []); groups.get(s.code).push(n); });
-    const same = [...groups].filter(([, ns]) => ns.length > 1);
-    out.innerHTML = same.length ? '<p class="big">Same code: ' + same.map(([c, ns]) => `<b>${c}</b> ← ${ns.map(esc).join(', ')}`).join(' · ') + '</p>' : '<p class="note">No two names share a code.</p>';
-  }
-  inp.addEventListener('input', render);
-  render();
-}
-
 /* ---------- init ---------- */
 document.addEventListener('DOMContentLoaded', () => {
   initMath();
@@ -267,5 +240,4 @@ document.addEventListener('DOMContentLoaded', () => {
   initEditDistance();
   initJaccard();
   initTrie();
-  initSoundex();
 });
