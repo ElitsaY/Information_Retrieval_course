@@ -24,26 +24,6 @@ function pills(box, items, cur, onPick) {
     box.appendChild(b);
   });
 }
-const chip = (s, cls = '') => `<span class="chip sc-chip${cls}">${s}</span>`;
-
-/* ---------- the lexicon: sci.crypt dictionary from Lab 01, words made of letters only ---------- */
-const DF = typeof DF_SCICRYPT !== 'undefined' ? DF_SCICRYPT : {};
-const LEX = Object.keys(DF).filter(w => /^[a-z]+$/.test(w)).sort(cmp);          // 4,389 words
-const LEX_SET = new Set(LEX);
-const REV = LEX.map(w => [...w].reverse().join('')).sort(cmp);                 // the reverse B-tree
-const rev = (s) => [...s].reverse().join('');
-
-// all words in the sorted list with prefix p (a B-tree range query p ≤ w < p')
-function prefixSpan(sorted, p) {         // [lo, hi) of the entries starting with p
-  let lo = 0, hi = sorted.length;
-  while (lo < hi) { const m = (lo + hi) >> 1; if (sorted[m] < p) lo = m + 1; else hi = m; }
-  let end = lo;
-  while (end < sorted.length && sorted[end].startsWith(p)) end++;
-  return [lo, end];
-}
-const prefixRange = (sorted, p) => { const [lo, hi] = prefixSpan(sorted, p); return sorted.slice(lo, hi); };
-const nextKey = (p) => p.slice(0, -1) + String.fromCharCode(p.charCodeAt(p.length - 1) + 1);   // mon → moo
-const patternRe = (q) => new RegExp('^' + q.split('*').map(s => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$');
 
 /* ---------- maths rendering ---------- */
 function initMath() {
@@ -65,95 +45,6 @@ function initHero() {
       txt(svg, x0 + j * 22 + 9.5, y0 + i * 22 + 14, Math.abs(i - j) + (r() < 0.25 ? 1 : 0), 'dig', 'middle');
     }
   }
-}
-
-/* ---------- wild-card queries three ways ---------- */
-let BIGRAMS = null, PERMUTERM = null;
-function bigramIndex() {                 // bigram → terms, with $ marking the word boundaries
-  if (BIGRAMS) return BIGRAMS;
-  BIGRAMS = new Map();
-  LEX.forEach(w => { const s = '$' + w + '$'; for (let i = 0; i < s.length - 1; i++) { const g = s.slice(i, i + 2); if (!BIGRAMS.has(g)) BIGRAMS.set(g, new Set()); BIGRAMS.get(g).add(w); } });
-  return BIGRAMS;
-}
-function permutermIndex() {              // every rotation of term$, sorted, pointing back to the term
-  if (PERMUTERM) return PERMUTERM;
-  const rows = [];
-  LEX.forEach(w => { const s = w + '$'; for (let i = 0; i < s.length; i++) rows.push([s.slice(i) + s.slice(0, i), w]); });
-  rows.sort((a, b) => cmp(a[0], b[0]));
-  PERMUTERM = { keys: rows.map(r => r[0]), terms: rows.map(r => r[1]) };
-  return PERMUTERM;
-}
-function permutermKey(q) {               // rotate so the * is at the end: X*Y → Y$X*; X*Y*Z → Z$X* (+ filter)
-  const s = q + '$', first = s.indexOf('*'), last = s.lastIndexOf('*');
-  if (first < 0) return { key: s, exact: true };
-  return { key: s.slice(last + 1) + s.slice(0, first), exact: false, middle: s.slice(first + 1, last).split('*').filter(Boolean) };
-}
-function initWildcard() {
-  const inp = document.getElementById('wc-q'), out = document.getElementById('wc-out');
-  const PRE = ['mon*', '*mon', 'm*n', 'se*ate', 'fil*er', 'c*pt*s'];
-  pills(document.getElementById('wc-presets'), PRE.map(p => [p, p]), 'mon*', k => { inp.value = k; render(); });
-  inp.value = 'mon*';
-  const list = (ws, cls = '') => ws.length ? '<div class="chip-row sc-list">' + ws.slice(0, 60).map(w => chip(esc(w) + (DF[w] ? ` <small>${DF[w]}</small>` : ''), cls)).join('') + (ws.length > 60 ? `<span class="note">… ${ws.length - 60} more</span>` : '') + '</div>' : '<p class="note">no terms</p>';
-  function card(title, how, body) { return `<div class="wc-card"><h5>${title}</h5><div class="wc-how">${how}</div>${body}</div>`; }
-  function render() {
-    const q = inp.value.trim().toLowerCase().replace(/[^a-z*]/g, '');
-    if (!q) { out.innerHTML = '<p class="note">Type a query with letters and *.</p>'; return; }
-    const re = patternRe(q), truth = LEX.filter(w => re.test(w)), stars = (q.match(/\*/g) || []).length;
-    let html = '';
-    // (1) B-tree + reverse B-tree
-    if (stars === 1) {
-      const [X, Y] = q.split('*');
-      const W = X ? prefixRange(LEX, X) : null, R = Y ? prefixRange(REV, rev(Y)).map(rev) : null;
-      const res = (W && R ? W.filter(w => R.includes(w) && w.length >= X.length + Y.length) : (W || R)).sort(cmp);
-      const how = (X ? `<p>B-tree range <code>${esc(X)}</code> ≤ w &lt; <code>${esc(nextKey(X))}</code>: ${W.length} terms</p>` : '') +
-        (Y ? `<p>reverse B-tree range <code>${esc(rev(Y))}</code> ≤ w &lt; <code>${esc(nextKey(rev(Y)))}</code>: ${R.length} terms</p>` : '') +
-        (X && Y ? `<p>intersection: ${res.length} terms</p>` : '');
-      html += card('B-tree + reverse B-tree', how, list(res));
-    } else {
-      html += card('B-tree + reverse B-tree', '<p class="note">Handles a query with a single <code>*</code>. For more, use one of the two indexes on the right.</p>', '');
-    }
-    // (2) permuterm
-    const pk = permutermKey(q), P = permutermIndex();
-    const [lo, hi] = prefixSpan(P.keys, pk.key);
-    const hits = [...new Set(P.terms.slice(lo, hi).filter((_, i) => !pk.exact || P.keys[lo + i] === pk.key))].sort(cmp);
-    const kept = hits.filter(w => re.test(w)), dropped = hits.filter(w => !re.test(w));
-    html += card('Permuterm index', `<p>look up <code>${esc(pk.key)}${pk.exact ? '' : '*'}</code> among ${P.keys.length.toLocaleString('en')} rotations: ${hits.length} terms</p>` +
-      (pk.middle && pk.middle.length ? `<p>filter: must contain <code>${pk.middle.map(esc).join('</code>, <code>')}</code> in between → ${kept.length}</p>` : ''),
-      list(kept) + (dropped.length ? list(dropped, ' gone') : ''));
-    // (3) bigram index + post-filter
-    const B = bigramIndex(), padded = '$' + q + '$';
-    const grams = [...new Set(padded.split('*').flatMap(p => [...Array(Math.max(0, p.length - 1)).keys()].map(i => p.slice(i, i + 2))))];
-    let cand = null;
-    grams.forEach(g => { const s = B.get(g) || new Set(); cand = cand ? new Set([...cand].filter(w => s.has(w))) : new Set(s); });
-    cand = [...(cand || [])].sort(cmp);
-    const good = cand.filter(w => re.test(w)), bad = cand.filter(w => !re.test(w));
-    html += card('Bigram index', `<p><code>${grams.map(esc).join('</code> AND <code>') || '—'}</code>: ${cand.length} terms</p><p>post-filter against <code>${esc(q)}</code>: ${good.length} kept, ${bad.length} removed</p>`,
-      list(good) + (bad.length ? list(bad, ' gone') : ''));
-    out.innerHTML = html + `<p class="note wc-note">All three agree with a direct scan of the lexicon: ${truth.length} term${truth.length === 1 ? '' : 's'}. The small numbers are document frequencies in sci.crypt.</p>`;
-  }
-  inp.addEventListener('input', render);
-  render();
-}
-
-/* ---------- the permuterm vocabulary of one term ---------- */
-function initPermuterm() {
-  const t = document.getElementById('pm-term'), q = document.getElementById('pm-q'), out = document.getElementById('pm-out');
-  t.value = 'hello'; q.value = 'hel*o';
-  function render() {
-    const term = t.value.trim().toLowerCase().replace(/[^a-z]/g, '') || 'hello';
-    const query = q.value.trim().toLowerCase().replace(/[^a-z*]/g, '');
-    const s = term + '$', rots = [...Array(s.length).keys()].map(i => s.slice(i) + s.slice(0, i));
-    const pk = query ? permutermKey(query) : null;
-    const hit = (r) => pk && (pk.exact ? r === pk.key : r.startsWith(pk.key));
-    const match = query && patternRe(query).test(term);
-    out.innerHTML = `<div class="ii-step"><span class="ii-step-l">${s.length} rotations of <code>${esc(s)}</code></span><div class="chip-row">${rots.map(r => chip(esc(r), hit(r) ? ' hit' : '')).join('')}</div></div>` +
-      (pk ? `<p class="note" style="margin-top:0.6rem;">Query <code>${esc(query)}</code> → rotate to <code>${esc(pk.key)}${pk.exact ? '' : '*'}</code>` +
-        (pk.middle && pk.middle.length ? `, then filter for <code>${pk.middle.map(esc).join('</code>, <code>')}</code>` : '') +
-        `: ${rots.some(hit) ? `the highlighted rotation starts with <code>${esc(pk.key)}</code>, so <b>${esc(term)}</b> is found` : `no rotation of <b>${esc(term)}</b> starts with <code>${esc(pk.key)}</code>`}` +
-        (rots.some(hit) && !match ? ' (but the filter removes it)' : '') + '.</p>' : '');
-  }
-  [t, q].forEach(x => x.addEventListener('input', render));
-  render();
 }
 
 /* ---------- edit distance table ---------- */
@@ -268,72 +159,6 @@ function initEditDistance() {
   reset(true);
 }
 
-/* ---------- n-gram spell-checker ---------- */
-const GRAMS = {};
-function ngramIndex(n) {                 // n-gram → words (no boundary symbol, like the notebook)
-  if (GRAMS[n]) return GRAMS[n];
-  const post = new Map(), size = new Map();
-  LEX.forEach(w => { const g = new Set(wordGrams(w, n)); size.set(w, g.size); g.forEach(x => { if (!post.has(x)) post.set(x, []); post.get(x).push(w); }); });
-  return (GRAMS[n] = { post, size });
-}
-const wordGrams = (w, n) => [...Array(Math.max(0, w.length - n + 1)).keys()].map(i => w.slice(i, i + n));
-function lev(a, b) {
-  let prev = [...Array(b.length + 1).keys()];
-  for (let i = 1; i <= a.length; i++) { const cur = [i]; for (let j = 1; j <= b.length; j++) cur.push(Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] !== b[j - 1]))); prev = cur; }
-  return prev[b.length];
-}
-const ABC = 'abcdefghijklmnopqrstuvwxyz';
-function edits1(w) {                     // Norvig: deletes, transposes, replaces, inserts
-  const out = [];
-  for (let i = 0; i <= w.length; i++) {
-    const L = w.slice(0, i), R = w.slice(i);
-    if (R) out.push(L + R.slice(1));
-    if (R.length > 1) out.push(L + R[1] + R[0] + R.slice(2));
-    for (const c of ABC) { if (R) out.push(L + c + R.slice(1)); out.push(L + c + R); }
-  }
-  return out;
-}
-function initSpell() {
-  const inp = document.getElementById('sp-q'), th = document.getElementById('sp-th'), table = document.getElementById('sp-table');
-  const gramsBox = document.getElementById('sp-grams'), out = document.getElementById('sp-out');
-  let n = 2;
-  const PRE = ['enginering', 'encription', 'goverment', 'algoritm', 'securty', 'mesage'];
-  pills(document.getElementById('sp-presets'), PRE.map(p => [p, p]), 'enginering', k => { inp.value = k; render(); });
-  pills(document.getElementById('sp-n'), [[2, 'bigrams'], [3, 'trigrams']], 2, k => { n = +k; render(); });
-  inp.value = 'enginering';
-  function render() {
-    const q = inp.value.trim().toLowerCase().replace(/[^a-z]/g, ''), t = +th.value;
-    document.getElementById('sp-th-val').textContent = t.toFixed(2);
-    if (q.length < n) { table.innerHTML = ''; gramsBox.innerHTML = ''; out.innerHTML = '<p class="note">Type a longer word.</p>'; return; }
-    const I = ngramIndex(n), Q = [...new Set(wordGrams(q, n))];
-    gramsBox.innerHTML = `<span class="ii-step-l">${Q.length} ${n === 2 ? 'bigrams' : 'trigrams'} of <b>${esc(q)}</b> · postings length</span><div class="chip-row">` +
-      Q.map(g => chip(`${esc(g)} <small>${(I.post.get(g) || []).length}</small>`)).join('') + '</div>';
-    const shared = new Map();
-    Q.forEach(g => (I.post.get(g) || []).forEach(w => shared.set(w, (shared.get(w) || 0) + 1)));
-    const rows = [...shared].map(([w, c]) => ({ w, c, j: c / (Q.length + I.size.get(w) - c) })).sort((x, y) => y.j - x.j || y.c - x.c || cmp(x.w, y.w));
-    const top = rows.slice(0, 10);
-    top.forEach(r => { r.ed = lev(q, r.w); });
-    const cands = rows.filter(r => r.j >= t - 1e-9);
-    cands.forEach(r => { if (r.ed === undefined) r.ed = lev(q, r.w); });
-    cands.sort((x, y) => x.ed - y.ed || DF[y.w] - DF[x.w]);
-    table.innerHTML = `<thead><tr><th>word</th><th>shared</th><th>Jaccard</th><th>edit d.</th><th>df</th></tr></thead><tbody>` +
-      top.map(r => `<tr class="${r.j >= t - 1e-9 ? 'in' : ''}${cands[0] && r.w === cands[0].w ? ' best' : ''}"><td>${esc(r.w)}</td><td>${r.c} / ${Q.length}</td><td>${r.c} / (${Q.length} + ${I.size.get(r.w)} − ${r.c}) = <b>${r.j.toFixed(3)}</b></td><td>${r.ed}</td><td>${DF[r.w]}</td></tr>`).join('') + '</tbody>';
-    // Norvig: known words at edit distance 1, else 2
-    const e1 = new Set(edits1(q)), k1 = [...e1].filter(w => LEX_SET.has(w));
-    let e2 = null, k2 = [];
-    if (q.length <= 14) { e2 = new Set(); e1.forEach(w => edits1(w).forEach(x => e2.add(x))); k2 = [...e2].filter(w => LEX_SET.has(w) && !e1.has(w) && w !== q); }
-    const pick = (ws) => ws.slice().sort((x, y) => DF[y] - DF[x])[0];
-    const norvig = LEX_SET.has(q) ? q : k1.length ? pick(k1) : k2.length ? pick(k2) : null;
-    out.innerHTML = `<p class="big">n-grams: ${shared.size} words share an n-gram, <b>${cands.length}</b> reach J ≥ ${t.toFixed(2)}</p>` +
-      (cands.length ? `<p>Did you mean <b class="sp-best">${esc(cands[0].w)}</b>? <span class="note">(smallest edit distance, then most documents)</span></p>` : '<p>No candidate: lower the threshold.</p>') +
-      `<p class="big" style="margin-top:0.8rem;">Norvig: ${(54 * q.length + 25).toLocaleString('en')} strings at distance 1 (54n + 25, ${e1.size.toLocaleString('en')} distinct), ${k1.length} in the lexicon${e2 ? `; ${e2.size.toLocaleString('en')} at distance 2, ${k2.length} more in the lexicon` : ''}.</p>` +
-      (norvig ? `<p>Pick: <b class="sp-best">${esc(norvig)}</b> <span class="note">(fewest edits, then most documents)</span></p>` : '<p>No known word within 2 edits.</p>') +
-      (LEX_SET.has(q) ? `<p class="note">❗ <b>${esc(q)}</b> itself is in the lexicon (df ${DF[q]}): a corpus lexicon contains the corpus's misspellings, so both methods accept it as correct.</p>` : '');
-  }
-  inp.addEventListener('input', render); th.addEventListener('input', render);
-  render();
-}
-
 /* ---------- Jaccard vs overlap coefficient ---------- */
 function initJaccard() {
   const s = document.getElementById('jc-a'), svg = document.getElementById('jc-svg'), out = document.getElementById('jc-out');
@@ -439,10 +264,7 @@ function initSoundex() {
 document.addEventListener('DOMContentLoaded', () => {
   initMath();
   initHero();
-  initWildcard();
-  initPermuterm();
   initEditDistance();
-  initSpell();
   initJaccard();
   initTrie();
   initSoundex();

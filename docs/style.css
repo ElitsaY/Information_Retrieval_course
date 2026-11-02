@@ -197,6 +197,9 @@ h2.section-title { font-size: 1.7rem; margin: 0 0 0.6rem; }
   background: var(--indigo);
 }
 .concept-list li b { color: var(--ink); }
+.concept-list ul { list-style: none; margin: 0.2rem 0; padding: 0 0 0 0.2rem; display: grid; gap: 0.2rem; }
+.concept-list ul li::before { width: 6px; height: 6px; top: 0.6em; background: var(--ink-soft); }
+.ng-post mark { background: color-mix(in srgb, var(--ucs) 40%, var(--surface)); color: var(--ink); border-radius: 3px; padding: 0 1px; }
 
 /* ---- flip glossary cards ---- */
 .flip-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; }
@@ -1981,17 +1984,6 @@ table.summary thead code { background: rgba(255, 255, 255, 0.18); border-color: 
 .art-sc .hero-art .cell.diag { fill: color-mix(in srgb, var(--bfs) 30%, transparent); stroke: var(--bfs); opacity: 0.35; }
 .art-sc .hero-art .dig { font-size: 11px; font-weight: 700; fill: var(--ink-soft); opacity: 0.35; font-family: 'Poppins', sans-serif; }
 table.summary.sc-small th, table.summary.sc-small td { padding: 0.45rem 0.7rem; font-size: 0.86rem; }
-.chip.sc-chip { font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; padding: 0.2rem 0.5rem; }
-.chip.sc-chip small { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--indigo); margin-left: 0.15rem; }
-.chip.sc-chip.gone { text-decoration: line-through; color: var(--red-ink); border-style: dashed; border-color: #d9546e; }
-.chip.sc-chip.hit { background: var(--bfs); border-color: var(--bfs); color: #fff; }
-.sc-list { max-height: 12rem; overflow-y: auto; margin-top: 0.4rem; }
-.wc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8rem; }
-.wc-card { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.8rem 0.9rem; background: var(--surface); }
-.wc-card h5 { margin: 0 0 0.4rem; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink); }
-.wc-how p { margin: 0 0 0.3rem; font-size: 0.84rem; color: var(--ink-soft); overflow-wrap: anywhere; }
-.wc-note { grid-column: 1 / -1; margin: 0; font-size: 0.82rem; color: var(--ink-soft); }
-@media (max-width: 760px) { .wc-grid { grid-template-columns: minmax(0, 1fr); } }
 .ed-grid { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: start; }
 .ed-scroll { overflow-x: auto; }
 .ed-table { border-collapse: separate; border-spacing: 3px; font-variant-numeric: tabular-nums; margin: 0 auto; }
@@ -2012,14 +2004,6 @@ table.summary.sc-small th, table.summary.sc-small td { padding: 0.45rem 0.7rem; 
 .ed-col.s { border-color: var(--ucs); background: color-mix(in srgb, var(--ucs) 14%, var(--surface)); }
 .ed-col.d, .ed-col.i { border-color: #d9546e; background: color-mix(in srgb, #d9546e 9%, var(--surface)); }
 .ed-col.w { border-color: var(--ids); background: color-mix(in srgb, var(--ids) 14%, var(--surface)); }
-.sp-grams .ii-step-l { display: block; margin-bottom: 0.3rem; }
-.sp-tw { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); }
-table.summary.sp-table th, table.summary.sp-table td { padding: 0.35rem 0.55rem; font-size: 0.8rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
-table.summary.sp-table td:first-child { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; }
-table.summary.sp-table tr:not(.in) td { color: var(--ink-soft); }
-table.summary.sp-table tr.in td { background: color-mix(in srgb, var(--bfs) 10%, var(--surface)); }
-table.summary.sp-table tr.best td:first-child { box-shadow: inset 4px 0 0 var(--bfs); }
-.sp-best { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--indigo); }
 .ml-plot .jc-a { fill: color-mix(in srgb, var(--indigo) 30%, var(--surface)); stroke: var(--indigo); stroke-width: 1.5; }
 .ml-plot .jc-b { fill: color-mix(in srgb, #d9546e 24%, var(--surface)); stroke: #d9546e; stroke-width: 1.5; }
 .ml-plot .jc-i { fill: none; stroke: var(--ink); stroke-width: 2; stroke-dasharray: 6 4; }
