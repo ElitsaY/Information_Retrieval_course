@@ -139,7 +139,26 @@
     <h2 class="section-title">TF, DF and IDF</h2>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:0.6rem;">Term frequency</h3>
-    <p class="section-lede">How often does term \(t\) occur in document \(d\)? That is \(tf(t, d)\). For <code>retrieval</code>: D1 → 1, D2 → 1, D3, D4, D5 → 0. A first intuition: more occurrences, perhaps more evidence of relevance. But raw frequency is not enough.</p>
+    <p class="section-lede">How often does term \(t\) occur in document \(d\)? That is \(tf(t, d)\). For <code>retrieval</code>:</p>
+    <div class="table-wrap" style="max-width:26rem;">
+      <table class="summary sc-small rr-num">
+        <thead><tr><th>document</th><th>D1</th><th>D2</th><th>D3</th><th>D4</th><th>D5</th></tr></thead>
+        <tbody><tr><td>\(tf(\text{retrieval}, d)\)</td><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td></tr></tbody>
+      </table>
+    </div>
+    <p class="section-lede" style="margin-top:1rem;">A first intuition: more occurrences, perhaps more evidence of relevance. But raw frequency is not enough.</p>
+    <p class="section-lede">Example: score each document by adding up the tf of the query words. The query is <code>the jaguar</code>:</p>
+    <div class="table-wrap" style="max-width:34rem;">
+      <table class="summary sc-small rr-num">
+        <thead><tr><th>document</th><th>tf(the)</th><th>tf(jaguar)</th><th>score</th></tr></thead>
+        <tbody>
+          <tr><td>A: <i>the cat sat on the mat by the door</i></td><td>3</td><td>0</td><td class="hl">3</td></tr>
+          <tr><td>B: <i>a jaguar runs through the forest</i></td><td>1</td><td>1</td><td>2</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="section-lede rr-txt" style="margin-top:1rem;">Document A comes first, although it is not about <mark>jaguars</mark> at all. Its whole score comes from <mark>the</mark>, a word found in almost every English document. Raw tf counts every word the same, so a common word repeated a few times beats the one word that matters.</p>
+    <p class="section-lede">Removing stop words fixes <i>the</i>, but many common words are not stop words. In the toy corpus <code>documents</code> is in 4 of the 5 documents, so it gives D3 and D5 a point although they share nothing else with the query. We also need to know how common a term is in the whole collection, and that is the document frequency.</p>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Document frequency</h3>
     <p class="section-lede">In how many documents does term \(t\) appear? That is \(df_t\). In the toy corpus <code>retrieval</code> appears in 2 documents, <code>relevant</code> in 1 and <code>documents</code> in 4. So <code>relevant</code> is more discriminative than <code>documents</code>.</p>

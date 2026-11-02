@@ -2031,7 +2031,7 @@ table.summary.rr-num td.hit { background: color-mix(in srgb, var(--ids) 18%, var
 table.summary.rr-num tr[data-w] { cursor: pointer; } table.summary.rr-num tr.sel td { box-shadow: inset 0 -2px 0 var(--ucs); }
 table.summary.rr-num td.hl { background: color-mix(in srgb, var(--ucs) 16%, var(--surface)); font-weight: 700; }
 .rr-hl { margin-top: 0.8rem; font-size: 0.9rem; } .rr-hl p { margin: 0.2rem 0; }
-.rr-hl mark { background: color-mix(in srgb, var(--ucs) 40%, var(--surface)); color: var(--ink); border-radius: 3px; padding: 0 2px; }
+.rr-hl mark, .rr-docs mark, .rr-txt mark { background: color-mix(in srgb, var(--ucs) 40%, var(--surface)); color: var(--ink); border-radius: 3px; padding: 0 2px; }
 .rr-scroll { max-height: 26rem; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); }
 .rr-mat { border-collapse: collapse; width: 100%; font-size: 0.78rem; font-variant-numeric: tabular-nums; }
 .rr-mat th, .rr-mat td { padding: 0.2rem 0.45rem; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }

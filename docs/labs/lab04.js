@@ -76,7 +76,8 @@ function initHero() {
 
 /* ---------- toy corpus table + tf / df ---------- */
 function initToy() {
-  document.getElementById('toy-docs').innerHTML = TOY_IDS.map((d, i) => `<tr data-s="ids"><td><b>${d}</b></td><td>${esc(TOY[d])} <span class="note">(${TOY_T[i].length} tokens)</span></td></tr>`).join('');
+  const qw = new Set(toyTok(DEFAULT_Q));
+  document.getElementById('toy-docs').innerHTML = TOY_IDS.map((d, i) => `<tr data-s="ids"><td><b>${d}</b></td><td>${TOY_T[i].map(w => qw.has(w) ? `<mark>${esc(w)}</mark>` : esc(w)).join(' ')} <span class="note">(${TOY_T[i].length} tokens)</span></td></tr>`).join('');
   const inp = document.getElementById('tf-q'), table = document.getElementById('tf-table'), box = document.getElementById('tf-docs');
   inp.value = DEFAULT_Q;
   let sel = null;
