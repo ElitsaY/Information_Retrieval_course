@@ -84,7 +84,6 @@
       <li><a href="#rank">Why rank position matters</a>: RR and MRR, AP and MAP.</li>
       <li><a href="#graded">Graded relevance</a>: DCG and nDCG.</li>
       <li><a href="#disagree">Different metrics can disagree</a>: metric choice and per-query analysis.</li>
-      <li><a href="#summary">Summary</a>, and an optional exercise.</li>
     </ol>
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Learning objectives</h3>
     <p class="section-lede">By the end you should be able to explain:</p>
@@ -302,6 +301,11 @@
     </table></div>
     <div class="math-block">\[ AP = \frac{1 + 2/3 + 3/5}{3} \approx 0.756 \]</div>
     <p class="section-lede">For rankings A and B above, AP is 1.0 and about 0.216, and RR is 1 and 0.125: the rank-aware metrics separate what P@10 could not.</p>
+    <h4 style="margin:1.4rem 0 0.4rem;">When do we need MAP?</h4>
+    <ul class="concept-list">
+      <li><b>When the user needs many relevant documents, not just one.</b> A student writing a literature review, a patent examiner checking whether an invention already exists, a doctor collecting all studies on a treatment: they read down the list and want every relevant document as high as possible.</li>
+      <li><b>MRR cannot see the difference here; MAP can.</b> With 3 relevant documents, ranking X = <b>R R R N N</b> and ranking Y = <b>R N N R R</b> both have \(RR = 1\). But \(AP(X) = 1\) and \(AP(Y) = \frac{1 + 2/4 + 3/5}{3} = 0.7\): X puts all three relevant documents at the top.</li>
+    </ul>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Recap</h3>
     <div class="table-wrap">
@@ -324,13 +328,47 @@
   <section class="block algo-section ucs" id="graded">
     <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Part IV</span>
     <h2 class="section-title">Graded relevance: DCG and nDCG</h2>
-    <p class="section-lede">Cranfield has graded relevance: a document may be of minimum interest, useful, highly relevant, or a complete answer. Binary metrics collapse all of these into "relevant", which loses information: a ranking that puts a complete answer first and one that puts a document of minimum interest first get the same P@1. DCG (Järvelin &amp; Kekäläinen, 2002) measures a graded ranking by imagining a user who reads the list from the top.</p>
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.4rem;">Three ideas in one formula</h3>
+    <p class="section-lede" style="margin-bottom:0.6rem;">When someone searches for something, not all search results are equally useful.</p>
+    <p class="section-lede" style="margin-bottom:0.9rem;">For example, imagine you search for <i>"how to bake bread"</i>. You get four results:</p>
+    <ul class="concept-list">
+      <li><b>Grade 3 (highly relevant)</b>: a complete bread recipe with ingredients and instructions.</li>
+      <li><b>Grade 2 (relevant)</b>: a page explaining how bread is made, but without a full recipe.</li>
+      <li><b>Grade 1 (somewhat relevant)</b>: a page that briefly mentions baking bread.</li>
+      <li><b>Grade 0 (not relevant)</b>: a page about buying shoes.</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">The problem with binary metrics</h3>
+    <p class="section-lede">Traditional metrics like Precision@1 (P@1) only check whether the first result is relevant. They treat grades 1, 2 and 3 as equally relevant. So these two rankings get the same P@1:</p>
+    <div class="table-wrap"><table class="summary sc-small">
+      <thead><tr><th>position</th><th>Ranking A</th><th>Ranking B</th></tr></thead>
+      <tbody>
+        <tr data-s="ucs"><td>1</td><td>Full recipe (grade 3)</td><td>Brief mention (grade 1)</td></tr>
+        <tr data-s="ucs"><td>2</td><td>Brief mention (grade 1)</td><td>Full recipe (grade 3)</td></tr>
+      </tbody>
+    </table></div>
+    <p class="section-lede" style="margin-top:1rem;">Both have \(P@1 = 1\), because their first result counts as relevant. But Ranking A is better, because the most useful result comes first.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">How DCG solves this</h3>
+    <p class="section-lede">DCG (Discounted Cumulative Gain) looks at two things:</p>
     <ol class="concept-list">
-      <li><b>Gain</b>: each document is worth something to the user, and more if its grade is higher. With the gain \(2^{rel} - 1\): grade 0 → 0, 1 → 1, 2 → 3, 3 → 7, 4 → 15. The exponent makes one highly relevant document worth more than several marginal ones: a grade-3 document (7) is worth more than two grade-2 documents (3 + 3).</li>
-      <li><b>Discount</b>: the user reads from the top, and every rank further down is less likely to be read. So the gain at rank \(i\) is divided by \(\log_2(i + 1)\): rank 1 by 1 (full value), rank 2 by 1.58, rank 3 by 2, rank 4 by 2.32, rank 10 by 3.46. The logarithm makes the penalty grow slowly: a document at rank 10 still keeps 29% of its value.</li>
-      <li><b>Cumulative</b>: add up the discounted gains of the top \(k\) documents. The total is the value the user collects by reading the top \(k\).</li>
+      <li><b>How useful a result is</b>: higher relevance grades get higher scores.</li>
+      <li><b>Where the result appears</b>: results near the top count more, because users are more likely to look at them.</li>
     </ol>
+    <p class="section-lede" style="margin-top:1rem;">So DCG gives Ranking A a higher score than Ranking B.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">The key idea</h3>
+    <p class="section-lede">DCG rewards search engines for placing the most useful results at the top. Unlike binary metrics, it tells slightly useful results apart from very useful ones. The two metrics ask different questions:</p>
+    <ul class="concept-list">
+      <li><b>Precision</b>: "Did the search engine give me a relevant result?"</li>
+      <li><b>DCG</b>: "Did the search engine give me the most useful results first?"</li>
+    </ul>
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.4rem;">Three ideas in one formula</h3>
+    <ul class="concept-list">
+      <li><b>Gain</b>: how useful is the document?</li>
+      <li><b>Discount</b>: how far down in the ranking does it appear?</li>
+      <li><b>Cumulative</b>: add the points from all documents.</li>
+    </ul>
+    <p class="section-lede" style="margin-top:1rem; color:var(--red-ink);"><b>DCG</b> = give documents points for relevance, reduce their points if they appear lower, and add everything together.</p>
     <div class="def-mac" role="note" aria-labelledby="def-discounted-cumulative-gain">
       <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
       <div class="def-mac-body">
@@ -340,24 +378,90 @@
       </div>
     </div>
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">A worked example</h3>
-    <p class="section-lede">The system ranks four documents with grades <b>[3, 0, 2, 1]</b>.</p>
-    <div class="table-wrap">
-      <table class="summary sc-small rr-num">
-        <thead><tr><th>rank \(i\)</th><th>grade</th><th>gain \(2^{rel} - 1\)</th><th>discount \(\log_2(i+1)\)</th><th>gain / discount</th></tr></thead>
-        <tbody>
-          <tr data-s="ucs"><td>1</td><td>3</td><td>7</td><td>1.000</td><td>7.000</td></tr>
-          <tr data-s="ucs"><td>2</td><td>0</td><td>0</td><td>1.585</td><td>0.000</td></tr>
-          <tr data-s="ucs"><td>3</td><td>2</td><td>3</td><td>2.000</td><td>1.500</td></tr>
-          <tr data-s="ucs"><td>4</td><td>1</td><td>1</td><td>2.322</td><td>0.431</td></tr>
-          <tr data-s="ucs"><td colspan="4"><b>DCG@4</b></td><td><b>8.931</b></td></tr>
-        </tbody>
-      </table>
+    <p class="section-lede">Don't let the formula confuse you. It does just three things: gives points, reduces points, and adds them up.</p>
+
+    <h4 style="margin:1.4rem 0 0.6rem;">1. Understanding each part</h4>
+    <div class="table-wrap"><table class="summary sc-small">
+      <thead><tr><th>symbol</th><th>meaning</th></tr></thead>
+      <tbody>
+        <tr data-s="ucs"><td>\(k\)</td><td>Number of top search results we evaluate</td></tr>
+        <tr data-s="ucs"><td>\(i\)</td><td>Position of a document (1st, 2nd, 3rd, …)</td></tr>
+        <tr data-s="ucs"><td>\(rel_i\)</td><td>Relevance grade of the document at position \(i\)</td></tr>
+        <tr data-s="ucs"><td>\(2^{rel_i} - 1\)</td><td><b>Gain</b>: how many points the document earns</td></tr>
+        <tr data-s="ucs"><td>\(\log_2(i + 1)\)</td><td><b>Discount</b>: reduces points for lower-ranked documents</td></tr>
+        <tr data-s="ucs"><td>\(\sum\)</td><td><b>Cumulative</b>: add all the scores together</td></tr>
+      </tbody>
+    </table></div>
+
+    <h4 style="margin:1.6rem 0 0.6rem;">2. Simple example</h4>
+    <p class="section-lede" style="margin-bottom:1rem;">Imagine a user searches for <i>"how to bake bread"</i> and receives three documents. We want to calculate DCG@3.</p>
+    <div class="table-wrap"><table class="summary sc-small rr-num">
+      <thead><tr><th>position \(i\)</th><th>relevance \(rel_i\)</th><th>gain \(2^{rel_i} - 1\)</th></tr></thead>
+      <tbody>
+        <tr data-s="ucs"><td>1</td><td>3 (highly relevant)</td><td>7</td></tr>
+        <tr data-s="ucs"><td>2</td><td>2 (relevant)</td><td>3</td></tr>
+        <tr data-s="ucs"><td>3</td><td>1 (somewhat relevant)</td><td>1</td></tr>
+      </tbody>
+    </table></div>
+    <p class="section-lede" style="margin:1.2rem 0 0.4rem;"><b>Step 1</b>: calculate each document's discounted gain.</p>
+    <div class="math-block">\[ \frac{7}{\log_2(2)} = 7 \qquad \frac{3}{\log_2(3)} \approx 1.89 \qquad \frac{1}{\log_2(4)} = 0.5 \]</div>
+    <p class="section-lede" style="margin:0 0 0.4rem;"><b>Step 2</b>: add everything together.</p>
+    <div class="math-block">\[ DCG@3 = 7 + 1.89 + 0.5 = \boxed{9.39} \]</div>
+    <ul class="concept-list">
+      <li><b>Why \(2^{rel_i} - 1\)?</b> With this gain the rewards grow much faster than the grades: grade 1 earns 1 point, grade 2 earns 3, grade 3 earns 7.</li>
+      <li><b>Why \(\log_2(i + 1)\)?</b> A logarithm grows slowly. So the penalty increases gradually, and lower-ranked documents keep part of their value.</li>
+    </ul>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">IDCG (Ideal Discounted Cumulative Gain)</h3>
+    <p class="section-lede" style="margin-bottom:0.9rem;">IDCG is the highest possible DCG score: the score you would get if all documents were ranked in the best possible order. In simple terms:</p>
+    <ul class="concept-list">
+      <li><b>DCG</b>: how good is your current ranking?</li>
+      <li><b>IDCG</b>: how good would the perfect ranking be?</li>
+    </ul>
+
+    <h4 style="margin:1.6rem 0 0.6rem;">1. How does IDCG work?</h4>
+    <p class="section-lede" style="margin-bottom:1rem;">Imagine a search engine returns 4 documents with these relevance grades:</p>
+    <div class="table-wrap"><table class="summary sc-small rr-num">
+      <thead><tr><th>position</th><th>DCG (current ranking)</th><th>IDCG (ideal ranking)</th></tr></thead>
+      <tbody>
+        <tr data-s="ucs"><td>1</td><td>grade 1</td><td>grade 3</td></tr>
+        <tr data-s="ucs"><td>2</td><td>grade 3</td><td>grade 2</td></tr>
+        <tr data-s="ucs"><td>3</td><td>grade 0</td><td>grade 1</td></tr>
+        <tr data-s="ucs"><td>4</td><td>grade 2</td><td>grade 0</td></tr>
+      </tbody>
+    </table></div>
+    <p class="section-lede" style="margin:1rem 0 0.6rem;">IDCG puts the most relevant documents first:</p>
+    <div class="wh-static" aria-label="The same four grades in the actual and in the ideal order">
+      <div class="wh-row"><span class="wh-name">Actual</span><span class="wh-doc"><small>1</small>1</span><span class="wh-doc"><small>2</small>3</span><span class="wh-doc"><small>3</small>0</span><span class="wh-doc"><small>4</small>2</span></div>
+      <div class="wh-row"><span class="wh-name">Ideal</span><span class="wh-doc"><small>1</small>3</span><span class="wh-doc"><small>2</small>2</span><span class="wh-doc"><small>3</small>1</span><span class="wh-doc"><small>4</small>0</span></div>
     </div>
-    <ul class="concept-list" style="margin-top:1rem;">
-      <li><b>Is 8.931 good?</b> A raw DCG cannot tell: it depends on how much relevant material the query has. Ten grade-3 documents give \(DCG@10 = 31.8\); a query with a single grade-1 document can never exceed 1.</li>
-      <li><b>So normalize</b>: the best possible order of the same documents is <b>[3, 2, 1, 0]</b>, with \(IDCG@4 = 7 + 3/1.585 + 1/2 + 0 = 9.393\). Then \(nDCG@4 = 8.931 / 9.393 = 0.951\): 95% of the best achievable. The system lost a little because the grade-2 and grade-1 documents came one rank too late.</li>
-      <li><b>The same documents in the worst order</b>, [0, 1, 2, 3]: \(DCG@4 = 0 + 1/1.585 + 3/2 + 7/2.322 = 5.146\), \(nDCG@4 = 0.548\). Same documents, same precision, very different nDCG: the order of the grades is what it measures.</li>
-      <li>\(nDCG@k\) is always between 0 and 1, and 1 exactly for an ideal ranking; after normalization it can be averaged over queries.</li>
+    <p class="section-lede">Both rankings contain the same documents. IDCG simply sorts them from highest to lowest relevance.</p>
+
+    <h4 style="margin:1.6rem 0 0.6rem;">2. IDCG formula</h4>
+    <div class="math-block">\[ IDCG@k = \sum_{i=1}^{k} \frac{2^{rel_i^*} - 1}{\log_2(i + 1)} \]</div>
+    <p class="section-lede" style="margin-bottom:0.9rem;">This is the same formula as DCG. The only difference is the grade it uses:</p>
+    <ul class="concept-list">
+      <li>\(rel_i\): relevance grade at position \(i\) in the <b>actual</b> ranking.</li>
+      <li>\(rel_i^*\): relevance grade at position \(i\) in the <b>ideal</b> ranking.</li>
+    </ul>
+
+    <h4 style="margin:1.6rem 0 0.6rem;">3. Calculating IDCG@3</h4>
+    <p class="section-lede" style="margin-bottom:0.4rem;">Using the ideal ranking with grades [3, 2, 1]:</p>
+    <div class="math-block">\[ IDCG@3 = \frac{7}{1} + \frac{3}{1.585} + \frac{1}{2} \approx 9.39 \]</div>
+    <p class="section-lede">This is the maximum DCG@3 for these documents.</p>
+
+    <h4 style="margin:1.6rem 0 0.6rem;">4. Why do we need IDCG?</h4>
+    <p class="section-lede" style="margin-bottom:0.4rem;">DCG alone does not tell us how close a ranking is to perfect. For example, is a DCG score of 7 good or bad? We cannot know without comparing it to the ideal score. That is why we use IDCG to calculate nDCG (normalized DCG):</p>
+    <div class="math-block">\[ nDCG@k = \frac{DCG@k}{IDCG@k} \]</div>
+    <p class="section-lede" style="margin-bottom:0.4rem;">If your DCG is 7 and your IDCG is 10:</p>
+    <div class="math-block">\[ nDCG = \frac{7}{10} = 0.7 \]</div>
+    <p class="section-lede">This means your ranking gets 70% of the ideal DCG score.</p>
+
+    <h4 style="margin:1.6rem 0 0.6rem;">Key takeaway</h4>
+    <ul class="concept-list">
+      <li><b>DCG</b>: score of your actual ranking.</li>
+      <li><b>IDCG</b>: score of the perfect ranking.</li>
+      <li><b>nDCG</b>: how close your actual ranking is to the perfect ranking.</li>
     </ul>
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: compute nDCG</h4>
@@ -370,7 +474,7 @@
       </div>
       <div id="dg-out"></div>
     </div>
-    <p class="caption-note">💡 Not every nDCG uses \(2^{rel} - 1\). <code>ir_measures</code>' default <code>nDCG@10</code> (the trec_eval definition) uses the grade itself as the gain; the formula above is <code>nDCG(dcg='exp-log2')@10</code>. With [3, 0, 2, 1] the two give 0.951 and 0.930. Always report which one you used.</p>
+    <p class="caption-note">💡 Not every nDCG uses \(2^{rel} - 1\). A common variant (the trec_eval definition) uses the grade itself as the gain. For the playground's default ranking [3, 0, 2, 1], the formula above gives 0.951 and the grade-as-gain variant gives 0.930. Always report which one you used.</p>
   </section>
 
   <!-- ===== PART V: METRICS DISAGREE ===== -->
@@ -397,45 +501,6 @@
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Per-query analysis</h3>
     <p class="section-lede">Averages can hide failures. A higher MAP for one system does not mean it wins on every query: some queries may strongly prefer one system, others the other. Serious IR evaluation combines <b>aggregate metrics + per-query analysis + error analysis</b>.</p>
-    <h4 style="margin:1.4rem 0 0.4rem;">Try it: every Cranfield query</h4>
-    <p class="section-lede">Each dot is one query: TF-IDF's score on the x-axis, BM25's on the y-axis. Dots above the diagonal are queries where BM25 is better. Click a dot (or choose a query) to compare the two top-10 lists with their relevance grades; the default is the query where the systems differ most in AP.</p>
-    <div class="playground">
-      <div class="pg-controls">
-        <div class="strategy-pick" id="pq-metric"></div>
-        <select id="pq-sel" class="ii-select" aria-label="Cranfield query" style="max-width:100%;"></select>
-      </div>
-      <div class="pq-grid">
-        <svg id="pq-svg" class="ml-plot" viewBox="0 0 420 420" aria-label="Per-query scores of TF-IDF and BM25"></svg>
-        <div class="al-out" id="pq-out"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===== SUMMARY ===== -->
-  <section class="block" id="summary">
-    <h2 class="section-title">Summary: key takeaways</h2>
-    <div class="table-wrap">
-      <table class="summary sc-small">
-        <thead><tr><th>Metric</th><th>Best interpretation</th></tr></thead>
-        <tbody>
-          <tr data-s="bfs"><td><b>P@k</b></td><td>How clean are the top results?</td></tr>
-          <tr data-s="bfs"><td><b>Recall@k</b></td><td>How much relevant material did we retrieve?</td></tr>
-          <tr data-s="dfs"><td><b>MRR</b></td><td>How quickly did we find the first relevant result?</td></tr>
-          <tr data-s="dfs"><td><b>MAP</b></td><td>Are relevant documents ranked high throughout the ranking?</td></tr>
-          <tr data-s="ucs"><td><b>nDCG@k</b></td><td>Are the most relevant documents ranked highest?</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="rr-pipe" style="margin-top:1.2rem;">Lab 04: build a ranking → Lab 05: evaluate the ranking → later labs: replace the retriever, keep the evaluation framework</div>
-    <ol class="concept-list" style="margin-top:1.2rem;">
-      <li>A retrieval score is meaningless without an evaluation setup.</li>
-      <li>Accuracy is useless for retrieval: almost every document is not relevant. Precision and Recall measure different retrieval goals.</li>
-      <li>Rank position matters.</li>
-      <li>Different metrics encode different assumptions about user needs.</li>
-    </ol>
-
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Optional exercise</h3>
-    <p class="section-lede">Evaluate TF-IDF and BM25 on Cranfield with P@10, Recall@100, MRR, MAP and nDCG@10. Then choose two queries where the systems differ strongly and inspect the rankings manually (the per-query plot above helps). The purpose is not a large report, but to connect a <b>metric difference</b> to <b>actual ranking behaviour</b>.</p>
   </section>
 
 </div>
@@ -447,7 +512,6 @@
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <script src="code-cards.js"></script>
-<script src="lab04-cranfield.js"></script>
 <script src="lab05.js"></script>
 </body>
 </html>

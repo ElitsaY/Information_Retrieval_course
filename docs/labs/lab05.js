@@ -27,93 +27,10 @@ function pills(box, items, cur, onPick) {
 function mathIn(node) { if (window.renderMathInElement) renderMathInElement(node, { delimiters: [{ left: '\\(', right: '\\)', display: false }], throwOnError: false }); }
 
 
-/* ====================== Cranfield ====================== */
-const C = typeof CRAN !== 'undefined' ? CRAN : null;
-const unflat = (flat) => { const m = []; for (let i = 0; i < flat.length; i += 2) m.push([flat[i], flat[i + 1]]); return m; };
-let IDX = null;            // \b\w+\b tokens, for scikit-learn's TF-IDF
-function buildIndex() {
-  if (IDX || !C) return IDX;
-  IDX = { N: C.ids.length, V: C.vocab, docTerms: C.terms.map(unflat), vocabId: new Map(C.vocab.map((w, i) => [w, i])) };
-  return IDX;
-}
-const queryTokens = (q) => (q.toLowerCase().match(/[\p{L}\p{N}_]+/gu) || []);
-// TfidfVectorizer(lowercase=True, norm="l2"): tokens of 2+ word characters, smoothed idf, raw tf, L2-normalized rows
-let TFIDF = null;
-function tfidfSystem() {
-  if (TFIDF) return TFIDF;
-  const I = buildIndex(), df = new Map(), docs = [];
-  I.docTerms.forEach(ts => {
-    const m = new Map();
-    ts.forEach(([t, f]) => { const w = I.V[t]; if (w.length >= 2) m.set(w, f); });
-    docs.push(m); m.forEach((_, w) => df.set(w, (df.get(w) || 0) + 1));
-  });
-  const idf = new Map([...df].map(([w, d]) => [w, Math.log((1 + I.N) / (1 + d)) + 1]));
-  const post = new Map(), dnorm = [];
-  docs.forEach((m, i) => { let s = 0; m.forEach((f, w) => { const x = f * idf.get(w); s += x * x; if (!post.has(w)) post.set(w, []); post.get(w).push([i, f]); }); dnorm.push(Math.sqrt(s)); });
-  return (TFIDF = { df, idf, post, dnorm });
-}
-function topK(scores, k) { return scores.map((s, i) => [s, i]).sort((a, b) => b[0] - a[0] || b[1] - a[1]).slice(0, k); }   // like argsort()[::-1]
-function searchTfidf(q, k = 100) {
-  const I = buildIndex(), S = tfidfSystem(), scores = new Array(I.N).fill(0);
-  const qc = new Map(); queryTokens(q).forEach(w => { if (w.length >= 2 && S.idf.has(w)) qc.set(w, (qc.get(w) || 0) + 1); });
-  let qn = 0; qc.forEach((f, w) => { const x = f * S.idf.get(w); qn += x * x; }); qn = Math.sqrt(qn);
-  if (qn > 0) qc.forEach((f, w) => { const qw = f * S.idf.get(w) / qn; S.post.get(w).forEach(([i, tf]) => { scores[i] += qw * tf * S.idf.get(w) / S.dnorm[i]; }); });
-  return topK(scores, k).map(([s, i], r) => ({ rank: r + 1, i, doc_id: C.ids[i], score: s }));
-}
-// rank_bm25's BM25Okapi on text.lower().split() tokens: idf = ln(N - df + 0.5) - ln(df + 0.5), negative idf -> 0.25 * average idf
-let OK = null;
-function okapiIndex() {
-  if (OK || !C) return OK;
-  const N = C.ids.length, docTerms = C.wterms.map(unflat), len = docTerms.map(ts => ts.reduce((s, [, f]) => s + f, 0));
-  const avgdl = len.reduce((a, b) => a + b, 0) / N, post = new Map();
-  docTerms.forEach((ts, i) => ts.forEach(([t, f]) => { if (!post.has(t)) post.set(t, []); post.get(t).push([i, f]); }));
-  const idf = new Map(); let sum = 0;
-  post.forEach((p, t) => { const v = Math.log(N - p.length + 0.5) - Math.log(p.length + 0.5); idf.set(t, v); sum += v; });
-  const eps = 0.25 * sum / idf.size;
-  idf.forEach((v, t) => { if (v < 0) idf.set(t, eps); });
-  return (OK = { N, len, avgdl, post, idf, wid: new Map(C.wvocab.map((w, i) => [w, i])) });
-}
-function searchBm25(q, k = 100, k1 = 1.5, b = 0.75) {
-  const O = okapiIndex(), scores = new Array(O.N).fill(0);
-  q.toLowerCase().split(/\s+/).filter(Boolean).forEach(w => {            // every query token, repeats included
-    const t = O.wid.get(w); if (t === undefined) return;
-    const idf = O.idf.get(t);
-    O.post.get(t).forEach(([i, tf]) => { scores[i] += idf * tf * (k1 + 1) / (tf + k1 * (1 - b + b * O.len[i] / O.avgdl)); });
-  });
-  return topK(scores, k).map(([s, i], r) => ({ rank: r + 1, i, doc_id: C.ids[i], score: s }));
-}
-const qLabel = (i) => `${i + 1} · ${C.queries[i].length > 90 ? C.queries[i].slice(0, 88) + '…' : C.queries[i]}`;
-function fillQuerySelect(sel, cur = 0) { sel.innerHTML = C.queries.map((_, i) => `<option value="${i}"${i === cur ? ' selected' : ''}>${esc(qLabel(i))}</option>`).join(''); }
-const sameList = (a, b) => a.every((r, k) => r.doc_id === b[k].doc_id);
-const overlap = (a, b) => a.filter(r => b.some(s => s.doc_id === r.doc_id)).length;
-
-
-/* ---------- evaluation measures (the definitions trec_eval / ir_measures use) ---------- */
-// run: ranked list of doc ids; judged: {doc_id: grade}; relevant means grade >= rel
-function relevantCount(judged, rel = 1) { return Object.values(judged).filter(g => g >= rel).length; }
-function precisionAt(run, judged, k, rel = 1) { let h = 0; for (let i = 0; i < k; i++) if (i < run.length && (judged[run[i]] ?? 0) >= rel) h++; return h / k; }
-function recallAt(run, judged, k, rel = 1) { const R = relevantCount(judged, rel); if (!R) return 0; let h = 0; for (let i = 0; i < Math.min(k, run.length); i++) if ((judged[run[i]] ?? 0) >= rel) h++; return h / R; }
-function reciprocalRank(run, judged, rel = 1) { for (let i = 0; i < run.length; i++) if ((judged[run[i]] ?? 0) >= rel) return 1 / (i + 1); return 0; }
-function averagePrecision(run, judged, rel = 1) {
-  const R = relevantCount(judged, rel); if (!R) return 0;
-  let h = 0, s = 0; run.forEach((d, i) => { if ((judged[d] ?? 0) >= rel) { h++; s += h / (i + 1); } });
-  return s / R;
-}
-// gain(g): linear = g (ir_measures' default nDCG, dcg='log2'), exp = 2^g - 1 (dcg='exp-log2'); grades below 0 count as 0
+/* ---------- DCG (used by the Part IV playground) ---------- */
+// gain(g): linear = g, exp = 2^g - 1; grades below 0 count as 0
 const gainOf = (g, exp) => (g <= 0 ? 0 : exp ? Math.pow(2, g) - 1 : g);
 function dcg(grades, k, exp) { let s = 0; grades.slice(0, k).forEach((g, i) => { s += gainOf(g, exp) / Math.log2(i + 2); }); return s; }
-function ndcgAt(run, judged, k, exp = false) {
-  const ideal = Object.values(judged).filter(g => g > 0).sort((a, b) => b - a);
-  const idcg = dcg(ideal, k, exp); if (!idcg) return 0;
-  return dcg(run.map(d => judged[d] ?? 0), k, exp) / idcg;
-}
-const MEASURES = [
-  ['P@10', 'P(rel=1)@10', (r, j) => precisionAt(r, j, 10)],
-  ['Recall@100', 'Recall(rel=1)@100', (r, j) => recallAt(r, j, 100)],
-  ['MRR', 'RR(rel=1)', (r, j) => reciprocalRank(r, j)],
-  ['MAP', 'AP(rel=1)', (r, j) => averagePrecision(r, j)],
-  ['nDCG@10', 'nDCG@10', (r, j) => ndcgAt(r, j, 10, false)],
-];
 
 /* ---------- maths ---------- */
 function initMath() {
@@ -182,7 +99,7 @@ function initDcg() {
   const inp = document.getElementById('dg-in'), out = document.getElementById('dg-out');
   let exp = true;
   inp.value = '3, 0, 2, 1';
-  pills(document.getElementById('dg-gain'), [['exp', 'gain = 2^rel − 1'], ['lin', 'gain = rel (ir_measures default)']], 'exp', k => { exp = k === 'exp'; render(); });
+  pills(document.getElementById('dg-gain'), [['exp', 'gain = 2^rel − 1'], ['lin', 'gain = rel']], 'exp', k => { exp = k === 'exp'; render(); });
   document.getElementById('dg-ideal').addEventListener('click', () => { inp.value = inp.value.split(/[\s,]+/).filter(Boolean).map(Number).sort((a, b) => b - a).join(', '); render(); });
   function table(grades, label) {
     let cum = 0;
@@ -190,66 +107,13 @@ function initDcg() {
       grades.map((g, i) => { const gn = gainOf(g, exp), d = Math.log2(i + 2); cum += gn / d; return `<tr><td>${i + 1}</td><td>${g}</td><td>${gn}</td><td>${d.toFixed(3)}</td><td>${(gn / d).toFixed(3)}</td><td>${cum.toFixed(3)}</td></tr>`; }).join('') + '</tbody></table></div>';
   }
   function render() {
-    const g = inp.value.split(/[\s,]+/).filter(Boolean).map(Number).filter(v => Number.isFinite(v) && v >= 0 && v <= 4).slice(0, 10);
-    if (!g.length) { out.innerHTML = '<p class="note">Type grades from 0 to 4, e.g. 3, 0, 2, 1.</p>'; return; }
+    const g = inp.value.split(/[\s,]+/).filter(Boolean).map(Number).filter(v => Number.isFinite(v) && v >= 0 && v <= 3).slice(0, 10);
+    if (!g.length) { out.innerHTML = '<p class="note">Type grades from 0 to 3, e.g. 3, 0, 2, 1.</p>'; return; }
     const ideal = g.slice().sort((a, b) => b - a), k = g.length, D = dcg(g, k, exp), I = dcg(ideal, k, exp);
     out.innerHTML = table(g, 'System ranking') + table(ideal, 'Ideal ranking (highest grade first)') +
       `<p class="big" style="margin-top:0.6rem;">DCG@${k} = <b>${D.toFixed(4)}</b>, IDCG@${k} = <b>${I.toFixed(4)}</b>, nDCG@${k} = ${D.toFixed(4)} / ${I.toFixed(4)} = <b>${I ? (D / I).toFixed(4) : '—'}</b></p>`;
   }
   inp.addEventListener('input', render);
-  render();
-}
-
-/* ---------- Cranfield: runs and per-query measures, computed once ---------- */
-let EV = null;
-function evaluate() {
-  if (EV || !C) return EV;
-  const sys = { tfidf: C.queries.map(q => searchTfidf(q, 100).map(r => r.doc_id)), bm25: C.queries.map(q => searchBm25(q, 100).map(r => r.doc_id)) };
-  const per = {}, agg = {};
-  Object.entries(sys).forEach(([s, runs]) => {
-    per[s] = {}; agg[s] = {};
-    MEASURES.forEach(([name, , f]) => { per[s][name] = runs.map((run, i) => f(run, C.qrels[String(i + 1)])); agg[s][name] = per[s][name].reduce((a, b) => a + b, 0) / runs.length; });
-    per[s]['nDCG@10 (2^rel−1)'] = runs.map((run, i) => ndcgAt(run, C.qrels[String(i + 1)], 10, true));
-    agg[s]['nDCG@10 (2^rel−1)'] = per[s]['nDCG@10 (2^rel−1)'].reduce((a, b) => a + b, 0) / runs.length;
-  });
-  return (EV = { sys, per, agg });
-}
-const GRADE_DEF = { 4: 'complete answer', 3: 'high relevance', 2: 'useful', 1: 'minimum interest', '-1': 'no interest' };
-const gradeBadge = (g) => `<span class="rr-g ${g === null || g === undefined ? 'none' : 'g' + (g < 0 ? 'n' : g)}" title="${g === null || g === undefined ? 'not judged' : 'grade ' + g + ': ' + GRADE_DEF[g]}">${g === null || g === undefined ? '–' : g}</span>`;
-
-/* ---------- per-query analysis ---------- */
-function initPerQuery() {
-  const E = evaluate(), svg = document.getElementById('pq-svg'), out = document.getElementById('pq-out'), sel = document.getElementById('pq-sel');
-  let metric = 'MAP';
-  pills(document.getElementById('pq-metric'), ['MAP', 'P@10', 'MRR', 'nDCG@10'].map(m => [m, m === 'MAP' ? 'AP' : m === 'MRR' ? 'RR' : m]), metric, k => { metric = k; render(); });
-  sel.innerHTML = C.queries.map((q, i) => `<option value="${i}">${esc(`${i + 1} · ${q.length > 80 ? q.slice(0, 78) + '…' : q}`)}</option>`).join('');
-  let cur = 0;
-  function pickDefault() { const a = E.per.tfidf.MAP, b = E.per.bm25.MAP; let best = 0; a.forEach((v, i) => { if (Math.abs(b[i] - v) > Math.abs(b[best] - a[best])) best = i; }); return best; }
-  cur = pickDefault(); sel.value = cur;
-  sel.addEventListener('change', () => { cur = +sel.value; render(); });
-  function render() {
-    const a = E.per.tfidf[metric], b = E.per.bm25[metric], n = a.length;
-    const better = a.map((v, i) => b[i] - v);
-    const bmWins = better.filter(d => d > 1e-9).length, tfWins = better.filter(d => d < -1e-9).length, ties = n - bmWins - tfWins;
-    svg.innerHTML = '';
-    const W = 420, H = 420, L = 44, R = 12, T = 12, B = 40, x = (v) => L + v * (W - L - R), y = (v) => H - B - v * (H - B - T);
-    [0, 0.25, 0.5, 0.75, 1].forEach(v => { el('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), class: 'grid-line' }, svg); txt(svg, L - 6, y(v) + 4, v, 'tick', 'end'); txt(svg, x(v), H - B + 16, v, 'tick', 'middle'); });
-    el('line', { x1: x(0), y1: y(0), x2: x(1), y2: y(1), class: 'pq-diag' }, svg);
-    txt(svg, x(0.03), y(0.95), 'BM25 better', 'lbl'); txt(svg, x(0.97), y(0.05), 'TF-IDF better', 'lbl', 'end');
-    a.forEach((v, i) => {
-      const c = el('circle', { cx: x(v), cy: y(b[i]), r: i === cur ? 7 : 4.2, class: 'pq-pt' + (b[i] - v > 1e-9 ? ' bm' : v - b[i] > 1e-9 ? ' tf' : '') + (i === cur ? ' cur' : '') }, svg);
-      c.addEventListener('click', () => { cur = i; sel.value = i; render(); });
-      el('title', {}, c).textContent = `query ${i + 1}: TF-IDF ${v.toFixed(3)}, BM25 ${b[i].toFixed(3)}`;
-    });
-    txt(svg, L + (W - L - R) / 2, H - 6, `TF-IDF ${metric === 'MAP' ? 'AP' : metric === 'MRR' ? 'RR' : metric}`, 'tick', 'middle');
-    txt(svg, 12, T + (H - B - T) / 2, `BM25 ${metric === 'MAP' ? 'AP' : metric === 'MRR' ? 'RR' : metric}`, 'tick', 'middle', { transform: `rotate(-90 12 ${T + (H - B - T) / 2})` });
-    const qid = String(cur + 1), J = C.qrels[qid], A10 = E.sys.tfidf[cur].slice(0, 10), B10 = E.sys.bm25[cur].slice(0, 10);
-    const list = (L) => '<ol class="pq-list">' + L.map(d => { const i = C.ids.indexOf(d); return `<li>${gradeBadge(J[d])}<span class="rr-doc">doc ${d}</span><span class="pq-t">${esc(C.titles[i] || '(empty)')}</span></li>`; }).join('') + '</ol>';
-    const mv = (s) => MEASURES.map(([n]) => `${n === 'MAP' ? 'AP' : n === 'MRR' ? 'RR' : n} ${E.per[s][n][cur].toFixed(3)}`).join(' · ');
-    out.innerHTML = `<p class="big">BM25 better on <b>${bmWins}</b> queries, TF-IDF on <b>${tfWins}</b>, equal on ${ties}. Mean: TF-IDF ${E.agg.tfidf[metric].toFixed(4)}, BM25 ${E.agg.bm25[metric].toFixed(4)}.</p>` +
-      `<p class="note">Query ${qid} (${relevantCount(J)} relevant document${relevantCount(J) === 1 ? '' : 's'}): <i>${esc(C.queries[cur])}</i></p>` +
-      `<div class="pq-two"><div><p class="al-h">TF-IDF <span>${mv('tfidf')}</span></p>${list(A10)}</div><div><p class="al-h">BM25 <span>${mv('bm25')}</span></p>${list(B10)}</div></div>`;
-  }
   render();
 }
 
@@ -260,5 +124,4 @@ document.addEventListener('DOMContentLoaded', () => {
   initAccuracy();
   initRecall();
   initDcg();
-  if (C) { initPerQuery(); }
 });
