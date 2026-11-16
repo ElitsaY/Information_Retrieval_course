@@ -3253,3 +3253,23 @@ html.presenting .deck { position: fixed; inset: 0; z-index: 200; display: flex; 
   .slide.on .iiv .iiv-row:nth-of-type(8) { animation-delay: 0.56s; } .slide.on .iiv .iiv-row:nth-of-type(9) { animation-delay: 0.64s; }
   .slide.on .iiv .iiv-row:nth-of-type(10) { animation-delay: 0.72s; }
 }
+
+/* ---- Lab 05 (IR) quiz visuals: ranked lists, graded rankings, setup numbers ---- */
+.qz-rks { display: grid; gap: 0.5rem; margin: 0.3rem 0 0.8rem; }
+.qz-rk-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+.qz-rk-name { min-width: 5.6rem; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
+.qz-rk { display: inline-flex; flex-wrap: wrap; gap: 0.3rem; }
+.qz-rk-i { display: inline-flex; flex-direction: column; align-items: center; min-width: 2.3rem; padding: 0.2rem 0.35rem; border-radius: 8px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 0.88rem; line-height: 1.15; }
+.qz-rk-i small { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.6rem; color: var(--ink-soft); }
+.qz-rk-i.r { background: color-mix(in srgb, var(--bfs) 20%, var(--surface)); border-color: var(--bfs); }
+.qz-rk-i.n { border-style: dashed; border-color: color-mix(in srgb, var(--ink) 35%, var(--line)); color: var(--ink-soft); }
+.qz-rk-i.g3 { background: color-mix(in srgb, var(--ucs) 42%, var(--surface)); border-color: var(--ucs); }
+.qz-rk-i.g2 { background: color-mix(in srgb, var(--ucs) 26%, var(--surface)); border-color: var(--ucs); }
+.qz-rk-i.g1 { background: color-mix(in srgb, var(--ucs) 12%, var(--surface)); border-color: color-mix(in srgb, var(--ucs) 60%, var(--line)); }
+.qz-rk-i.g0 { border-style: dashed; border-color: color-mix(in srgb, var(--ink) 35%, var(--line)); color: var(--ink-soft); }
+.qz-rk-i.mini { display: inline-block; min-width: 0; padding: 0 0.35rem; font-size: 0.72rem; vertical-align: 1px; }
+.qz-legend { margin: 0 0 0.8rem; font-size: 0.8rem; color: var(--ink-soft); }
+.qz-facts { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.3rem 0 0.9rem; }
+.qz-fact { display: flex; flex-direction: column; min-width: 6.5rem; padding: 0.45rem 0.8rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow-sm); }
+.qz-fact b { font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 1.1rem; color: var(--indigo); }
+.qz-fact span { font-size: 0.74rem; color: var(--ink-soft); }
