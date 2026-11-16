@@ -45,14 +45,14 @@
 button { color: var(--ink); }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; font-size: 18px; }
+html { scroll-behavior: smooth; font-size: 19px; }
 
 body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  line-height: 1.6;
+  line-height: 1.7;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -104,7 +104,7 @@ a:hover { text-decoration: underline; }
     radial-gradient(60% 60% at 15% 0%, color-mix(in srgb, var(--violet) 8%, transparent), transparent 70%),
     radial-gradient(60% 60% at 90% 10%, color-mix(in srgb, var(--teal) 8%, transparent), transparent 70%);
 }
-.hero h1 { font-size: clamp(1.8rem, 4vw, 2.7rem); margin: 0 0 0.6rem; }
+.hero h1 { font-size: clamp(1.5rem, 3vw, 2.1rem); margin: 0 0 0.6rem; }
 .hero p.lede { color: var(--ink-soft); max-width: 640px; margin: 0 auto 1.2rem; font-size: 1.05rem; }
 
 .badges { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin-top: 1rem; }
@@ -146,7 +146,7 @@ a:hover { text-decoration: underline; }
 .card.soon .go { color: var(--ink-soft); }
 
 /* ---- sections ---- */
-section.block { padding: 2.6rem 0; border-top: 1px solid var(--line); }
+section.block { padding: 3.4rem 0; border-top: 1px solid var(--line); }
 section.block:first-of-type { border-top: none; }
 
 /* ---- algorithm sections: stronger, color-coded separation between DFS/BFS/UCS/DLS/IDS ---- */
@@ -157,8 +157,11 @@ section.algo-section.ucs { border-top-color: var(--ucs); }
 section.algo-section.dls { border-top-color: var(--pink); }
 section.algo-section.ids { border-top-color: var(--ids); }
 .eyebrow { color: var(--teal); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.78rem; margin: 0 0 0.4rem; }
-h2.section-title { font-size: 1.7rem; margin: 0 0 0.6rem; }
-.section-lede { color: var(--ink-soft); max-width: 700px; margin: 0 0 1.6rem; }
+h2.section-title { font-size: 1.35rem; margin: 0 0 0.8rem; }
+.section-lede { color: var(--ink-soft); max-width: 700px; margin: 0 0 2rem; }
+/* sub-topics inside a section: the h3/h4 carry inline margins, so the extra gap above them is padding */
+h3.section-title { padding-top: 1rem; }
+.lab-main h4 { padding-top: 0.5rem; }
 
 /* ---- in-page toc pills ---- */
 .toc {
@@ -186,7 +189,7 @@ h2.section-title { font-size: 1.7rem; margin: 0 0 0.6rem; }
 .toc a:hover { color: var(--indigo); text-decoration: none; border-color: var(--indigo); }
 
 /* ---- concept bullet list ---- */
-.concept-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.9rem; }
+.concept-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.2rem; }
 .concept-list li {
   position: relative; padding-left: 1.4rem; color: var(--ink-soft); line-height: 1.55;
 }
@@ -798,6 +801,9 @@ body.home .wrap { max-width: 1040px; }
 .code-file { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .code-lang, .code-copy { flex-shrink: 0; }
 .fig-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* keep lab diagrams near the width of the text column, so their labels stay smaller than the body text
+   (stretched to the full 940px content width they scaled 12px labels up to ~20px) */
+:where(.lab-main) svg.ml-plot { max-width: 720px; max-height: 420px; margin-inline: auto; }
 .fig-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
 @media (max-width: 760px) {
   /* inline two-column layouts must still collapse on small screens */
