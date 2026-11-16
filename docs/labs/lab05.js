@@ -139,48 +139,21 @@ function initHero() {
 
 /* ---------- Part II: accuracy vs precision and recall ---------- */
 function initAccuracy() {
-  const $ = (id) => document.getElementById(id), Ns = $('ac-n'), Rs = $('ac-r'), Ks = $('ac-k'), Ts = $('ac-t'), cm = $('ac-cm'), out = $('ac-out');
-  const PRE = { cran: ['A Cranfield query', 3.146, 7, 10, 4], none: ['Return nothing', 3.146, 7, 0, 0], all: ['Return everything', 1.5, 7, 32, 7], web: ['Web scale', 9, 7, 10, 4] };
-  pills($('ac-pre'), Object.entries(PRE).map(([k, v]) => [k, v[0]]), 'cran', (k) => { const p = PRE[k]; Ks.max = 50; Ts.max = 30; Ns.value = p[1]; Rs.value = p[2]; Ks.value = p[3]; Ts.value = p[4]; render(); });
+  const $ = (id) => document.getElementById(id), cm = $('ac-cm'), out = $('ac-out');
+  // [label, collection size N, relevant R, retrieved k, relevant among the retrieved]
+  const PRE = { none: ['Return nothing', 1400, 7, 0, 0], all: ['Return everything', 1400, 7, 1400, 7], web: ['Web scale', 1e9, 7, 10, 4] };
+  pills($('ac-pre'), Object.entries(PRE).map(([k, v]) => [k, v[0]]), 'none', render);
   const pct = (v) => (100 * v).toFixed(v > 0.9999 && v < 1 ? 7 : 1) + '%';
-  function render() {
-    const N = Math.max(30, Math.round(Math.pow(10, +Ns.value)));
-    Ks.max = Math.min(50, N); if (+Ks.value > N) Ks.value = N;
-    const R = +Rs.value, k = +Ks.value; Ts.max = Math.min(R, k); if (+Ts.value > Math.min(R, k)) Ts.value = Math.min(R, k);
-    const TP = +Ts.value, FP = k - TP, FN = R - TP, TN = N - k - FN;
-    $('ac-n-val').textContent = N.toLocaleString('en'); $('ac-r-val').textContent = R; $('ac-k-val').textContent = k; $('ac-t-val').textContent = TP;
+  function render(key) {
+    const [, N, R, k, TP] = PRE[key];
+    const FP = k - TP, FN = R - TP, TN = N - k - FN;
     cm.innerHTML = `<div class="table-wrap"><table class="summary sc-small rr-num cm-live"><thead><tr><th></th><th>relevant</th><th>not relevant</th></tr></thead><tbody>` +
-      `<tr><td><b>retrieved</b></td><td class="tp">TP = ${TP}</td><td class="fp">FP = ${FP}</td></tr><tr><td><b>not retrieved</b></td><td class="fn">FN = ${FN}</td><td class="tn">TN = ${TN.toLocaleString('en')}</td></tr></tbody></table></div>`;
-    const acc = (TP + TN) / N, prec = k ? TP / k : null, rec = TP / R;
-    out.innerHTML = `<p class="big">Accuracy \\(= \\frac{${TP} + ${TN.toLocaleString('en').replace(/,/g, '{,}')}}{${N.toLocaleString('en').replace(/,/g, '{,}')}}\\) = <b>${pct(acc)}</b></p>` +
-      `<p class="big">Precision \\(= \\frac{${TP}}{${TP} + ${FP}}\\) = <b>${prec === null ? 'undefined (nothing retrieved)' : pct(prec)}</b></p>` +
-      `<p class="big">Recall \\(= \\frac{${TP}}{${TP} + ${FN}}\\) = <b>${pct(rec)}</b></p>` +
-      `<p class="note">${k === 0 ? '❗ The empty result is useless, yet its accuracy is almost perfect: every true negative counts as a correct decision.' : acc > 0.99 ? '❗ Accuracy stays above 99% whatever the system does with its few results; precision and recall are what change.' : 'In a small collection the true negatives weigh less, and accuracy starts to move.'}</p>`;
+      `<tr><td><b>retrieved</b></td><td class="tp">TP = ${TP}</td><td class="fp">FP = ${FP.toLocaleString('en')}</td></tr><tr><td><b>not retrieved</b></td><td class="fn">FN = ${FN}</td><td class="tn">TN = ${TN.toLocaleString('en')}</td></tr></tbody></table></div>`;
+    const acc = (TP + TN) / N;
+    out.innerHTML = `<p class="big">Accuracy \\(= \\frac{${TP} + ${TN.toLocaleString('en').replace(/,/g, '{,}')}}{${N.toLocaleString('en').replace(/,/g, '{,}')}}\\) = <b>${pct(acc)}</b></p>`;
     mathIn(out);
   }
-  [Ns, Rs, Ks, Ts].forEach(e => e.addEventListener('input', render));
-  render();
-}
-
-/* ---------- Part II: precision at k ---------- */
-function initPrecision() {
-  const K = document.getElementById('pc-k'), list = document.getElementById('pc-list'), out = document.getElementById('pc-out');
-  const L = [true, false, true, false, true];
-  function render() {
-    const k = +K.value; document.getElementById('pc-k-val').textContent = k;
-    const card = (x, i) => `<button type="button" class="pc-doc${x ? ' rel' : ''}${i < k ? '' : ' out'}" data-i="${i}"><small>rank ${i + 1}</small><b>D${i + 1}</b><span>${x ? 'relevant' : 'not relevant'}</span></button>`;
-    list.innerHTML = `<div class="pc-ret"><span class="pc-lab">retrieved: top ${k}</span><div class="pc-row">${L.slice(0, k).map(card).join('')}</div></div>` +
-      (k < L.length ? `<div class="pc-rest"><span class="pc-lab">not retrieved</span><div class="pc-row">${L.slice(k).map((x, j) => card(x, k + j)).join('')}</div></div>` : '');
-    list.querySelectorAll('.pc-doc').forEach(b => b.addEventListener('click', () => { L[+b.dataset.i] = !L[+b.dataset.i]; render(); }));
-    const r = L.slice(0, k).filter(Boolean).length, P = L.map((_, j) => L.slice(0, j + 1).filter(Boolean).length / (j + 1));
-    out.innerHTML = `<p class="big">\\(P@${k} = \\dfrac{\\text{relevant in the top ${k}}}{${k}} = \\dfrac{${r}}{${k}} = \\) <b>${(r / k).toFixed(3)}</b></p>` +
-      `<div class="pc-bar">${L.slice(0, k).map(x => `<span class="${x ? 'rel' : ''}"></span>`).join('')}</div>` +
-      `<div class="rr-tw" style="margin-top:0.7rem;"><table class="summary sc-small rr-num"><thead><tr><th>k</th>${P.map((_, j) => `<th>${j + 1}</th>`).join('')}</tr></thead><tbody><tr><td>P@k</td>${P.map((v, j) => `<td class="${j === k - 1 ? 'hl' : ''}">${v.toFixed(2)}</td>`).join('')}</tr></tbody></table></div>` +
-      `<p class="note">${k < L.length && L.slice(k).some(Boolean) ? `The relevant document${L.slice(k).filter(Boolean).length > 1 ? 's' : ''} below the cutoff do${L.slice(k).filter(Boolean).length > 1 ? '' : 'es'} not count: precision only judges what was retrieved.` : 'Precision only judges what was retrieved.'}</p>`;
-    mathIn(out);
-  }
-  K.addEventListener('input', render);
-  render();
+  render('none');
 }
 
 /* ---------- Part II: recall at k ---------- */
@@ -202,44 +175,6 @@ function initRecall() {
   }
   [K, Xs].forEach(e => e.addEventListener('input', render));
   render();
-}
-
-/* ---------- Parts II–III: a binary ranking playground ---------- */
-function initPlayground() {
-  const box = document.getElementById('pg-rank'), rIn = document.getElementById('pg-R'), svg = document.getElementById('pg-svg'), out = document.getElementById('pg-out');
-  const PRE = { toy: ['R N R N R', 3], A: ['R R R N N N N N N N', 3], B: ['N N N N N N N R R R', 3], mixed: ['N R N N R N R N N N', 5] };
-  let L = [];
-  const load = (k) => { L = PRE[k][0].split(' ').map(x => x === 'R'); rIn.value = PRE[k][1]; render(); };
-  pills(document.getElementById('pg-presets'), [['toy', 'Toy: R N R N R'], ['A', 'Ranking A'], ['B', 'Ranking B'], ['mixed', '5 relevant, 3 found']], 'toy', load);
-  rIn.addEventListener('input', render);
-  function render() {
-    const found = L.filter(Boolean).length;
-    if (+rIn.value < found) rIn.value = found;
-    const R = +rIn.value, n = L.length;
-    box.innerHTML = L.map((x, i) => `<button type="button" class="pg-cell${x ? ' rel' : ''}" data-i="${i}"><small>${i + 1}</small>${x ? 'R' : 'N'}</button>`).join('') +
-      (n < 10 ? `<button type="button" class="pg-add" title="Add a rank">+</button>` : '') + (n > 1 ? `<button type="button" class="pg-add" data-del="1" title="Remove the last rank">−</button>` : '');
-    box.querySelectorAll('.pg-cell').forEach(b => b.addEventListener('click', () => { L[+b.dataset.i] = !L[+b.dataset.i]; render(); }));
-    box.querySelectorAll('.pg-add').forEach(b => b.addEventListener('click', () => { if (b.dataset.del) L.pop(); else L.push(false); render(); }));
-    const P = L.map((_, k) => L.slice(0, k + 1).filter(Boolean).length / (k + 1)), Rc = L.map((_, k) => L.slice(0, k + 1).filter(Boolean).length / R);
-    // plot P@k and Recall@k
-    svg.innerHTML = '';
-    const W = 460, H = 240, X0 = 40, Rm = 14, T = 12, B = 36, x = (k) => X0 + (n > 1 ? k / (n - 1) : 0.5) * (W - X0 - Rm), y = (v) => H - B - v * (H - B - T);
-    [0, 0.5, 1].forEach(v => { el('line', { x1: X0, x2: W - Rm, y1: y(v), y2: y(v), class: 'grid-line' }, svg); txt(svg, X0 - 6, y(v) + 4, v, 'tick', 'end'); });
-    L.forEach((rel, k) => { txt(svg, x(k), H - B + 16, k + 1, 'tick', 'middle'); if (rel) el('rect', { x: x(k) - 9, y: T, width: 18, height: H - B - T, class: 'pg-relband' }, svg); });
-    [[P, 'pg-p'], [Rc, 'pg-r']].forEach(([v, cls]) => { el('polyline', { points: v.map((p, k) => `${x(k)},${y(p)}`).join(' '), class: cls }, svg); v.forEach((p, k) => el('circle', { cx: x(k), cy: y(p), r: 3.5, class: cls + '-d' }, svg)); });
-    txt(svg, X0 + (W - X0 - Rm) / 2, H - 4, 'rank k', 'tick', 'middle');
-    const ranks = L.map((x, i) => (x ? i + 1 : 0)).filter(Boolean);
-    const rr = ranks.length ? 1 / ranks[0] : 0;
-    const ap = ranks.reduce((s, r, j) => s + (j + 1) / r, 0) / R;
-    const frac = (a, b) => `\\tfrac{${a}}{${b}}`;
-    out.innerHTML = `<div class="rr-tw"><table class="summary sc-small rr-num"><thead><tr><th>k</th>${L.map((_, k) => `<th>${k + 1}</th>`).join('')}</tr></thead><tbody>` +
-      `<tr><td>P@k</td>${P.map(v => `<td>${v.toFixed(2)}</td>`).join('')}</tr><tr><td>Recall@k</td>${Rc.map(v => `<td>${v.toFixed(2)}</td>`).join('')}</tr></tbody></table></div>` +
-      `<p class="big" style="margin-top:0.6rem;">RR = ${ranks.length ? `\\(1 / ${ranks[0]}\\) = <b>${rr.toFixed(3)}</b>` : '<b>0</b> (no relevant result)'}</p>` +
-      `<p class="big">AP = ${ranks.length ? `\\(\\dfrac{${ranks.map((r, j) => frac(j + 1, r)).join(' + ')}${found < R ? ' + 0'.repeat(0) : ''}}{${R}}\\)` : '0'} = <b>${ap.toFixed(3)}</b></p>` +
-      (found < R ? `<p class="note">${R - found} relevant document${R - found > 1 ? 's are' : ' is'} never retrieved: ${R - found > 1 ? 'they add' : 'it adds'} 0 to the sum but still count in the denominator.</p>` : '');
-    mathIn(out);
-  }
-  load('toy');
 }
 
 /* ---------- Part IV: DCG and nDCG ---------- */
@@ -281,23 +216,6 @@ function evaluate() {
 }
 const GRADE_DEF = { 4: 'complete answer', 3: 'high relevance', 2: 'useful', 1: 'minimum interest', '-1': 'no interest' };
 const gradeBadge = (g) => `<span class="rr-g ${g === null || g === undefined ? 'none' : 'g' + (g < 0 ? 'n' : g)}" title="${g === null || g === undefined ? 'not judged' : 'grade ' + g + ': ' + GRADE_DEF[g]}">${g === null || g === undefined ? '–' : g}</span>`;
-function initGrades() {
-  const cnt = {}; Object.values(C.qrels).forEach(m => Object.values(m).forEach(g => { cnt[g] = (cnt[g] || 0) + 1; }));
-  const tot = Object.values(cnt).reduce((a, b) => a + b, 0);
-  const DEF = { 4: 'References which are a complete answer to the question.', 3: 'A high degree of relevance: without them the research would have been impracticable or much more work.', 2: 'Useful, as general background or for methods for some aspects of the work.', 1: 'Minimum interest, e.g. included from a historical viewpoint.', '-1': 'References of no interest.' };
-  document.getElementById('gr-table').innerHTML = `<thead><tr><th>grade</th><th>meaning (ir_datasets)</th><th>judgments</th><th>binary (rel ≥ 1)</th></tr></thead><tbody>` +
-    ['4', '3', '2', '1', '-1'].map(g => `<tr><td>${gradeBadge(+g)}</td><td>${DEF[g]}</td><td>${cnt[g]} (${(100 * cnt[g] / tot).toFixed(1)}%)</td><td>${+g >= 1 ? 'relevant' : 'not relevant'}</td></tr>`).join('') + '</tbody>';
-}
-function initEvalTable() {
-  const E = evaluate(), t = document.getElementById('ev-table');
-  const names = [...MEASURES.map(m => m[0]), 'nDCG@10 (2^rel−1)'];
-  t.innerHTML = `<thead><tr><th>measure</th><th>TF-IDF</th><th>BM25</th><th>difference</th><th>what it rewards</th></tr></thead><tbody>` +
-    names.map((n, i) => {
-      const a = E.agg.tfidf[n], b = E.agg.bm25[n], d = b - a;
-      const why = ['clean top 10', 'finding the relevant material within 100', 'an early first relevant result', 'relevant results high throughout', 'high grades near the top (linear gain)', 'high grades near the top (exponential gain)'][i];
-      return `<tr><td><b>${n}</b></td><td class="${a > b ? 'win' : ''}">${a.toFixed(4)}</td><td class="${b > a ? 'win' : ''}">${b.toFixed(4)}</td><td>${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(4)} (${d >= 0 ? '+' : '−'}${Math.abs(100 * d / a).toFixed(1)}%)</td><td class="note">${why}</td></tr>`;
-    }).join('') + '</tbody>';
-}
 
 /* ---------- per-query analysis ---------- */
 function initPerQuery() {
@@ -340,9 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initMath();
   initHero();
   initAccuracy();
-  initPrecision();
   initRecall();
-  initPlayground();
   initDcg();
-  if (C) { initGrades(); initEvalTable(); initPerQuery(); }
+  if (C) { initPerQuery(); }
 });

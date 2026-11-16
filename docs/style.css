@@ -2124,18 +2124,12 @@ table.summary.rr-num td.hl { background: color-mix(in srgb, var(--ucs) 16%, var(
 .art-ev5 .hero-art .bar.rel { fill: var(--bfs); opacity: 0.35; }
 .wh-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin-bottom: 0.7rem; }
 .wh-name { width: 5.4rem; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
-.wh-doc, .pg-cell { display: inline-flex; flex-direction: column; align-items: center; min-width: 2.7rem; padding: 0.25rem 0.4rem; border-radius: 8px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 0.86rem; cursor: pointer; line-height: 1.2; }
-.wh-doc small, .pg-cell small { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.62rem; color: var(--ink-soft); }
-.wh-doc.rel, .pg-cell.rel { background: var(--bfs); border-color: var(--bfs); color: #fff; } .wh-doc.rel small, .pg-cell.rel small { color: #fff; }
-.wh-doc:hover, .pg-cell:hover { border-color: var(--bfs); }
+.wh-doc { display: inline-flex; flex-direction: column; align-items: center; min-width: 2.7rem; padding: 0.25rem 0.4rem; border-radius: 8px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 0.86rem; cursor: pointer; line-height: 1.2; }
+.wh-doc small { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.62rem; color: var(--ink-soft); }
+.wh-doc.rel { background: var(--bfs); border-color: var(--bfs); color: #fff; } .wh-doc.rel small { color: #fff; }
+.wh-doc:hover { border-color: var(--bfs); }
 .wh-static { margin: 0.4rem 0 1.4rem; } .wh-static .wh-doc { cursor: default; } .wh-static .wh-doc:hover { border-color: var(--line); }
 table.summary td.win { background: color-mix(in srgb, var(--bfs) 18%, var(--surface)); font-weight: 800; }
-.pg-rank { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-.pg-add { min-width: 2rem; border-radius: 8px; border: 1.5px dashed var(--line); background: none; color: var(--ink-soft); font: inherit; font-weight: 800; cursor: pointer; }
-.ml-plot .pg-p { fill: none; stroke: var(--indigo); stroke-width: 2.6; } .ml-plot .pg-p-d { fill: var(--indigo); }
-.ml-plot .pg-r { fill: none; stroke: var(--bfs); stroke-width: 2.6; stroke-dasharray: 6 4; } .ml-plot .pg-r-d { fill: var(--bfs); }
-.ml-plot .pg-relband { fill: color-mix(in srgb, var(--bfs) 12%, transparent); }
-.ev5-table td.note { font-size: 0.8rem; }
 .pq-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 1.2rem; align-items: start; }
 @media (max-width: 760px) { .pq-grid { grid-template-columns: minmax(0, 1fr); } }
 .ml-plot .pq-diag { stroke: var(--ink); stroke-width: 1.4; stroke-dasharray: 5 4; opacity: 0.6; }
@@ -2609,24 +2603,14 @@ pre.wf-json { margin: 0; padding: 0.7rem 0.9rem; border-radius: var(--radius-sm)
 .wf-rank { display: inline-grid; place-items: center; flex: none; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--bfs); color: #fff; font-weight: 800; font-family: 'Poppins', sans-serif; }
 
 /* ---- Lab 05 (IR): precision and recall widgets ---- */
-.pc-list { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; }
-.pc-ret, .pc-rest { padding: 0.5rem; border-radius: var(--radius-sm); }
-.pc-ret { border: 2px solid var(--indigo); background: color-mix(in srgb, var(--indigo) 6%, var(--surface)); } .pc-rest { border: 2px dashed var(--line); }
-.pc-lab { display: block; margin-bottom: 0.35rem; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--indigo); } .pc-rest .pc-lab { color: var(--ink-soft); }
-.pc-row { display: flex; gap: 0.35rem; }
-.pc-doc { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; min-width: 4.6rem; padding: 0.4rem 0.5rem; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }
-.pc-doc small { font-size: 0.64rem; color: var(--ink-soft); } .pc-doc b { font-family: 'Poppins', sans-serif; } .pc-doc span { font-size: 0.66rem; color: var(--ink-soft); }
-.pc-doc.rel { background: var(--bfs); border-color: var(--bfs); color: #fff; } .pc-doc.rel small, .pc-doc.rel span { color: #fff; }
-.pc-doc.out { opacity: 0.55; }
-.pc-bar { display: flex; gap: 3px; max-width: 22rem; } .pc-bar span { flex: 1; height: 14px; border-radius: 3px; background: color-mix(in srgb, #d9546e 45%, var(--surface)); } .pc-bar span.rel { background: var(--bfs); }
 .rc-grid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; max-width: 34rem; }
 .rc-doc { display: grid; place-items: center; height: 2rem; border: 1.5px solid var(--line); border-radius: 6px; font-size: 0.72rem; font-weight: 700; color: var(--ink-soft); background: var(--surface); }
 .rc-doc.ret { border: 2.5px solid var(--indigo); color: var(--ink); }
 .rc-doc.found { background: var(--bfs); border-color: var(--bfs); color: #fff; box-shadow: 0 0 0 2.5px var(--indigo); }
 .rc-doc.miss { border: 2px dashed #d9546e; background: color-mix(in srgb, #d9546e 14%, var(--surface)); color: var(--red-ink); }
 .bt-legend .k.rc-k-ret { background: none; border: 2.5px solid var(--indigo); box-sizing: border-box; } .bt-legend .k.rc-k-miss { background: none; border: 2px dashed #d9546e; box-sizing: border-box; }
-@media (max-width: 520px) { .pc-doc { min-width: 3.4rem; padding: 0.3rem; } .rc-doc { height: 1.7rem; font-size: 0.62rem; } }
-.ac-sl { gap: 0.4rem 1.2rem; }
+@media (max-width: 520px) { .rc-doc { height: 1.7rem; font-size: 0.62rem; } }
+.ac-acc { margin-top: 1rem; }   /* Lab 05: accuracy line under the confusion table */
 table.summary.cm-live td.tp { background: color-mix(in srgb, var(--bfs) 22%, var(--surface)); font-weight: 800; }
 table.summary.cm-live td.fp, table.summary.cm-live td.fn { background: color-mix(in srgb, #d9546e 14%, var(--surface)); }
 table.summary.cm-live td.tn { background: color-mix(in srgb, var(--ink) 6%, var(--surface)); color: var(--ink-soft); }

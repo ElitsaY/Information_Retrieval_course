@@ -83,7 +83,6 @@
       <li><a href="#pr">Accuracy, Precision and Recall</a>: why accuracy is not enough, and precision and recall at a cutoff \(k\).</li>
       <li><a href="#rank">Why rank position matters</a>: RR and MRR, AP and MAP.</li>
       <li><a href="#graded">Graded relevance</a>: DCG and nDCG.</li>
-      <li><a href="#cranfield">Live evaluation on Cranfield</a> with <code>ir_measures</code>.</li>
       <li><a href="#disagree">Different metrics can disagree</a>: metric choice and per-query analysis.</li>
       <li><a href="#summary">Summary</a>, and an optional exercise.</li>
     </ol>
@@ -156,20 +155,12 @@
       <li>On the Web, with billions of pages and a handful of relevant ones, the useless empty system scores 99.9999…%. Accuracy is dominated by the true negatives, which the user never sees and does not care about.</li>
       <li>So retrieval evaluation ignores TN and looks only at what the user sees (TP, FP) and what the user needs (TP, FN): <b>precision</b> and <b>recall</b>.</li>
     </ul>
-    <h4 style="margin:1.4rem 0 0.4rem;">Try it: accuracy vs precision and recall</h4>
-    <p class="section-lede">One query: set the collection size, how many documents are relevant, how many the system retrieves and how many of those are relevant.</p>
+    <h4 style="margin:1.4rem 0 0.4rem;">Try it: accuracy in three extreme cases</h4>
+    <p class="section-lede">One query with 7 relevant documents. Pick a case to see its table and its accuracy.</p>
     <div class="playground">
       <div class="pg-controls"><div class="strategy-pick" id="ac-pre"></div></div>
-      <div class="pg-controls ac-sl">
-        <div class="beam-control show" style="margin:0;"><label for="ac-n">collection size \(N\)</label><input type="range" id="ac-n" min="1.5" max="9" value="3.146" step="0.001"><span class="val" id="ac-n-val"></span></div>
-        <div class="beam-control show" style="margin:0;"><label for="ac-r">relevant documents</label><input type="range" id="ac-r" min="1" max="30" value="7" step="1"><span class="val" id="ac-r-val"></span></div>
-        <div class="beam-control show" style="margin:0;"><label for="ac-k">retrieved</label><input type="range" id="ac-k" min="0" max="50" value="10" step="1"><span class="val" id="ac-k-val"></span></div>
-        <div class="beam-control show" style="margin:0;"><label for="ac-t">relevant among them</label><input type="range" id="ac-t" min="0" max="30" value="4" step="1"><span class="val" id="ac-t-val"></span></div>
-      </div>
-      <div class="pg-grid">
-        <div id="ac-cm"></div>
-        <div class="al-out" id="ac-out"></div>
-      </div>
+      <div id="ac-cm"></div>
+      <div class="al-out ac-acc" id="ac-out"></div>
     </div>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">A toy ranking</h3>
@@ -190,15 +181,6 @@
     </ul>
     <p class="section-lede" style="margin-top:0.8rem;"><b>The toy ranking R N R N R</b>, precision at every cutoff:</p>
     <div class="table-wrap"><table class="summary sc-small rr-num toy-tab"><thead><tr><th>rank \(k\)</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr></thead><tbody><tr><td><b>document</b></td><td><span class="tk-r">D1 R</span></td><td><span class="tk-n">D2 N</span></td><td><span class="tk-r">D3 R</span></td><td><span class="tk-n">D4 N</span></td><td><span class="tk-r">D5 R</span></td></tr><tr><td><b>relevant in top \(k\)</b></td><td>1</td><td>1</td><td>2</td><td>2</td><td>3</td></tr><tr><td><b>\(P@k\)</b></td><td>1/1 = 1.00</td><td>1/2 = 0.50</td><td>2/3 = 0.67</td><td>2/4 = 0.50</td><td>3/5 = 0.60</td></tr></tbody></table></div>
-    <h4 style="margin:1.4rem 0 0.4rem;">Try it: precision at k</h4>
-    <p class="section-lede">Move the cutoff \(k\): the bracket marks the retrieved set, the documents the user sees. Click a document to switch it between relevant and not relevant.</p>
-    <div class="playground">
-      <div class="pg-controls">
-        <div class="beam-control show" style="margin:0;"><label for="pc-k">cutoff \(k\)</label><input type="range" id="pc-k" min="1" max="5" value="3" step="1"><span class="val" id="pc-k-val">3</span></div>
-      </div>
-      <div class="pc-list" id="pc-list"></div>
-      <div id="pc-out" style="margin-top:0.9rem;"></div>
-    </div>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Recall</h3>
     <div class="def-mac" role="note" aria-labelledby="def-recall">
@@ -206,12 +188,12 @@
       <div class="def-mac-body">
         <p class="def-mac-term" id="def-recall">Recall</p>
         <div class="math-block">\[ \text{Recall} = \frac{\text{relevant retrieved}}{\text{all relevant}} = \frac{TP}{TP + FN} \qquad Recall@k = \frac{\text{relevant in the top } k}{\text{all relevant}} \]</div>
-        <p class="def-mac-text"><b>Of all relevant documents that exist, how many did we retrieve?</b> Recall looks at the whole collection: how much of what the user needs did we find? Its denominator counts relevant documents the system <b>never showed</b>, which is why it needs relevance judgments beyond the returned list.</p>
+        <p class="def-mac-text"><b>Of all relevant documents that exist, how many did we retrieve?</b></p>
       </div>
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
       <li><b>Example</b>: a lawyer needs every court decision on a topic. The archive holds 50 relevant decisions and the search finds 40 of them: \(Recall = 40/50 = 0.8\), however many irrelevant ones came along.</li>
-      <li>If the collection held 2 more relevant documents that the ranking never reaches, the same ranking would only get \(Recall@5 = 3/5\): nothing about the list changed, only the denominator.</li>
+      <li>❗ <b>If \(k\) is smaller than the number of relevant documents \(R\)</b>, even a perfect ranking cannot reach recall 1: the top \(k\) holds at most \(k\) relevant documents, so \(Recall@k \le k / R\). With \(R = 3\), a perfect ranking gets only \(Recall@2 = 2/3\). This is why recall is reported at a large \(k\) (for example Recall@100), or divided by \(\min(k, R)\) instead of \(R\) (capped recall).</li>
     </ul>
     <p class="section-lede" style="margin-top:0.8rem;"><b>The toy ranking R N R N R</b>, with 3 relevant documents in the collection:</p>
     <div class="table-wrap"><table class="summary sc-small rr-num toy-tab"><thead><tr><th>rank \(k\)</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr></thead><tbody><tr><td><b>document</b></td><td><span class="tk-r">D1 R</span></td><td><span class="tk-n">D2 N</span></td><td><span class="tk-r">D3 R</span></td><td><span class="tk-n">D4 N</span></td><td><span class="tk-r">D5 R</span></td></tr><tr><td><b>relevant in top \(k\)</b></td><td>1</td><td>1</td><td>2</td><td>2</td><td>3</td></tr><tr><td><b>\(Recall@k\)</b></td><td>1/3 = 0.33</td><td>1/3 = 0.33</td><td>2/3 = 0.67</td><td>2/3 = 0.67</td><td>3/3 = 1.00</td></tr></tbody></table></div>
@@ -233,41 +215,63 @@
       <li><b>Retrieval depth</b>: as we retrieve more and more documents, recall tends to increase and precision often decreases. This is a tendency, not a guarantee for every single step: a relevant document at rank \(k\) raises P@k.</li>
     </ul>
 
-    <h4 style="margin:1.4rem 0 0.4rem;">Try it: both on one ranking</h4>
-    <p class="section-lede">Click a rank to switch it between relevant (R) and not relevant (N); use + and − to change the length, and set how many relevant documents exist in total. The plot shows P@k and Recall@k; the shaded columns are relevant ranks. The same playground computes RR and AP, used in Part III.</p>
-    <div class="playground">
-      <div class="pg-controls"><div class="strategy-pick" id="pg-presets"></div></div>
-      <div class="pg-controls">
-        <div id="pg-rank" class="pg-rank"></div>
-        <label class="ii-lbl" for="pg-R">relevant documents in the collection</label>
-        <input id="pg-R" type="number" min="1" max="20" class="ii-input" style="max-width:5rem;">
-      </div>
-      <div class="pg-grid">
-        <div>
-          <svg id="pg-svg" class="ml-plot" viewBox="0 0 460 240" aria-label="Precision and recall at each rank"></svg>
-          <p class="bt-legend" style="margin:0.2rem 0 0;"><span class="k ln" style="background:var(--indigo);"></span> P@k &nbsp; <span class="k ln" style="background:var(--bfs);"></span> Recall@k</p>
+    <div class="dt-ex-list" style="margin-top:1.6rem;">
+      <details class="dt-ex">
+        <summary><span class="dt-ex-no">?</span><span class="dt-ex-q">Question: a collection has 1,400 documents, 4 of them relevant to the query. What is the recall if the system returns the whole collection?</span></summary>
+        <div class="dt-ex-sol">
+          <p>\(Recall = 4/4 = 1\): every relevant document is among the results. But \(Precision = 4/1400 \approx 0.003\): the 4 relevant documents are buried among 1,396 irrelevant ones. Perfect recall is easy if we ignore precision.</p>
         </div>
-        <div class="al-out" id="pg-out"></div>
-      </div>
+      </details>
     </div>
+
   </section>
 
   <!-- ===== PART III: RANK POSITION ===== -->
   <section class="block algo-section dfs" id="rank">
     <span class="badge dfs" style="margin-bottom:0.6rem; display:inline-block;">Part III</span>
     <h2 class="section-title">Why rank position matters</h2>
-    <p class="section-lede">Ranking A is <b>R R R N N N N N N N</b>, ranking B is <b>N N N N N N N R R R</b>. Both have \(P@10 = 0.3\), yet ranking A is clearly preferable for most users (load both in the playground above). We need rank-aware metrics.</p>
+    <p class="section-lede">So far we judged <b>one ranking for one query</b>. A real search system answers thousands of queries, and the real question is usually: <b>which system is better</b>, TF-IDF or BM25, the old version or the new one? To answer it we score every query separately and then average, so each system gets one number that we can compare.</p>
+    <div class="pipe">
+      <div class="pipe-card"><span class="pipe-l">Many queries</span><p class="pipe-lab">a fixed test set, the same for every system</p></div>
+      <span class="pipe-arrow" aria-hidden="true">→</span>
+      <div class="pipe-card stage"><span class="pipe-l">One score per query</span><p class="pipe-lab">from that query's ranking</p></div>
+      <span class="pipe-arrow" aria-hidden="true">→</span>
+      <div class="pipe-card"><span class="pipe-l">Mean over queries</span><p class="pipe-lab">one number per system</p></div>
+      <span class="pipe-arrow" aria-hidden="true">→</span>
+      <div class="pipe-card stage"><span class="pipe-l">Compare systems</span><p class="pipe-lab">higher mean = better on this test set</p></div>
+    </div>
+    <p class="section-lede" style="margin-top:1rem;">But the per-query score must also look at <b>where</b> the relevant documents are. Ranking A is <b>R R R N N N N N N N</b>, ranking B is <b>N N N N N N N R R R</b>. Both have \(P@10 = 0.3\), yet ranking A is clearly preferable for most users. We need rank-aware metrics, averaged over queries: <b>MRR</b> and <b>MAP</b>.</p>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.4rem;">Reciprocal Rank and MRR</h3>
     <div class="def-mac" role="note" aria-labelledby="def-reciprocal-rank">
       <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
       <div class="def-mac-body">
         <p class="def-mac-term" id="def-reciprocal-rank">Reciprocal Rank</p>
-        <div class="math-block">\[ RR = \frac{1}{r} \qquad MRR = \frac{1}{|Q|} \sum_{q \in Q} RR(q) \]</div>
-        <p class="def-mac-text">\(r\) is the rank of the <b>first</b> relevant result: at rank 1, RR = 1; at rank 2, 0.5; at rank 5, 0.2. With no relevant result, RR = 0. <b>RR</b> is for one query, <b>MRR</b> is the mean across queries.</p>
+        <div class="math-block">\[ RR = \frac{1}{r} \]</div>
+        <p class="def-mac-text">\(r\) is the rank of the <b>first</b> relevant result: at rank 1, \(RR = 1/1 = 1\); at rank 2, \(RR = 1/2\); at rank 5, \(RR = 1/5\). With no relevant result, RR = 0. RR scores <b>one query</b>.</p>
       </div>
     </div>
+    <p class="section-lede" style="margin-top:1rem;">Read \(RR = 1/2\) as: <b>the first relevant result is at rank 2</b>, so the user had to skip one useless result to reach it. The bigger the denominator, the further down the user had to look: \(1/1\) is the best, \(1/10\) means nine useless results came first.</p>
+    <div class="def-mac" role="note" aria-labelledby="def-mrr">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+        <p class="def-mac-term" id="def-mrr">Mean Reciprocal Rank (MRR)</p>
+        <div class="math-block">\[ MRR = \frac{1}{|Q|} \sum_{q \in Q} RR(q) = \frac{1}{|Q|} \sum_{q \in Q} \frac{1}{r_q} \]</div>
+        <p class="def-mac-text">MRR scores <b>a whole system</b>: how high, on average, it puts the first relevant result. It is between 0 and 1, and higher is better.</p>
+      </div>
+    </div>
+    <p class="section-lede" style="margin-top:0.8rem;"><b>Example</b>: three queries, each with its own ranking.</p>
+    <div class="table-wrap"><table class="summary sc-small rr-num toy-tab">
+      <thead><tr><th>query</th><th>ranking</th><th>first relevant at</th><th>\(RR\)</th></tr></thead>
+      <tbody>
+        <tr><td><b>Q1</b> youtube</td><td><span class="tk-r">R</span> <span class="tk-n">N</span> <span class="tk-n">N</span></td><td>rank 1</td><td>\(1/1 = 1\)</td></tr>
+        <tr><td><b>Q2</b> capital of Bulgaria</td><td><span class="tk-n">N</span> <span class="tk-r">R</span> <span class="tk-n">N</span></td><td>rank 2</td><td>\(1/2 = 0.5\)</td></tr>
+        <tr><td><b>Q3</b> who wrote Hamlet</td><td><span class="tk-n">N</span> <span class="tk-n">N</span> <span class="tk-n">N</span> <span class="tk-r">R</span></td><td>rank 4</td><td>\(1/4 = 0.25\)</td></tr>
+      </tbody>
+    </table></div>
+    <div class="math-block">\[ MRR = \frac{1/1 + 1/2 + 1/4}{3} = \frac{1.75}{3} \approx 0.583 \]</div>
     <ul class="concept-list" style="margin-top:1rem;">
+      <li><b>Why the mean?</b> One query says little about a system. MRR sums up a whole set of test queries in one number, so two systems can be compared. An MRR near 1 means the first good answer is almost always at the top; an MRR of 0.1 means users typically scroll to around rank 10.</li>
       <li><b>Useful when</b> the user mainly wants one good result: navigational search, entity lookup, question answering, some FAQ tasks.</li>
       <li><b>But</b> MRR ignores everything after the first relevant document.</li>
     </ul>
@@ -278,10 +282,26 @@
       <div class="def-mac-body">
         <p class="def-mac-term" id="def-average-precision">Average Precision</p>
         <div class="math-block">\[ AP = \frac{1}{R} \sum_{k=1}^{N} P@k \cdot rel(k) \qquad MAP = \frac{1}{|Q|} \sum_{q \in Q} AP(q) \]</div>
-        <p class="def-mac-text">\(R\) is the number of relevant documents for the query and \(rel(k)\) is 1 if the document at rank \(k\) is relevant. In words: every time we meet a relevant document, record the precision at that point; then average those values over all \(R\) relevant documents. <b>AP</b> is for one query, <b>MAP</b> the mean across queries.</p>
+        <ul class="concept-list">
+          <li>\(R\) is the number of relevant documents for the query.</li>
+          <li>\(rel(k)\) is 1 if the document at rank \(k\) is relevant, 0 otherwise.</li>
+          <li>In words: every time we meet a relevant document, record the precision at that point; then average those values over all \(R\) relevant documents.</li>
+          <li><b>AP</b> is for one query, <b>MAP</b> is the mean across queries.</li>
+        </ul>
       </div>
     </div>
-    <p class="section-lede" style="margin-top:1rem;">Worked example, <b>R N R N R</b>: \(P@1 = 1\), \(P@3 = 2/3\), \(P@5 = 3/5\), so \(AP = \frac{1 + 2/3 + 3/5}{3} \approx 0.756\). For rankings A and B above, AP is 1.0 and about 0.216, and RR is 1 and 0.125: the rank-aware metrics separate what P@10 could not.</p>
+    <p class="section-lede" style="margin-top:1rem;"><b>Worked example</b>: the toy ranking <b>R N R N R</b>, with \(R = 3\) relevant documents.</p>
+    <div class="table-wrap"><table class="summary sc-small rr-num toy-tab">
+      <thead><tr><th>rank \(k\)</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr></thead>
+      <tbody>
+        <tr><td><b>document</b></td><td><span class="tk-r">D1 R</span></td><td><span class="tk-n">D2 N</span></td><td><span class="tk-r">D3 R</span></td><td><span class="tk-n">D4 N</span></td><td><span class="tk-r">D5 R</span></td></tr>
+        <tr><td><b>\(rel(k)\)</b></td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td></tr>
+        <tr><td><b>\(P@k\)</b></td><td>1/1 = 1</td><td>1/2</td><td>2/3</td><td>2/4</td><td>3/5</td></tr>
+        <tr><td><b>added to AP</b></td><td><b>1</b></td><td>–</td><td><b>2/3</b></td><td>–</td><td><b>3/5</b></td></tr>
+      </tbody>
+    </table></div>
+    <div class="math-block">\[ AP = \frac{1 + 2/3 + 3/5}{3} \approx 0.756 \]</div>
+    <p class="section-lede">For rankings A and B above, AP is 1.0 and about 0.216, and RR is 1 and 0.125: the rank-aware metrics separate what P@10 could not.</p>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Recap</h3>
     <div class="table-wrap">
@@ -353,91 +373,9 @@
     <p class="caption-note">💡 Not every nDCG uses \(2^{rel} - 1\). <code>ir_measures</code>' default <code>nDCG@10</code> (the trec_eval definition) uses the grade itself as the gain; the formula above is <code>nDCG(dcg='exp-log2')@10</code>. With [3, 0, 2, 1] the two give 0.951 and 0.930. Always report which one you used.</p>
   </section>
 
-  <!-- ===== PART V: CRANFIELD ===== -->
-  <section class="block algo-section ids" id="cranfield">
-    <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part V</span>
-    <h2 class="section-title">Live evaluation on Cranfield</h2>
-    <p class="section-lede">Cranfield (<a href="https://ir-datasets.com/cranfield.html" target="_blank" rel="noopener">ir_datasets</a>) has graded judgments. For binary metrics we treat <b>relevance ≥ 1</b> as relevant; for nDCG we keep the grades (a grade of −1 counts as 0).</p>
-    <details class="code-card">
-      <summary>
-        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="code-file">qrels.py</span>
-        <span class="code-lang">Python</span>
-        <button type="button" class="code-copy">Copy</button>
-        <span class="code-chevron" aria-hidden="true">▾</span>
-      </summary>
-      <pre class="code-body"><code class="lang-py">import ir_datasets
-from collections import Counter
-
-dataset = ir_datasets.load("cranfield")
-queries = list(dataset.queries_iter())
-qrels = list(dataset.qrels_iter())
-
-Counter(q.relevance for q in qrels)
-# Counter({3: 734, 2: 387, 4: 363, -1: 225, 1: 128})</code></pre>
-    </details>
-    <div class="table-wrap"><table class="summary sc-small" id="gr-table"></table></div>
-
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Using <code>ir_measures</code></h3>
-    <p class="section-lede">Use an established evaluation library (<a href="https://ir-measur.es/" target="_blank" rel="noopener">ir_measures</a>) rather than implementing every metric yourself. It reads TREC-style run files, <code>query_id Q0 doc_id rank score system</code>, with the top 100 results of each system for every query, made with the two search functions from Lab 04:</p>
-    <details class="code-card">
-      <summary>
-        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="code-file">write_runs.py</span>
-        <span class="code-lang">Python</span>
-        <button type="button" class="code-copy">Copy</button>
-        <span class="code-chevron" aria-hidden="true">▾</span>
-      </summary>
-      <pre class="code-body"><code class="lang-py"># search_tfidf and search_bm25 from Lab 04, return (doc_id, title, score)
-def write_run(path, system_name, search_fn, k=100):
-    with open(path, "w", encoding="utf-8") as f:
-        for q in queries:
-            for rank, (doc_id, title, score) in enumerate(search_fn(q.text, k=k), start=1):
-                f.write(f"{q.query_id} Q0 {doc_id} {rank} {score:.8f} {system_name}\n")
-
-write_run("lab04_tfidf.run", "tfidf", search_tfidf)
-write_run("lab04_bm25.run", "bm25", search_bm25)</code></pre>
-    </details>
-    <details class="code-card">
-      <summary>
-        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="code-file">evaluate.py</span>
-        <span class="code-lang">Python</span>
-        <button type="button" class="code-copy">Copy</button>
-        <span class="code-chevron" aria-hidden="true">▾</span>
-      </summary>
-      <pre class="code-body"><code class="lang-py"># pip install ir_measures
-import ir_measures
-from ir_measures import P, Recall, RR, AP, nDCG
-
-tfidf_run = ir_measures.read_trec_run("lab04_tfidf.run")
-bm25_run = ir_measures.read_trec_run("lab04_bm25.run")
-
-metrics = [
-    P(rel=1) @ 10,
-    Recall(rel=1) @ 100,
-    RR(rel=1),
-    AP(rel=1),
-    nDCG @ 10,
-]
-
-tfidf_scores = ir_measures.calc_aggregate(metrics, qrels, tfidf_run)
-bm25_scores = ir_measures.calc_aggregate(metrics, qrels, bm25_run)
-print(tfidf_scores)
-# {AP: 0.2737..., nDCG@10: 0.3170..., RR: 0.5100..., P@10: 0.2284..., R@100: 0.7006...}
-print(bm25_scores)
-# {AP: 0.2405..., nDCG@10: 0.2822..., RR: 0.5044..., P@10: 0.1991..., R@100: 0.6512...}</code></pre>
-    </details>
-
-    <h4 style="margin:1.4rem 0 0.4rem;">See it: TF-IDF vs BM25 on all 225 queries</h4>
-    <p class="section-lede">Computed in the page from the same runs; the values are identical to <code>ir_measures</code>' output above (checked query by query). The last row is nDCG with the \(2^{rel} - 1\) gain from Part IV.</p>
-    <div class="table-wrap"><table class="summary sc-small rr-num ev5-table" id="ev-table"></table></div>
-    <p class="caption-note">💡 Do not focus only on which row has the larger number. Ask instead: which metric changed? What user behaviour does that metric represent? Is the difference at rank 10, at rank 100, or across the whole ranking? And here: <b>BM25 is lower than TF-IDF on every metric.</b> "More sophisticated" is not automatically better; the setup matters. <code>text.lower().split()</code> keeps punctuation attached: 5,486 of the 12,246 distinct tokens contain it, like <code>thickness,</code>, which then does not match <code>thickness</code>. With a word tokenizer (<code>\b\w+\b</code>) the same BM25 reaches MAP 0.262 and P@10 0.219, closer to TF-IDF but still below it on Cranfield.</p>
-  </section>
-
-  <!-- ===== PART VI: METRICS DISAGREE ===== -->
+  <!-- ===== PART V: METRICS DISAGREE ===== -->
   <section class="block algo-section bfs" id="disagree">
-    <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Part VI</span>
+    <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Part V</span>
     <h2 class="section-title">Different metrics can disagree</h2>
     <ul class="concept-list">
       <li>System A has a higher P@10, system B a higher Recall@100: no contradiction, they are strong in different ways.</li>
