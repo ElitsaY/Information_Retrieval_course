@@ -2093,6 +2093,7 @@ table.summary.rr-num td.hl { background: color-mix(in srgb, var(--ucs) 16%, var(
 .wh-doc small, .pg-cell small { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.62rem; color: var(--ink-soft); }
 .wh-doc.rel, .pg-cell.rel { background: var(--bfs); border-color: var(--bfs); color: #fff; } .wh-doc.rel small, .pg-cell.rel small { color: #fff; }
 .wh-doc:hover, .pg-cell:hover { border-color: var(--bfs); }
+.wh-static { margin: 0.4rem 0 1.4rem; } .wh-static .wh-doc { cursor: default; } .wh-static .wh-doc:hover { border-color: var(--line); }
 table.summary td.win { background: color-mix(in srgb, var(--bfs) 18%, var(--surface)); font-weight: 800; }
 .pg-rank { display: flex; flex-wrap: wrap; gap: 0.3rem; }
 .pg-add { min-width: 2rem; border-radius: 8px; border: 1.5px dashed var(--line); background: none; color: var(--ink-soft); font: inherit; font-weight: 800; cursor: pointer; }

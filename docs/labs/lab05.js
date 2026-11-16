@@ -137,30 +137,6 @@ function initHero() {
   }
 }
 
-/* ---------- Part I: which system is better? ---------- */
-function initWhich() {
-  const A = ['D8', 'D4', 'D19', 'D2', 'D7'], B = ['D2', 'D8', 'D3', 'D19', 'D4'];
-  const box = document.getElementById('wh-box'), out = document.getElementById('wh-out');
-  const all = [...new Set([...A, ...B])].sort((x, y) => +x.slice(1) - +y.slice(1));
-  const judged = {};
-  function render() {
-    const nRel = Object.values(judged).filter(Boolean).length;
-    const row = (name, L) => `<div class="wh-row"><span class="wh-name">System ${name}</span>${L.map((d, i) => `<button type="button" class="wh-doc${judged[d] ? ' rel' : ''}" data-d="${d}"><small>${i + 1}</small>${d}</button>`).join('')}</div>`;
-    box.innerHTML = row('A', A) + row('B', B);
-    box.querySelectorAll('.wh-doc').forEach(b => b.addEventListener('click', () => { judged[b.dataset.d] = !judged[b.dataset.d]; render(); }));
-    if (!nRel) { out.innerHTML = `<p class="big">Which system is better? <b>We do not know.</b></p><p class="note">Click documents to mark them relevant (as an assessor would). The documents are ${all.join(', ')}.</p>`; return; }
-    const J = Object.fromEntries(Object.entries(judged).map(([d, v]) => [d, v ? 1 : 0]));
-    const m = (L) => [precisionAt(L, J, 5), reciprocalRank(L, J), averagePrecision(L, J)];
-    const [a, b] = [m(A), m(B)];
-    const cell = (x, y) => `<td class="${x > y + 1e-9 ? 'win' : ''}">${x.toFixed(3)}</td>`;
-    out.innerHTML = `<p class="note">${nRel} relevant document${nRel > 1 ? 's' : ''} marked: ${all.filter(d => judged[d]).join(', ')} (and we assume no others exist).</p>` +
-      `<div class="rr-tw"><table class="summary sc-small rr-num"><thead><tr><th></th><th>P@5</th><th>RR</th><th>AP</th></tr></thead><tbody>` +
-      `<tr><td>System A</td>${a.map((x, i) => cell(x, b[i])).join('')}</tr><tr><td>System B</td>${b.map((x, i) => cell(x, a[i])).join('')}</tr></tbody></table></div>` +
-      `<p class="note" style="margin-top:0.5rem;">The better system depends on which documents are relevant, and sometimes on which measure you look at.</p>`;
-  }
-  render();
-}
-
 /* ---------- Part II: accuracy vs precision and recall ---------- */
 function initAccuracy() {
   const $ = (id) => document.getElementById(id), Ns = $('ac-n'), Rs = $('ac-r'), Ks = $('ac-k'), Ts = $('ac-t'), cm = $('ac-cm'), out = $('ac-out');
@@ -363,7 +339,6 @@ function initPerQuery() {
 document.addEventListener('DOMContentLoaded', () => {
   initMath();
   initHero();
-  initWhich();
   initAccuracy();
   initPrecision();
   initRecall();
