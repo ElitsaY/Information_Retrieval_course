@@ -106,9 +106,12 @@
     <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Notebook</span>
     <h2 class="section-title">Finding the correct word: edit distance</h2>
     <p class="section-lede">To pick the lexicon words "closest" to a misspelled query we need a distance between strings. The standard one counts single-character edits.</p>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Edit (Levenshtein) distance</div>
+    <div class="def-mac" role="note" aria-labelledby="def-edit-levenshtein-distance">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-edit-levenshtein-distance">Edit (Levenshtein) distance</p>
       <p>The minimum number of single-character edits that turn \(s_1\) into \(s_2\). The edits are <b>insert</b>, <b>delete</b> and <b>replace</b> a character. E.g. the edit distance from <i>cat</i> to <i>dog</i> is 3. It is solved with <b>dynamic programming</b> in \(O(|s_1| \cdot |s_2|)\) time.</p>
+      </div>
     </div>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Edit distance algorithm</h3>
@@ -230,8 +233,10 @@ print(nltk.jaccard_distance(set('mapping'), set('mappings')))      # 0.142857142
     <p class="section-lede">A problem with the edit distance approach: do we compute the edit distance from the query to <b>every</b> dictionary term? That is slow. We first cut the dictionary down to a few plausible candidates, and compute edit distances only for those.</p>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Solution 1: a character n-gram index</h3>
-    <div class="definition-box">
-      <div class="dbox-label">📐 n-gram</div>
+    <div class="def-mac" role="note" aria-labelledby="def-n-gram">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-n-gram">n-gram</p>
       <p>A sequence of \(n\) consecutive items. Here the items are characters, so a character n-gram is \(n\) letters in a row inside a word. With \(n = 2\) we call them bigrams, with \(n = 3\) trigrams. A word of \(L\) letters has \(L - n + 1\) n-grams.</p>
       <p>Example, the word <i>castle</i> (6 letters):</p>
       <ul>
@@ -239,6 +244,7 @@ print(nltk.jaccard_distance(set('mapping'), set('mappings')))      # 0.142857142
         <li>trigrams (\(6 - 3 + 1 = 4\)): <code>cas</code> <code>ast</code> <code>stl</code> <code>tle</code></li>
       </ul>
       <p>The items can also be words: the biwords of Lab 01 are word bigrams (<code>friends romans</code>, <code>romans countrymen</code>).</p>
+      </div>
     </div>
     <ul class="concept-list">
       <li><b>Build a character n-gram index</b>: n-gram → the words containing it (<code>av</code> → <i>avocado, pavement, …</i>).</li>
@@ -260,8 +266,10 @@ print(nltk.jaccard_distance(set('mapping'), set('mappings')))      # 0.142857142
       <li><b>Normalize</b>: a raw count favours long words (<i>car</i> shares all its bigrams with <i>carbon</i>). Use the <b>Jaccard coefficient</b> of the two n-gram sets and declare a match above a threshold.</li>
       <li><b>Then rank</b> the candidates by edit distance (and, among equals, by how common the word is).</li>
     </ul>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Jaccard coefficient</div>
+    <div class="def-mac" role="note" aria-labelledby="def-jaccard-coefficient">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-jaccard-coefficient">Jaccard coefficient</p>
       <p>For two sets \(X\) and \(Y\) (here: the n-grams of two words). It is 1 when the sets are equal and 0 when they are disjoint; the sets need not have the same size.</p>
       <div class="math-block">\[ J(X, Y) = \frac{|X \cap Y|}{|X \cup Y|} \]</div>
       <p>\(|X \cup Y| = |X| + |Y| - |X \cap Y|\). The intersection size is exactly the count from the merge above.</p>
@@ -280,6 +288,7 @@ print(nltk.jaccard_distance(set('mapping'), set('mappings')))      # 0.142857142
         </tbody>
       </table></div>
       <p>The raw count tied <i>aboard</i>, <i>boardroom</i>, <i>lord</i> and <i>sordid</i> at 2. Jaccard tells them apart: the short <i>lord</i> moves up to 0.50, the long <i>boardroom</i> drops to 0.22, because its 6 extra bigrams enlarge the union. With a threshold of 0.5, only <i>border</i> and <i>lord</i> stay as candidates.</p>
+      </div>
     </div>
     <p class="caption-note">💡 The postings scan only needs each term's number of n-grams, not the term itself: when scanning for <i>bord</i> reaches <i>boardroom</i> with 2 matching bigrams, and <i>boardroom</i> has 8 bigrams, \(J = 2 / (8 + 3 - 2)\) (IIR 3.3.4). The lecture's example slide is titled "trigrams" but uses the bigrams of <i>lord</i> (lo, or, rd).</p>
 
@@ -368,8 +377,10 @@ def ngram_spellcheck(word, postings, n, jaccard_threshold=0.7):
     </ul>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Jaccard vs overlap coefficient</h3>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Overlap coefficient</div>
+    <div class="def-mac" role="note" aria-labelledby="def-overlap-coefficient">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-overlap-coefficient">Overlap coefficient</p>
       <p>It also compares two sets \(X\) and \(Y\). It divides the size of the intersection by the size of the <b>smaller</b> set:</p>
       <div class="math-block">\[ O(X, Y) = \frac{|X \cap Y|}{\min(|X|, |Y|)} \]</div>
       <p>It is 1 when the smaller set sits completely inside the larger one, however large the larger one is. Jaccard divides by the union, so every extra element in either set lowers it.</p>
@@ -381,6 +392,7 @@ def ngram_spellcheck(word, postings, n, jaccard_threshold=0.7):
       </ul>
       <p>The overlap coefficient gives <i>lord</i> and <i>boardroom</i> the same score, because it ignores the 6 extra bigrams of <i>boardroom</i>.</p>
       <p>❗ <b>For spelling correction this favours long words.</b> For example, <i>car</i> has all its bigrams in <i>carbon</i>, so their overlap coefficient is 1, while Jaccard gives \(2/5 = 0.40\).</p>
+      </div>
     </div>
     <p class="section-lede"><b>Exercise 4</b>: we have two sets \(A\) and \(B\) with 50 words in common, and the combined set has 100 words. What is the Jaccard coefficient? Does it change if we remove 10 words from \(A\) and add 10 to \(B\), keeping the 50 shared words? Compare with the <b>overlap coefficient</b>, \(|A \cap B| / \min(|A|, |B|)\).</p>
     <div class="playground">
@@ -428,8 +440,10 @@ def ngram_spellcheck(word, postings, n, jaccard_threshold=0.7):
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Solution 2: tries</h3>
     <p class="section-lede">To correct <i>lates</i> we might compute the edit distance to <i>late</i>, <i>latest</i> and <i>latte</i>, and every time we recompute the rows for the common prefix <i>lat</i>. Store the whole vocabulary in a <b>trie</b>, where each node is one letter and its branches are the letters that can follow; then each prefix's row of the edit-distance table is computed <b>once</b>, and branches whose row is already above the limit are cut off (<a href="http://stevehanov.ca/blog/index.php?id=114" target="_blank" rel="noopener">Steve Hanov's post</a>).</p>
 
-    <div class="definition-box">
-      <div class="dbox-label">📐 The limit</div>
+    <div class="def-mac" role="note" aria-labelledby="def-the-limit">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-the-limit">The limit</p>
       <p>The largest edit distance we still accept as a correction. A dictionary word more than <i>limit</i> edits away from the query counts as a different word, and we ignore it. Without a limit every word in the dictionary would be a correction, only a worse one.</p>
       <p>With the lecture's five words and the query <i>gold</i>:</p>
       <ul>
@@ -437,6 +451,7 @@ def ngram_spellcheck(word, postings, n, jaccard_threshold=0.7):
         <li>limit 1 keeps <i>good</i>; limit 2 keeps <i>good</i> and <i>gong</i>; limit 3 also keeps <i>bill</i></li>
       </ul>
       <p>A small limit can miss the right word when the user made two typos. A big limit lets in more wrong words and cuts fewer branches, so the search is slower. Most typos are one or two edits, so the limit is usually 1 or 2. It plays the same role as the Jaccard threshold in Solution 1.</p>
+      </div>
     </div>
 
     <h4 style="margin:1.4rem 0 0.4rem;">The search algorithm</h4>

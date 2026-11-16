@@ -84,10 +84,13 @@
   <section class="block algo-section ids" id="encoder">
     <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part I</span>
     <h2 class="section-title">What is an encoder?</h2>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Encoder</div>
+    <div class="def-mac" role="note" aria-labelledby="def-encoder">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-encoder">Encoder</p>
       <div class="math-block">\[ \operatorname{Encoder}(text) \rightarrow \mathbb{R}^{d} \]</div>
       <p>A model that consumes an input and returns a <b>representation</b> of that input. For retrieval, <code>vector = encoder("how to repair a car")</code>: the goal is a representation that can later be compared with document representations.</p>
+      </div>
     </div>
     <p class="section-lede" style="margin-top:1rem;">❗ <b>Encoder does not mean generator.</b> An encoder produces a representation (text → encoder → vector); a generative model instead repeatedly predicts output tokens.</p>
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Three broad Transformer families</h3>

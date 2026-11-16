@@ -145,10 +145,13 @@
     <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Part II</span>
     <h2 class="section-title">Retrieval-side evaluation</h2>
     <p class="section-lede">Everything from <a href="lab05-evaluation.html">Lab 05</a> still applies. For a query, suppose we know which chunks contain the required evidence: gold evidence <b>C4, C11</b>; the retriever returns <b>C2, C11, C7, C19, C4</b>. Both supporting chunks are within the top 5.</p>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Evidence Recall@k and Context Precision@k</div>
+    <div class="def-mac" role="note" aria-labelledby="def-evidence-recall-k-and-context-precision-k">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-evidence-recall-k-and-context-precision-k">Evidence Recall@k and Context Precision@k</p>
       <div class="math-block">\[ \text{EvidenceRecall@}k = \frac{\text{gold evidence chunks retrieved in the top } k}{\text{all gold evidence chunks}} \qquad \text{ContextPrecision@}k = \frac{\text{relevant retrieved chunks}}{k} \]</div>
       <p>Evidence recall: did the evidence reach the context? Context precision: how much of the context is actually useful?</p>
+      </div>
     </div>
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: the outline's example</h4>
     <p class="section-lede">The ranked list, continued past rank 5 with three more chunks (invented). Move \(k\).</p>
@@ -208,10 +211,13 @@
     <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Part IV</span>
     <h2 class="section-title">Citation evaluation</h2>
     <p class="section-lede">"The thesis is worth 30 ECTS [2]." The citation must be evaluated separately from the answer.</p>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Citation precision and recall</div>
+    <div class="def-mac" role="note" aria-labelledby="def-citation-precision-and-recall">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-citation-precision-and-recall">Citation precision and recall</p>
       <div class="math-block">\[ \text{CitationPrecision} = \frac{\text{correct supporting citations}}{\text{all citations produced}} \qquad \text{CitationRecall} = \frac{\text{claims with valid supporting citations}}{\text{claims requiring support}} \]</div>
       <p>Precision: of the citations produced, how many support their claim? Recall: of the claims that need support, how many got a valid citation?</p>
+      </div>
     </div>
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: check the citations</h4>
     <p class="section-lede">Three passages, an answer with three claims, and the citation the model attached to each (invented). Change the citations and watch both scores.</p>

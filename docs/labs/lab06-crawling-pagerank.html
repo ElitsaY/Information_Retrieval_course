@@ -119,9 +119,12 @@
     <p class="section-lede" style="margin-top:1rem;">These are different engineering problems. A crawler is not a search engine by itself, an inverted index is not a crawler, and a ranking function does not discover new pages.</p>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">What are web crawlers?</h3>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Web crawler</div>
+    <div class="def-mac" role="note" aria-labelledby="def-web-crawler">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-web-crawler">Web crawler</p>
       <p>A <b>web crawler</b> (crawler, web spider) is a program that searches and automatically indexes website content and other information over the internet. Alternatively: crawlers are software or scripts programmed to <b>systematically browse</b> the World Wide Web as part of an automated process.</p>
+      </div>
     </div>
     <ol class="concept-list" style="margin-top:1rem;">
       <li><b>Step 1</b>: the crawler starts processing a predefined list of web pages.</li>
@@ -279,9 +282,12 @@ while frontier:
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Why duplicate URLs matter</h3>
     <p class="section-lede">Without duplicate handling, with links <b>A → B, A → C, B → C, C → A</b>, the crawler keeps rediscovering A, B, C, A, B, C, … At minimum, maintain <code>visited_urls = set()</code>. But there is a second problem: <b>different URLs → the same or nearly identical content</b>: printer-friendly pages, tracking-parameter variants, mobile/desktop versions, mirrored pages, session-specific URLs. So we distinguish a <b>URL duplicate</b> from a <b>content duplicate</b>.</p>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Exact duplicate detection</div>
+    <div class="def-mac" role="note" aria-labelledby="def-exact-duplicate-detection">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-exact-duplicate-detection">Exact duplicate detection</p>
       <p>Hash the (normalized) content: if the same content produces the same hash, it is an exact duplicate.</p>
+      </div>
     </div>
     <details class="code-card">
       <summary>
@@ -319,12 +325,15 @@ fingerprint = hashlib.sha256(
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.4rem;">robots.txt</h3>
     <p class="section-lede">Websites can publish a file at <code>/robots.txt</code>, e.g. <code>https://example.org/robots.txt</code>. The Robots Exclusion Protocol is standardized in <a href="https://www.rfc-editor.org/rfc/rfc9309.html" target="_blank" rel="noopener">RFC 9309</a>.</p>
-    <div class="definition-box">
-      <div class="dbox-label">📐 A simple robots.txt</div>
+    <div class="def-mac" role="note" aria-labelledby="def-a-simple-robots-txt">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-a-simple-robots-txt">A simple robots.txt</p>
       <pre class="rb-pre">User-agent: *
 Disallow: /private/
 Allow: /public/</pre>
       <p>Meaning: <b>all crawlers</b> should not crawl <code>/private/</code>. ❗ <code>robots.txt</code> is <b>not</b> an authentication or authorization mechanism: it communicates crawling preferences. Sensitive information should never be protected by relying on <code>robots.txt</code>.</p>
+      </div>
     </div>
     <p class="section-lede" style="margin-top:1rem;">Python includes a parser:</p>
     <details class="code-card" open>
@@ -579,10 +588,13 @@ data["quotes"][0]["author"]["name"]
     <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Part VI</span>
     <h2 class="section-title">The Web as a directed graph</h2>
     <p class="section-lede">Represent each page as a <b>node</b> and each hyperlink as a <b>directed edge</b>: if page A links to page B, then \(A \rightarrow B\). A small web graph: <b>A → B, A → C, B → C, C → A, D → C, D → A</b>. It is the graph in the <a href="#pagerank">playground below</a>.</p>
-    <div class="definition-box">
-      <div class="dbox-label">📐 In-degree</div>
+    <div class="def-mac" role="note" aria-labelledby="def-in-degree">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-in-degree">In-degree</p>
       <div class="math-block">\[ \text{indegree}(p) = \text{number of pages linking to } p \]</div>
       <p>A naive idea: a page with many incoming links may be important.</p>
+      </div>
     </div>
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Why counting links is not enough</h3>
     <p class="section-lede">100 obscure pages link to X; 1 very authoritative page links to Y. Should X automatically be more important? Not necessarily. We want a <b>recursive</b> idea: a link from an important page should count more than a link from an unimportant page. This is the intuition behind PageRank. (Load <b>Many weak vs one strong</b> in the playground.)</p>
@@ -593,10 +605,13 @@ data["quotes"][0]["author"]["name"]
     <span class="badge dfs" style="margin-bottom:0.6rem; display:inline-block;">Part VII</span>
     <h2 class="section-title">PageRank</h2>
     <p class="section-lede">PageRank can be explained with a <b>random surfer</b> browsing the Web. At each page: with probability \(d\), follow one outgoing link chosen at random; with probability \(1 - d\), jump to a random page. The <b>long-run probability</b> of being on a page is its PageRank.</p>
-    <div class="definition-box">
-      <div class="dbox-label">📐 PageRank</div>
+    <div class="def-mac" role="note" aria-labelledby="def-pagerank">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-pagerank">PageRank</p>
       <div class="math-block">\[ PR(u) = \frac{1-d}{N} + d \sum_{v \in B_u} \frac{PR(v)}{L(v)} \]</div>
       <p>\(N\) = number of pages; \(d\) = damping factor, commonly \(d = 0.85\); \(B_u\) = pages linking to \(u\); \(L(v)\) = number of outgoing links from \(v\).</p>
+      </div>
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
       <li><b>Incoming PageRank</b>: a page receives score from the pages that link to it, \(\sum_{v \in B_u} PR(v) / L(v)\).</li>

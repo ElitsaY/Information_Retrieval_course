@@ -159,6 +159,7 @@ section.algo-section.ids { border-top-color: var(--ids); }
 .eyebrow { color: var(--teal); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.78rem; margin: 0 0 0.4rem; }
 h2.section-title { font-size: 1.35rem; margin: 0 0 0.8rem; }
 .section-lede { color: var(--ink-soft); max-width: 700px; margin: 0 0 2rem; }
+.wide-text .section-lede { max-width: none; }   /* a section whose text should use the full content width */
 /* sub-topics inside a section: the h3/h4 carry inline margins, so the extra gap above them is padding */
 h3.section-title { padding-top: 1rem; }
 .lab-main h4 { padding-top: 0.5rem; }
@@ -469,6 +470,40 @@ footer { text-align: center; color: var(--ink-soft); font-size: 0.85rem; padding
 }
 .fail-badge b { color: var(--coral); }
 .caption-note { font-size: 0.82rem; color: var(--ink-soft); background: color-mix(in srgb, var(--amber) 10%, var(--surface)); border: 1px dashed var(--line); border-radius: var(--radius-sm); padding: 0.7rem 0.9rem; margin: 0.8rem 0; }
+
+/* ---- definition card, macOS-window style: white window, traffic-light title bar, system font ---- */
+.def-mac {
+  --mac-bg: #ffffff; --mac-bar-top: #fbfbfb; --mac-bar-bottom: #f1f1f2; --mac-ink: #1d1d1f; --mac-soft: #6e6e73;
+  --mac-line: rgba(0, 0, 0, 0.09); --mac-well: #f5f5f7;
+  --mac-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.05), 0 2px 6px rgba(0, 0, 0, 0.05), 0 22px 44px -20px rgba(0, 0, 0, 0.28);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', sans-serif;
+  margin: 1.8rem 0 2rem; overflow: hidden;
+  background: var(--mac-bg); color: var(--mac-ink);
+  border: 1px solid var(--mac-line); border-radius: 12px; box-shadow: var(--mac-shadow);
+}
+.def-mac-bar {
+  position: relative; display: flex; align-items: center; height: 2.1rem; padding: 0 0.85rem;
+  background: linear-gradient(var(--mac-bar-top), var(--mac-bar-bottom)); border-bottom: 1px solid var(--mac-line);
+}
+.def-mac-dots { display: flex; gap: 8px; }
+.def-mac-dots i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.14); }
+.def-mac-dots i:nth-child(2) { background: #febc2e; }
+.def-mac-dots i:nth-child(3) { background: #28c840; }
+.def-mac-title { position: absolute; inset: 0; display: grid; place-items: center; font-size: 0.74rem; font-weight: 600; color: var(--mac-soft); pointer-events: none; }
+.def-mac-body { padding: 1.5rem 1.8rem 1.7rem; }
+.def-mac-term { margin: 0; font-size: 1.05rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+.def-mac .math-block { margin: 1rem 0 1.1rem; padding: 0.8rem 1rem; background: var(--mac-well); border-radius: 10px; }
+.def-mac-body > p:not(.def-mac-term) { margin: 0.8rem 0 0; color: var(--mac-ink); font-size: 0.98rem; line-height: 1.65; }
+.def-mac-body > p b { color: var(--mac-ink); }
+.def-mac-body > .table-wrap, .def-mac-body > pre, .def-mac-body > ul { margin: 0.9rem 0 0; }
+.def-mac-body > ul, .def-mac-body li { color: var(--mac-ink); }
+.def-mac .katex-display { margin: 0.4rem 0; }
+/* dark theme: macOS dark-mode window instead of a bright white one */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .def-mac { --mac-bg: #1f1f21; --mac-bar-top: #2e2e30; --mac-bar-bottom: #28282a; --mac-ink: #f5f5f7; --mac-soft: #a1a1a6; --mac-line: rgba(255, 255, 255, 0.1); --mac-well: #2a2a2d; --mac-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.6), 0 22px 44px -20px rgba(0, 0, 0, 0.7); }
+}
+:root[data-theme="dark"] .def-mac { --mac-bg: #1f1f21; --mac-bar-top: #2e2e30; --mac-bar-bottom: #28282a; --mac-ink: #f5f5f7; --mac-soft: #a1a1a6; --mac-line: rgba(255, 255, 255, 0.1); --mac-well: #2a2a2d; --mac-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.6), 0 22px 44px -20px rgba(0, 0, 0, 0.7); }
+@media (max-width: 520px) { .def-mac-body { padding: 1.1rem 1rem 1.2rem; } }
 
 /* ---- definition box: for terms used right after (more prominent than a caption-note) ---- */
 .definition-box {

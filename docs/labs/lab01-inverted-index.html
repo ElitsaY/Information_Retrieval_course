@@ -117,9 +117,12 @@
       <div class="pipe-card"><span class="pipe-l">Inverted index</span><p class="pipe-ex pipe-post"><span><code>friend</code> 2 → 4</span><span><code>roman</code> 1 → 2</span><span><code>countryman</code> 13 → 16</span></p><p class="pipe-lab">queried in <a href="#boolean">Boolean queries</a> and after</p></div>
     </div>
 
-    <div class="definition-box" style="margin-top:1.4rem;">
-      <div class="dbox-label">📐 Token and term</div>
+    <div class="def-mac" style="margin-top:1.4rem;" role="note" aria-labelledby="def-token-and-term">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-token-and-term">Token and term</p>
       <p>A <b>token</b> is one occurrence of a character sequence in a document (<code>Friends</code>). A <b>term</b> is the normalized form stored in the dictionary (<code>friend</code>). After the linguistic modules process it, every token can become an index entry.</p>
+      </div>
     </div>
     <p class="section-lede" style="margin-top:1.2rem;">We build the pipeline twice. First a toy version on 14 news headlines, to see the idea (incidence matrix, then inverted index). Then a real one on newsgroup posts (dictionary, postings, queries).</p>
   </section>
@@ -163,9 +166,12 @@
       <div id="tk-out" class="ii-steps"></div>
     </div>
 
-    <div class="definition-box" style="margin-top:1.6rem;">
-      <div class="dbox-label">📐 Term-document incidence matrix</div>
+    <div class="def-mac" style="margin-top:1.6rem;" role="note" aria-labelledby="def-term-document-incidence-matrix">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-term-document-incidence-matrix">Term-document incidence matrix</p>
       <p>A matrix with one row per term \(t\) and one column per document \(d\). Entry \((t, d)\) is 1 if \(t\) occurs in \(d\) and 0 otherwise. The notebook stores the count <code>sent.count(token)</code> instead (term-document frequency), so <code>the</code> and <code>in</code> get a 2 in document 1.</p>
+      </div>
     </div>
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: answer a Boolean query with the matrix</h4>
@@ -554,10 +560,13 @@ print(postings['zip'], postings['zaphod.mps.ohio-state.edu'][:3])   # [(49, 2)] 
       <li><b>Dead</b>: 5 → 17 → 44</li>
       <li><b>Intersection</b>: 5 → 17 → 44</li>
     </ul>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Merging two postings lists</div>
+    <div class="def-mac" role="note" aria-labelledby="def-merging-two-postings-lists">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-merging-two-postings-lists">Merging two postings lists</p>
       <p>Keep one pointer per list and compare the two document ids. If they are equal, add the id to the result and move both pointers forward. Otherwise, move the pointer at the smaller id. The merge takes <b>linear time</b> in the lengths of the two lists, and it only works if the postings of each word are <b>sorted by document id</b>.</p>
       <div class="math-block">\[ O(x + y), \quad x = df_{\text{living}},\; y = df_{\text{dead}} \]</div>
+      </div>
     </div>
 
     <h4 style="margin:1.4rem 0 0.4rem;" id="merge-widget">Try it: merge two postings lists</h4>

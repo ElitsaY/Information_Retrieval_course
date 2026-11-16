@@ -263,10 +263,13 @@ for qi in range(len(queries)):                  # a document scores as its best 
     <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Part III</span>
     <h2 class="section-title">Similarity functions</h2>
     <p class="section-lede">Common choices: cosine similarity, dot product, Euclidean distance.</p>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Three similarity functions</div>
+    <div class="def-mac" role="note" aria-labelledby="def-three-similarity-functions">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-three-similarity-functions">Three similarity functions</p>
       <div class="math-block">\[ \cos(q, d) = \frac{q \cdot d}{\|q\|\,\|d\|} \qquad score(q, d) = q^\top d \qquad \|q - d\|_2 \ \text{(smaller = closer)} \]</div>
       <p>If the vectors are <b>unit-normalized</b>, \(q^\top d = \cos(q, d)\) (and \(\|q - d\|^2 = 2 - 2\cos(q, d)\)): all three give the same ranking. This lets us use <b>fast inner-product search while preserving the cosine ranking</b>.</p>
+      </div>
     </div>
     <div class="table-wrap" style="margin-top:1rem;">
       <table class="summary sc-small">
@@ -343,9 +346,12 @@ top = scores.argsort()[::-1][:10]</code></pre>
   <section class="block algo-section ids" id="ann">
     <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part V</span>
     <h2 class="section-title">Approximate nearest-neighbor search</h2>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Approximate nearest-neighbor (ANN) search</div>
+    <div class="def-mac" role="note" aria-labelledby="def-approximate-nearest-neighbor-ann-search">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-approximate-nearest-neighbor-ann-search">Approximate nearest-neighbor (ANN) search</p>
       <p>Find very close vectors <b>without scanning the whole collection</b>. The trade-off is explicit: faster search in exchange for possibly missed true neighbors.</p>
+      </div>
     </div>
     <div class="table-wrap" style="margin-top:1rem;">
       <table class="summary sc-small">

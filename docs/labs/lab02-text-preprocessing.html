@@ -290,9 +290,12 @@ print(tweet_tok.tokenize("I can't stop singing that song!"))     # we might want
     <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Stemming</span>
     <h2 class="section-title">Stemming and lemmatization</h2>
     <p class="section-lede">Resources: <a href="https://www.geeksforgeeks.org/introduction-to-stemming/" target="_blank" rel="noopener">Introduction to stemming</a> (GeeksforGeeks) and <a href="https://www.semanticscholar.org/paper/A-Comparative-Study-of-Stemming-Algorithms-Ms-.-Jivani/1c0c0fa35d4ff8a2f925eb955e48d655494bd167" target="_blank" rel="noopener">A Comparative Study of Stemming Algorithms</a> (Jivani, 2011).</p>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Stemmer vs lemmatizer</div>
+    <div class="def-mac" role="note" aria-labelledby="def-stemmer-vs-lemmatizer">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-stemmer-vs-lemmatizer">Stemmer vs lemmatizer</p>
       <p>A <b>stemmer</b> cuts suffixes with rules and no dictionary. The result does not have to be a word (<code>automobil</code>, <code>eventu</code>). A <b>lemmatizer</b> looks the word up (NLTK uses WordNet) and returns a dictionary form (<code>pollutions</code> → <code>pollution</code>). It needs the part of speech and leaves unknown words, such as the notebook's typo <i>decreas</i>, as they are.</p>
+      </div>
     </div>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Where stemming is used</h3>

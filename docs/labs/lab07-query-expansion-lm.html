@@ -119,9 +119,12 @@
   <section class="block algo-section bfs" id="qe">
     <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Part II</span>
     <h2 class="section-title">Query expansion</h2>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Query expansion</div>
+    <div class="def-mac" role="note" aria-labelledby="def-query-expansion">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-query-expansion">Query expansion</p>
       <p><b>Adding terms to the original query</b>: <i>car repair</i> → <i>car automobile repair maintenance</i>. The hope is to improve <b>recall</b>: a short query provides very little evidence, and expansion can retrieve documents that use different vocabulary.</p>
+      </div>
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
       <li><b>Sources of expansion terms</b>: thesauri, synonym dictionaries, ontologies, WordNet, user-selected relevant documents, top-ranked retrieved documents, historical query logs.</li>
@@ -157,10 +160,13 @@
       <li><b>Explicit relevance feedback</b>: the user tells the system "D1 relevant, D2 not relevant, D3 relevant", and the system uses these labels to move the query toward relevant documents and away from non-relevant ones.</li>
       <li><b>Vector-space intuition</b>: recall the query and document vectors of <a href="lab04-ranked-retrieval.html">Lab 04</a>. If relevant documents cluster in one area of the vector space, move the query vector toward them; if non-relevant ones cluster elsewhere, move away from them.</li>
     </ul>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Rocchio algorithm</div>
+    <div class="def-mac" role="note" aria-labelledby="def-rocchio-algorithm">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-rocchio-algorithm">Rocchio algorithm</p>
       <div class="math-block">\[ \vec{q}_{new} = \alpha\,\vec{q}_{old} + \frac{\beta}{|D_r|} \sum_{d \in D_r} \vec{d} \;-\; \frac{\gamma}{|D_{nr}|} \sum_{d \in D_{nr}} \vec{d} \]</div>
       <p>\(\vec{q}_{old}\) = original query vector; \(D_r\), \(D_{nr}\) = relevant and non-relevant documents; \(\alpha\), \(\beta\), \(\gamma\) = weights of the original query, the relevant documents and the non-relevant documents. Geometrically: start from the original query, <b>move toward the relevant-document centroid</b>, <b>move away from the non-relevant centroid</b>. This is more important than memorizing the formula.</p>
+      </div>
     </div>
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: Rocchio in two dimensions</h4>
     <p class="section-lede">The outline's example: query \([1.0, 0.0]\), relevant centroid \([0.6, 0.8]\), non-relevant centroid \([0.1, 0.9]\). <b>Click a document</b> to cycle it through relevant → non-relevant → unjudged. The dashed arrow is the new query; the list ranks the documents by cosine similarity before and after.</p>
@@ -259,9 +265,12 @@ expand(queries[0].text)
   <section class="block algo-section ids" id="lm">
     <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part V</span>
     <h2 class="section-title">Language models</h2>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Language model</div>
+    <div class="def-mac" role="note" aria-labelledby="def-language-model">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-language-model">Language model</p>
       <p>A probabilistic model that assigns probabilities to terms or sequences: it <b>predicts the probability that a sequence of tokens belongs to a language</b>.</p>
+      </div>
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
       <li><b>Applications</b>: whenever there are several options and we must <b>choose the most likely</b>, based on the context words:
@@ -323,10 +332,13 @@ for sentence in [["She", "was", "the", "youngest"],
       <li><b>Bigram model</b>: condition only on the previous word, \(P(w_i \mid w_{i-1})\). P(coffee | I, want, some, sugar, in, my) ≈ P(coffee | my).</li>
       <li>For more context, and more dependence between words: trigram, 4-gram, … models.</li>
     </ul>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Maximum-likelihood estimate (bigram)</div>
+    <div class="def-mac" role="note" aria-labelledby="def-maximum-likelihood-estimate-bigram">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-maximum-likelihood-estimate-bigram">Maximum-likelihood estimate (bigram)</p>
       <div class="math-block">\[ P(w_i \mid w_{i-1}) = \frac{c(w_{i-1}, w_i)}{c(w_{i-1})} \]</div>
       <p>The count of the pair divided by the count of the first word. Sentences are padded with a start symbol [s] and an end symbol [/s], so that the first word and the end of the sentence are predicted too.</p>
+      </div>
     </div>
 
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: a bigram model</h4>
@@ -433,10 +445,13 @@ print(generate_text("She", sample=False))
       <li><b>Extrinsic</b>: with respect to some <b>task</b>, e.g. how often it picks the correct spelling in a spell-checking task.</li>
       <li><b>Intrinsic</b>: how much probability the model gives to sentences from a <b>test corpus</b> (which should have the same distribution of words as the training data). The <b>Shannon game</b>: how well do we predict the next word, given some context?</li>
     </ul>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Perplexity</div>
+    <div class="def-mac" role="note" aria-labelledby="def-perplexity">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-perplexity">Perplexity</p>
       <div class="math-block">\[ PP(W) = P(w_1, w_2, \ldots, w_n)^{-\frac{1}{n}} \]</div>
       <p>The inverse probability of the test text, normalized by the number of words: the average number of equally likely choices the model is "perplexed" between. <b>Minimizing perplexity is maximizing probability.</b> For a <b>uniform</b> distribution, perplexity equals the size of the vocabulary: a model that generates the digits 0–5 uniformly has perplexity 6.</p>
+      </div>
     </div>
     <div class="dt-ex-list" style="margin-top:1rem;">
       <details class="dt-ex"><summary><span class="dt-ex-no">4</span><span class="dt-ex-q">With the same training data, compute the perplexity of the bigram model on the test sentence "[s] I do like Sam".</span></summary>
@@ -462,10 +477,13 @@ print(generate_text("She", sample=False))
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Good–Turing</h3>
     <p class="section-lede"><b>Intuition</b>: you are fishing and caught 10 carp, 3 perch, 2 whitefish, 1 trout, 1 salmon, 1 eel = 18 fish. How likely is it that the next species is trout? 1/18. How likely is a <b>new</b> species (catfish, bass)? Use the things we saw <b>once</b> to estimate the new things: 3/18. Then the probability of trout must be less than 1/18.</p>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Good–Turing</div>
+    <div class="def-mac" role="note" aria-labelledby="def-good-turing">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-good-turing">Good–Turing</p>
       <div class="math-block">\[ P(\text{unseen}) = \frac{N_1}{N} \qquad c^* = \frac{(c+1)\,N_{c+1}}{N_c} \qquad P^*(x) = \frac{c^*}{N} \]</div>
       <p>\(N_c\) = the number of n-grams (species) that occur exactly \(c\) times; \(N\) = the total count.</p>
+      </div>
     </div>
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: a Good–Turing calculator</h4>
     <p class="section-lede">Edit the counts. The table shows \(N_c\), the re-estimated counts and probabilities.</p>
@@ -564,10 +582,13 @@ for name, test in tests.items():
     <span class="badge dfs" style="margin-bottom:0.6rem; display:inline-block;">Part VII</span>
     <h2 class="section-title">Language models for retrieval: query likelihood</h2>
     <p class="section-lede">For classical IR we build a <b>unigram</b> language model for <b>each document</b>, and ask: how likely is this document's model to <b>generate the query</b>? This is the <b>query-likelihood model</b>.</p>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Query likelihood</div>
+    <div class="def-mac" role="note" aria-labelledby="def-query-likelihood">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-query-likelihood">Query likelihood</p>
       <div class="math-block">\[ q = w_1, w_2, \ldots, w_n \qquad score(q, d) = P(q \mid d) = \prod_{i=1}^{n} P(w_i \mid d) \]</div>
       <p>For document \(d\), a language model \(P(w \mid d)\) over words \(w\); the product assumes the query words are independent (a unigram model). The simplest estimate is maximum likelihood, \(P(w \mid d) = \frac{tf(w, d)}{|d|}\), with \(tf(w, d)\) the frequency of \(w\) in \(d\) and \(|d|\) the document length.</p>
+      </div>
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
       <li><b>Interpretation</b>: for the query <i>wing drag</i>, a document gets a high score if its language model gives high probability to <i>wing</i> and <i>drag</i>. Instead of "how similar are the query and document vectors?" we ask "<b>how likely is the query under the document's term distribution?</b>"</li>
@@ -584,10 +605,13 @@ for name, test in tests.items():
       <li><b>Smoothing intuition</b>: even if a word does not occur in this document, give it some probability based on the <b>collection</b>. Combine document evidence with collection evidence.</li>
       <li><b>Collection language model</b>: \(P(w \mid C) = \frac{tf(w, C)}{|C|}\), with \(tf(w, C)\) the total occurrences of \(w\) in the collection and \(|C|\) its total number of tokens. Common collection terms receive some background probability.</li>
     </ul>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Jelinek–Mercer smoothing</div>
+    <div class="def-mac" role="note" aria-labelledby="def-jelinek-mercer-smoothing">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-jelinek-mercer-smoothing">Jelinek–Mercer smoothing</p>
       <div class="math-block">\[ P(w \mid d) = (1 - \lambda)\, P_{ML}(w \mid d) + \lambda\, P(w \mid C) \]</div>
       <p>\(\lambda\) controls how much we trust the collection: \(\lambda = 0\) uses only the document, \(\lambda = 1\) ignores the document entirely; in practice something in between. This is the <b>interpolation</b> of <a href="#smooth">Part VI</a>, with the collection model playing the role of the lower-order model.</p>
+      </div>
     </div>
     <p class="section-lede" style="margin-top:1rem;"><b>Why log probabilities?</b> Query probabilities become extremely small (\(0.01 \cdot 0.03 \cdot 0.02 \cdots\)), so, as for n-grams, score with \(\log P(q \mid d) = \sum_{w \in q} \log P(w \mid d)\): numerically more stable, and the ranking is the same.</p>
     <h4 style="margin:1.4rem 0 0.4rem;">Try it: query likelihood with smoothing</h4>

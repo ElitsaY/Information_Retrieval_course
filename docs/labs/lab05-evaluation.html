@@ -52,7 +52,7 @@
     </div>
   </aside>
   <script>(function(){var b=document.body,t=document.querySelector(".side-toggle"),m=document.getElementById("lab-menu"),c=m.querySelector("[aria-current]");if(c&&m.scrollHeight>m.clientHeight)m.scrollTop=c.offsetTop-m.clientHeight/2;var ts=m.querySelectorAll(".lm-tab");ts.forEach(function(x){x.addEventListener("click",function(){ts.forEach(function(y){var o=y===x;y.setAttribute("aria-selected",o);document.getElementById(y.getAttribute("aria-controls")).hidden=!o})})});function s(o){b.classList.toggle("menu-open",o);t.setAttribute("aria-expanded",o)}t.addEventListener("click",function(e){e.stopPropagation();s(!b.classList.contains("menu-open"))});document.addEventListener("click",function(e){if(b.classList.contains("menu-open")&&!m.contains(e.target))s(false)});document.addEventListener("keydown",function(e){if(e.key==="Escape")s(false)})})();</script>
-<main class="lab-main">
+<main class="lab-main wide-text">
 
 <section class="hero art-hero art-ev5">
   <svg id="ev-hero-bg" class="hero-art" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
@@ -143,10 +143,13 @@
     </div>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.4rem;">Accuracy, and why it is not enough</h3>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Accuracy</div>
-      <div class="math-block">\[ \text{Accuracy} = \frac{TP + TN}{TP + FP + FN + TN} = \frac{\text{correct decisions}}{\text{all documents}} \]</div>
-      <p>The share of documents the system classified correctly, as retrieved-and-relevant or left-out-and-not-relevant. It is the natural measure for classification, where the classes are of similar size.</p>
+    <div class="def-mac" role="note" aria-labelledby="def-accuracy">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+        <p class="def-mac-term" id="def-accuracy">Accuracy</p>
+        <div class="math-block">\[ \text{Accuracy} = \frac{TP + TN}{TP + FP + FN + TN} = \frac{\text{correct decisions}}{\text{all documents}} \]</div>
+        <p class="def-mac-text"><code>predicted == actual</code></p>
+      </div>
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
       <li>❗ <b>In retrieval, almost every document is not relevant.</b> A Cranfield query has on average 7.2 relevant documents among 1,400 (1,612 relevant judgments for 225 queries). For a query with 7 relevant documents, a system that <b>returns nothing</b> leaves the other 1,393 correctly out and gets accuracy \(1393 / 1400 = 99.5\%\).</li>
@@ -173,10 +176,13 @@
     <p class="section-lede">A toy ranking used throughout: D1 (relevant), D2 (not), D3 (relevant), D4 (not), D5 (relevant), written <b>R N R N R</b>. The collection contains exactly these three relevant documents: D1, D3, D5. For ranked retrieval both measures are computed at a <b>cutoff</b> \(k\): we look only at the top \(k\) results (P@1, P@5, P@10, …).</p>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.4rem;">Precision</h3>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Precision</div>
-      <div class="math-block">\[ \text{Precision} = \frac{\text{relevant retrieved}}{\text{retrieved}} = \frac{TP}{TP + FP} \qquad P@k = \frac{\text{relevant in the top } k}{k} \]</div>
-      <p><b>Of the documents we retrieved, how many are relevant?</b> Precision looks only at what the system returned: how clean is the result list?</p>
+    <div class="def-mac" role="note" aria-labelledby="def-precision">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+        <p class="def-mac-term" id="def-precision">Precision</p>
+        <div class="math-block">\[ \text{Precision} = \frac{\text{relevant retrieved}}{\text{retrieved}} = \frac{TP}{TP + FP} \qquad P@k = \frac{\text{relevant in the top } k}{k} \]</div>
+        <p class="def-mac-text"><b>Of the documents we retrieved, how many are relevant?</b> Precision looks only at what the system returned: how clean is the result list?</p>
+      </div>
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
       <li><b>Example</b>: a search engine shows 10 results and 4 of them are relevant: \(P@10 = 4/10 = 0.4\). Six of the ten results the user reads are wasted.</li>
@@ -195,10 +201,13 @@
     </div>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Recall</h3>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Recall</div>
-      <div class="math-block">\[ \text{Recall} = \frac{\text{relevant retrieved}}{\text{all relevant}} = \frac{TP}{TP + FN} \qquad Recall@k = \frac{\text{relevant in the top } k}{\text{all relevant}} \]</div>
-      <p><b>Of all relevant documents that exist, how many did we retrieve?</b> Recall looks at the whole collection: how much of what the user needs did we find? Its denominator counts relevant documents the system <b>never showed</b>, which is why it needs relevance judgments beyond the returned list.</p>
+    <div class="def-mac" role="note" aria-labelledby="def-recall">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+        <p class="def-mac-term" id="def-recall">Recall</p>
+        <div class="math-block">\[ \text{Recall} = \frac{\text{relevant retrieved}}{\text{all relevant}} = \frac{TP}{TP + FN} \qquad Recall@k = \frac{\text{relevant in the top } k}{\text{all relevant}} \]</div>
+        <p class="def-mac-text"><b>Of all relevant documents that exist, how many did we retrieve?</b> Recall looks at the whole collection: how much of what the user needs did we find? Its denominator counts relevant documents the system <b>never showed</b>, which is why it needs relevance judgments beyond the returned list.</p>
+      </div>
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
       <li><b>Example</b>: a lawyer needs every court decision on a topic. The archive holds 50 relevant decisions and the search finds 40 of them: \(Recall = 40/50 = 0.8\), however many irrelevant ones came along.</li>
@@ -250,10 +259,13 @@
     <p class="section-lede">Ranking A is <b>R R R N N N N N N N</b>, ranking B is <b>N N N N N N N R R R</b>. Both have \(P@10 = 0.3\), yet ranking A is clearly preferable for most users (load both in the playground above). We need rank-aware metrics.</p>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.4rem;">Reciprocal Rank and MRR</h3>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Reciprocal Rank</div>
-      <div class="math-block">\[ RR = \frac{1}{r} \qquad MRR = \frac{1}{|Q|} \sum_{q \in Q} RR(q) \]</div>
-      <p>\(r\) is the rank of the <b>first</b> relevant result: at rank 1, RR = 1; at rank 2, 0.5; at rank 5, 0.2. With no relevant result, RR = 0. <b>RR</b> is for one query, <b>MRR</b> is the mean across queries.</p>
+    <div class="def-mac" role="note" aria-labelledby="def-reciprocal-rank">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+        <p class="def-mac-term" id="def-reciprocal-rank">Reciprocal Rank</p>
+        <div class="math-block">\[ RR = \frac{1}{r} \qquad MRR = \frac{1}{|Q|} \sum_{q \in Q} RR(q) \]</div>
+        <p class="def-mac-text">\(r\) is the rank of the <b>first</b> relevant result: at rank 1, RR = 1; at rank 2, 0.5; at rank 5, 0.2. With no relevant result, RR = 0. <b>RR</b> is for one query, <b>MRR</b> is the mean across queries.</p>
+      </div>
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
       <li><b>Useful when</b> the user mainly wants one good result: navigational search, entity lookup, question answering, some FAQ tasks.</li>
@@ -261,10 +273,13 @@
     </ul>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Average Precision and MAP</h3>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Average Precision</div>
-      <div class="math-block">\[ AP = \frac{1}{R} \sum_{k=1}^{N} P@k \cdot rel(k) \qquad MAP = \frac{1}{|Q|} \sum_{q \in Q} AP(q) \]</div>
-      <p>\(R\) is the number of relevant documents for the query and \(rel(k)\) is 1 if the document at rank \(k\) is relevant. In words: every time we meet a relevant document, record the precision at that point; then average those values over all \(R\) relevant documents. <b>AP</b> is for one query, <b>MAP</b> the mean across queries.</p>
+    <div class="def-mac" role="note" aria-labelledby="def-average-precision">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+        <p class="def-mac-term" id="def-average-precision">Average Precision</p>
+        <div class="math-block">\[ AP = \frac{1}{R} \sum_{k=1}^{N} P@k \cdot rel(k) \qquad MAP = \frac{1}{|Q|} \sum_{q \in Q} AP(q) \]</div>
+        <p class="def-mac-text">\(R\) is the number of relevant documents for the query and \(rel(k)\) is 1 if the document at rank \(k\) is relevant. In words: every time we meet a relevant document, record the precision at that point; then average those values over all \(R\) relevant documents. <b>AP</b> is for one query, <b>MAP</b> the mean across queries.</p>
+      </div>
     </div>
     <p class="section-lede" style="margin-top:1rem;">Worked example, <b>R N R N R</b>: \(P@1 = 1\), \(P@3 = 2/3\), \(P@5 = 3/5\), so \(AP = \frac{1 + 2/3 + 3/5}{3} \approx 0.756\). For rankings A and B above, AP is 1.0 and about 0.216, and RR is 1 and 0.125: the rank-aware metrics separate what P@10 could not.</p>
 
@@ -296,10 +311,13 @@
       <li><b>Discount</b>: the user reads from the top, and every rank further down is less likely to be read. So the gain at rank \(i\) is divided by \(\log_2(i + 1)\): rank 1 by 1 (full value), rank 2 by 1.58, rank 3 by 2, rank 4 by 2.32, rank 10 by 3.46. The logarithm makes the penalty grow slowly: a document at rank 10 still keeps 29% of its value.</li>
       <li><b>Cumulative</b>: add up the discounted gains of the top \(k\) documents. The total is the value the user collects by reading the top \(k\).</li>
     </ol>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Discounted Cumulative Gain</div>
-      <div class="math-block">\[ DCG@k = \sum_{i=1}^{k} \frac{2^{rel_i} - 1}{\log_2(i + 1)} \qquad nDCG@k = \frac{DCG@k}{IDCG@k} \]</div>
-      <p>\(rel_i\) is the grade of the document at rank \(i\); \(IDCG@k\) is the DCG@k of the <b>ideal</b> ranking, all judged documents sorted by grade, highest first.</p>
+    <div class="def-mac" role="note" aria-labelledby="def-discounted-cumulative-gain">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+        <p class="def-mac-term" id="def-discounted-cumulative-gain">Discounted Cumulative Gain</p>
+        <div class="math-block">\[ DCG@k = \sum_{i=1}^{k} \frac{2^{rel_i} - 1}{\log_2(i + 1)} \qquad nDCG@k = \frac{DCG@k}{IDCG@k} \]</div>
+        <p class="def-mac-text">\(rel_i\) is the grade of the document at rank \(i\); \(IDCG@k\) is the DCG@k of the <b>ideal</b> ranking, all judged documents sorted by grade, highest first.</p>
+      </div>
     </div>
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">A worked example</h3>
     <p class="section-lede">The system ranks four documents with grades <b>[3, 0, 2, 1]</b>.</p>

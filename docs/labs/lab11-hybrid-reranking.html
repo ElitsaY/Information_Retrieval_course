@@ -177,10 +177,13 @@
   <section class="block algo-section ucs" id="rrf">
     <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Part IV</span>
     <h2 class="section-title">Reciprocal Rank Fusion</h2>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Reciprocal Rank Fusion (RRF)</div>
+    <div class="def-mac" role="note" aria-labelledby="def-reciprocal-rank-fusion-rrf">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-reciprocal-rank-fusion-rrf">Reciprocal Rank Fusion (RRF)</p>
       <div class="math-block">\[ RRF(d) = \sum_{r \in R} \frac{1}{k + rank_r(d)} \]</div>
       <p>\(R\) = the set of ranked lists; \(rank_r(d)\) = the position of document \(d\) in ranking \(r\); \(k\) = a constant that reduces the effect of very high ranks, commonly \(k = 60\) (<a href="https://doi.org/10.1145/1571941.1572114" target="_blank" rel="noopener">Cormack, Clarke &amp; Büttcher, SIGIR 2009</a>).</p>
+      </div>
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
       <li><b>Intuition</b>: a document gets more credit if it appears high in one ranking, and even more if it appears high in several. Documents absent from a ranking get nothing from it.</li>

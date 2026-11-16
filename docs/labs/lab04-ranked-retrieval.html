@@ -172,11 +172,14 @@
     </div>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Inverse document frequency</h3>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Inverse document frequency</div>
+    <div class="def-mac" role="note" aria-labelledby="def-inverse-document-frequency">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-inverse-document-frequency">Inverse document frequency</p>
       <p>With \(N\) the number of documents and \(df_t\) the number of documents containing \(t\):</p>
       <div class="math-block">\[ idf(t) = \log \frac{N}{df_t} \]</div>
       <p>If a term appears in every document, \(df_t = N\) and \(idf(t) = \log 1 = 0\).</p>
+      </div>
     </div>
     <p class="section-lede" style="margin-top:1rem;">The intuition: a term is useful for retrieval when it helps distinguish documents. Common terms carry less information; rare terms carry more. For \(N = 5\): <code>retrieval</code> gets \(\log(5/2)\), <code>relevant</code> \(\log(5/1)\), <code>documents</code> \(\log(5/4)\). The exact digits matter less than the ordering: <b><code>relevant</code> &gt; <code>retrieval</code> &gt; <code>documents</code></b>.</p>
 
@@ -186,10 +189,13 @@
   <section class="block algo-section dfs" id="tfidf">
     <span class="badge dfs" style="margin-bottom:0.6rem; display:inline-block;">Part III</span>
     <h2 class="section-title">TF-IDF</h2>
-    <div class="definition-box">
-      <div class="dbox-label">📐 TF-IDF weight</div>
+    <div class="def-mac" role="note" aria-labelledby="def-tf-idf-weight">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-tf-idf-weight">TF-IDF weight</p>
       <div class="math-block">\[ tfidf(t, d) = tf(t, d) \times idf(t) \]</div>
       <p>It combines two signals: the term is frequent in <b>this document</b>, and the term is rare in <b>the collection</b>. A document receives a high score when it contains terms that are both locally important and globally discriminative.</p>
+      </div>
     </div>
 
     <h4 style="margin:1.4rem 0 0.4rem;">See it: the TF-IDF matrix of the toy corpus</h4>
@@ -209,10 +215,13 @@
     <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Part IV</span>
     <h2 class="section-title">The vector-space model and cosine similarity</h2>
     <p class="section-lede">Once every term has a weight, a document can be represented as a vector. With the vocabulary <code>[information, retrieval, relevant, documents]</code>, a document might be \(d = [0.8,\ 1.2,\ 1.5,\ 0.3]\) and a query \(q = [0,\ 1.0,\ 1.4,\ 0.2]\). The retrieval problem becomes: <b>which document vector is closest to the query vector?</b></p>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Cosine similarity</div>
+    <div class="def-mac" role="note" aria-labelledby="def-cosine-similarity">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-cosine-similarity">Cosine similarity</p>
       <div class="math-block">\[ \cos(q, d) = \frac{q \cdot d}{\|q\| \, \|d\|} \]</div>
       <p>The dot product rewards shared weighted terms; the denominator normalizes for vector magnitude. For the example: \(q \cdot d = 1.2 + 2.1 + 0.06 = 3.36\), \(\|q\| = \sqrt{3} \approx 1.732\), \(\|d\| = \sqrt{4.42} \approx 2.102\), so \(\cos(q, d) \approx 0.923\).</p>
+      </div>
     </div>
     <ul class="concept-list" style="margin-top:1rem;">
       <li><b>Why normalize?</b> Without it, long documents may get large scores simply because they contain many terms. Cosine compares the <b>direction</b> of the vectors, not their magnitude.</li>
@@ -344,10 +353,13 @@ search_tfidf(queries[0].text)
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.4rem;">Problem 2: document length</h3>
     <p class="section-lede">Document A has 50 words and <code>engine</code> 3 times; document B has 5,000 words and <code>engine</code> 3 times. The same term frequency means something different in the two documents.</p>
 
-    <div class="definition-box">
-      <div class="dbox-label">📐 BM25</div>
+    <div class="def-mac" role="note" aria-labelledby="def-bm25">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-bm25">BM25</p>
       <div class="math-block">\[ \operatorname{BM25}(q, d) = \sum_{t \in q} idf(t) \, \frac{tf(t,d)\,(k_1 + 1)}{tf(t,d) + k_1 \left(1 - b + b \, \frac{|d|}{\operatorname{avgdl}}\right)} \]</div>
       <p>No need to memorize it; read it piece by piece. \(|d|\) is the length of the document and \(\operatorname{avgdl}\) the average length in the collection.</p>
+      </div>
     </div>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">BM25 piece by piece</h3>

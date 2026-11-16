@@ -271,11 +271,14 @@
       <div class="lt-wrap"><table class="qk-table" id="qk-table"></table></div>
       <p class="lt-out" id="qk-out"></p>
     </div>
-    <div class="definition-box">
-      <div class="dbox-label">📐 Attention as learned retrieval</div>
+    <div class="def-mac" role="note" aria-labelledby="def-attention-as-learned-retrieval">
+      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
+      <div class="def-mac-body">
+      <p class="def-mac-term" id="def-attention-as-learned-retrieval">Attention as learned retrieval</p>
       <p>First, \(QK^\top\) answers: <b>where should I look?</b> Then \(\operatorname{softmax}\!\big(QK^\top / \sqrt{d_k}\big)\,V\) answers: <b>what information should I retrieve from those locations?</b> The full scaled dot-product attention:</p>
       <div class="math-block">\[ \operatorname{Attention}(Q, K, V) = \operatorname{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V \]</div>
       <p>Dividing by \(\sqrt{d_k}\) (the length of the key vectors) only keeps the scores from growing too large. You do not need to derive this; understand the steps.</p>
+      </div>
     </div>
     <p class="caption-note">❗ <b>Important caveat.</b> Descriptions such as “animate”, “noun” or “pronoun looking for an antecedent” are <b>conceptual explanations</b>. In a real trained Transformer, individual dimensions of Q, K and V usually do not correspond cleanly to human-interpretable concepts: the information is stored in <b>distributed learned representations</b>. So do not think “dimension 3 = noun, dimension 7 = animate”; think of the vectors as learned numbers whose geometry helps the network perform useful matching and information transfer.</p>
 
