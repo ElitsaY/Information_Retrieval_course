@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lab 06 — Web Crawling, Web Graphs and PageRank | Class Notes</title>
+<title>Lab 06 — Web Crawling and Scraping | Class Notes</title>
 <meta name="description" content="Interactive notes on web search: crawler types, crawling vs scraping, the crawl loop and URL frontier, URL normalization, duplicate detection, robots.txt and politeness, scraping static and dynamic pages, and how to crawl without getting blocked.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -34,7 +34,7 @@
       <li><a href="lab03-spelling-correction.html"><span class="lm-n">03</span>Spelling Correction</a></li>
       <li><a href="lab04-ranked-retrieval.html"><span class="lm-n">04</span>Ranked Retrieval: TF-IDF and BM25</a></li>
       <li><a href="lab05-evaluation.html"><span class="lm-n">05</span>Evaluating IR Systems</a></li>
-      <li><a href="lab06-crawling-pagerank.html" aria-current="page"><span class="lm-n">06</span>Web Crawling and PageRank</a></li>
+      <li><a href="lab06-crawling-pagerank.html" aria-current="page"><span class="lm-n">06</span>Web Crawling and Scraping</a></li>
       <li><a href="lab07-query-expansion-lm.html"><span class="lm-n">07</span>Query Expansion and Language Models</a></li>
       <li><a href="lab08-dense-retrieval.html"><span class="lm-n">08</span>Neural Text Representations</a></li>
       <li><a href="lab09-sentence-embeddings.html"><span class="lm-n">09</span>Sentence Embeddings and Semantic Search</a></li>
@@ -60,12 +60,12 @@
   <svg id="wc-hero-bg" class="hero-art" viewBox="0 0 1200 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
   <div class="wrap">
     <p class="eyebrow">Lab 06</p>
-    <h1>Web Crawling, Web Graphs and PageRank</h1>
+    <h1>Web Crawling and Scraping</h1>
     <div class="badges">
       <span class="badge ids">Crawlers</span>
       <span class="badge ucs">robots.txt</span>
-      <span class="badge bfs">Web graph</span>
-      <span class="badge dfs">PageRank</span>
+      <span class="badge bfs">BeautifulSoup</span>
+      <span class="badge dfs">Dynamic pages</span>
     </div>
   </div>
 </section>
@@ -210,6 +210,7 @@ while frontier:
       </div>
       <div id="un-out"></div>
     </div>
+    <p class="caption-note">💡 The same steps in Python: <a href="https://github.com/ElitsaY/Information_Retrieval_course/blob/main/lab06/url_normalization.py" target="_blank" rel="noopener"><code>lab06/url_normalization.py</code></a> normalizes a list of links found on one page and counts how many different pages are left. Set <code>AGGRESSIVE = True</code> to also apply the steps that are not safe, and compare the counts.</p>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Why duplicate URLs matter</h3>
     <p class="section-lede">Without duplicate handling, with links <b>A → B, A → C, B → C, C → A</b>, the crawler keeps rediscovering A, B, C, A, B, C, … At minimum, maintain <code>visited_urls = set()</code>. But there is a second problem: <b>different URLs → the same or nearly identical content</b>: printer-friendly pages, tracking-parameter variants, mobile/desktop versions, mirrored pages, session-specific URLs. So we distinguish a <b>URL duplicate</b> from a <b>content duplicate</b>.</p>
@@ -287,67 +288,8 @@ Disallow: /search</pre>
   <section class="block algo-section ids" id="bs">
     <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part V</span>
     <h2 class="section-title">What is BeautifulSoup?</h2>
-    <p class="section-lede"><a href="https://www.crummy.com/software/BeautifulSoup/bs4/doc/" target="_blank" rel="noopener">BeautifulSoup</a> is a Python library that reads an HTML page and turns it into a tree of elements: the tags (<code>&lt;h2&gt;</code>, <code>&lt;div&gt;</code>, <code>&lt;a&gt;</code>, …), their attributes (<code>class</code>, <code>id</code>, <code>href</code>) and the text inside them. You then search the tree for the parts you need. It does not download anything: <code>requests</code> fetches the HTML and BeautifulSoup parses it. The most common calls, on a small page:</p>
-    <details class="code-card">
-      <summary>
-        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="code-file">bs_basics.py</span>
-        <span class="code-lang">Python</span>
-        <button type="button" class="code-copy">Copy</button>
-        <span class="code-chevron" aria-hidden="true">▾</span>
-      </summary>
-      <pre class="code-body"><code class="lang-py"># pip install beautifulsoup4
-from bs4 import BeautifulSoup
-
-html = """
-&lt;html&gt;&lt;head&gt;&lt;title&gt;Jobs&lt;/title&gt;&lt;/head&gt;
-&lt;body&gt;
-  &lt;h1&gt;Open positions&lt;/h1&gt;
-  &lt;div class="job" id="job-1"&gt;
-    &lt;h2 class="title"&gt;Data Scientist&lt;/h2&gt;
-    &lt;span class="location"&gt;Sofia, Bulgaria&lt;/span&gt;
-    &lt;a href="/jobs/1"&gt;Details&lt;/a&gt;
-  &lt;/div&gt;
-  &lt;div class="job" id="job-2"&gt;
-    &lt;h2 class="title"&gt;ML Engineer&lt;/h2&gt;
-    &lt;span class="location"&gt;Remote&lt;/span&gt;
-    &lt;a href="/jobs/2"&gt;Details&lt;/a&gt;
-  &lt;/div&gt;
-  &lt;h3&gt;About us&lt;/h3&gt;
-  &lt;p&gt;We build search engines.&lt;/p&gt;
-&lt;/body&gt;&lt;/html&gt;
-"""
-soup = BeautifulSoup(html, "html.parser")     # the whole page as a tree
-
-soup.title.get_text()                         # the &lt;title&gt; tag
-# 'Jobs'
-soup.find("h2")                               # find: the FIRST matching tag
-# &lt;h2 class="title"&gt;Data Scientist&lt;/h2&gt;
-soup.find("h2").get_text()                    # get_text: only the text inside
-# 'Data Scientist'
-[h.get_text() for h in soup.find_all("h2")]   # find_all: ALL matching tags
-# ['Data Scientist', 'ML Engineer']
-
-# by id and class (class_ has "_", because class is a Python keyword)
-soup.find("div", id="job-2").find("span", class_="location").get_text()
-# 'Remote'
-
-# attributes: like a dictionary
-[a["href"] for a in soup.find_all("a")]
-# ['/jobs/1', '/jobs/2']
-soup.find("a").get("target")                  # .get gives None if the attribute is missing
-# None
-
-# CSS selectors: select_one (first match) and select (all matches)
-soup.select_one("#job-1 .location").get_text()
-# 'Sofia, Bulgaria'
-[s.get_text() for s in soup.select("div.job span.location")]
-# ['Sofia, Bulgaria', 'Remote']
-
-# find a tag by its text, then move to the tag after it
-soup.find("h3", string="About us").find_next_sibling("p").get_text()
-# 'We build search engines.'</code></pre>
-    </details>
+    <p class="section-lede"><a href="https://www.crummy.com/software/BeautifulSoup/bs4/doc/" target="_blank" rel="noopener">BeautifulSoup</a> is a Python library that reads an HTML page and turns it into a tree of elements: the tags (<code>&lt;h2&gt;</code>, <code>&lt;div&gt;</code>, <code>&lt;a&gt;</code>, …), their attributes (<code>class</code>, <code>id</code>, <code>href</code>) and the text inside them. You then search the tree for the parts you need. It does not download anything: <code>requests</code> fetches the HTML and BeautifulSoup parses it.</p>
+    <p class="caption-note">💡 The most common calls (<code>find</code>, <code>find_all</code>, <code>get_text</code>, attributes, <code>select_one</code>, <code>select</code>, <code>find_next_sibling</code>) are in <a href="https://github.com/ElitsaY/Information_Retrieval_course/blob/main/lab06/bs_basics.py" target="_blank" rel="noopener"><code>lab06/bs_basics.py</code></a> in the course repository. It parses a small job-list page and prints each call next to what it returns. Run <code>python bs_basics.py</code>, then change the HTML or the calls and run it again.</p>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Example: title, location and description of a job ad</h3>
     <p class="section-lede">We want the job title, the location and the description from <a href="https://www.google.com/about/careers/applications/jobs/results/78511373281043142-staff-machine-learning-engineer-youtube-live-discovery" target="_blank" rel="noopener">this Google Careers job ad</a>. The link we were given ended with <code>?_gl=1*1bdp7z1*…</code>. These are tracking parameters, so we remove them first (Part III). Google's robots.txt allows job pages for all crawlers; it only blocks the search result pages (<code>.../jobs/results?page=</code>).</p>
