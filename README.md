@@ -44,4 +44,4 @@ Small Python scripts that go with the class notes:
 
 | Folder | Scripts |
 | :--- | :--- |
-| [`lab06/`](lab06/) | [`url_normalization.py`](lab06/url_normalization.py) (URL normalization), [`bs_basics.py`](lab06/bs_basics.py) (BeautifulSoup basics) |
+| [`lab06/`](lab06/) | [`url_normalization.py`](lab06/url_normalization.py) (URL normalization), [`bs_basics.py`](lab06/bs_basics.py) (BeautifulSoup basics), [`job_page.py`](lab06/job_page.py) (scraping a job ad) |

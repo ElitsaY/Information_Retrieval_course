@@ -331,39 +331,12 @@ function initFlow() {
   show(1);
 }
 
-/* ---------- Part III: URL normalizer ---------- */
-function initNormalizer() {
-  const base = document.getElementById('un-base'), href = document.getElementById('un-href'), out = document.getElementById('un-out');
-  const P = {
-    frag: ['Fragment', 'https://example.org/page', '#section'],
-    host: ['Upper-case host', 'https://example.org/', 'https://EXAMPLE.org/page'],
-    dots: ['Dot segments', 'https://example.org/a/b.html', '../page'],
-    port: ['Default port', 'https://example.org/', 'HTTPS://Example.org:443/a/./page#top'],
-    slash: ['Trailing slash', 'https://example.org/', '/page/'],
-    utm: ['Tracking parameters', 'https://example.org/news', '/page?utm_source=mail&id=7&lang=en'],
-  };
-  pills(document.getElementById('un-presets'), Object.entries(P).map(([k, v]) => [k, v[0]]), 'dots', (k) => { base.value = P[k][1]; href.value = P[k][2]; render(); });
-  base.value = P.dots[1]; href.value = P.dots[2];
-  function render() {
-    const opts = { slash: document.getElementById('un-slash').checked, utm: document.getElementById('un-utm').checked, sort: document.getElementById('un-sort').checked };
-    const r = normalizeSteps(base.value, href.value, opts);
-    let prev = null;
-    const rows = r.steps.map(([name, u, risky]) => { const ch = prev !== null && u !== prev; const row = `<tr class="${ch ? 'chg' : ''}${risky ? ' risky' : ''}"><td>${name}${risky ? ' <span class="un-risk">not safe</span>' : ''}</td><td><code>${esc(u)}</code></td><td>${prev === null ? '' : ch ? 'changed' : '–'}</td></tr>`; prev = u; return row; }).join('');
-    out.innerHTML = r.bad ? `<p class="note">Not an absolute http(s) URL: <code>${esc(r.url)}</code></p>` :
-      `<div class="table-wrap"><table class="summary sc-small un-table"><thead><tr><th>Step</th><th>URL</th><th></th></tr></thead><tbody>${rows}</tbody></table></div><p class="un-final">canonical form: <code>${esc(r.url)}</code></p>`;
-  }
-  [base, href].forEach(x => x.addEventListener('input', render));
-  ['un-slash', 'un-utm', 'un-sort'].forEach(id => document.getElementById(id).addEventListener('change', render));
-  render();
-}
-
 /* ---------- init ---------- */
 document.addEventListener('DOMContentLoaded', () => {
   initMath();
   initHero();
   initTaxonomy();
   initFlow();
-  initNormalizer();
 });
 
 }

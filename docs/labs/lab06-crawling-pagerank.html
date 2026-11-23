@@ -195,22 +195,7 @@ while frontier:
       <li><b>Normalization steps</b>: lowercase the hostname, remove URL fragments, resolve relative URLs, remove default ports, normalize path components (<code>https://example.org/a/../page</code> → <code>https://example.org/page</code>).</li>
       <li>❗ <b>Normalization must be conservative.</b> Different URLs can genuinely represent different resources: <code>/page</code> and <code>/page/</code> may differ, and so may <code>?id=1</code> and <code>?id=2</code>.</li>
     </ul>
-    <h4 style="margin:1.4rem 0 0.4rem;">Try it: normalize a URL</h4>
-    <p class="section-lede">Each step shows what it changed. The last three are <b>not</b> safe in general: turn them on to see what an aggressive crawler would merge.</p>
-    <div class="playground">
-      <div class="pg-controls"><div class="strategy-pick" id="un-presets"></div></div>
-      <div class="pg-controls un-in">
-        <label class="ii-lbl" for="un-base">page it was found on</label><input id="un-base" class="ii-input" spellcheck="false" autocomplete="off">
-        <label class="ii-lbl" for="un-href">link (href)</label><input id="un-href" class="ii-input" spellcheck="false" autocomplete="off">
-      </div>
-      <div class="pg-controls">
-        <label class="ii-check"><input type="checkbox" id="un-slash"> drop trailing slash</label>
-        <label class="ii-check"><input type="checkbox" id="un-utm"> drop <code>utm_*</code> tracking parameters</label>
-        <label class="ii-check"><input type="checkbox" id="un-sort"> sort query parameters</label>
-      </div>
-      <div id="un-out"></div>
-    </div>
-    <p class="caption-note">💡 The same steps in Python: <a href="https://github.com/ElitsaY/Information_Retrieval_course/blob/main/lab06/url_normalization.py" target="_blank" rel="noopener"><code>lab06/url_normalization.py</code></a> normalizes a list of links found on one page and counts how many different pages are left. Set <code>AGGRESSIVE = True</code> to also apply the steps that are not safe, and compare the counts.</p>
+    <p class="caption-note">💡 Try URL normalization yourself: visit <a href="https://github.com/ElitsaY/Information_Retrieval_course/blob/main/lab06/url_normalization.py" target="_blank" rel="noopener"><code>lab06/url_normalization.py</code></a> in the course GitHub repository. It normalizes a list of links found on one page, prints each link next to its normalized form, and counts how many different pages are left. Set <code>AGGRESSIVE = True</code> to also apply the steps that are not safe (drop the trailing slash, drop tracking parameters, sort query parameters), and compare the counts.</p>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Why duplicate URLs matter</h3>
     <p class="section-lede">Without duplicate handling, with links <b>A → B, A → C, B → C, C → A</b>, the crawler keeps rediscovering A, B, C, A, B, C, … At minimum, maintain <code>visited_urls = set()</code>. But there is a second problem: <b>different URLs → the same or nearly identical content</b>: printer-friendly pages, tracking-parameter variants, mobile/desktop versions, mirrored pages, session-specific URLs. So we distinguish a <b>URL duplicate</b> from a <b>content duplicate</b>.</p>
@@ -333,6 +318,7 @@ len(description.split())
 description[:60]
 # "Google's software engineers develop the next-generation tech"</code></pre>
     </details>
+    <p class="caption-note">💡 The same code as a script you can run: <a href="https://github.com/ElitsaY/Information_Retrieval_course/blob/main/lab06/job_page.py" target="_blank" rel="noopener"><code>lab06/job_page.py</code></a> in the course GitHub repository.</p>
   </section>
 
   <!-- ===== PART VI: SCRAPING STATIC AND DYNAMIC CONTENT ===== -->
