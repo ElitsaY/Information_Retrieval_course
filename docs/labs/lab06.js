@@ -357,100 +357,6 @@ function initNormalizer() {
   render();
 }
 
-/* ---------- Part III: fingerprints ---------- */
-function initFingerprint() {
-  const A = document.getElementById('fp-a'), B = document.getElementById('fp-b'), out = document.getElementById('fp-out');
-  const art = 'Sofia University opens a new information retrieval lab. Students will build a small web crawler, index the pages it collects and rank them with BM25 and PageRank.';
-  const P = {
-    same: ['Identical', `Home | News | Sport\n${art}\nUpdated 10:32`, `Home | News | Sport\n${art}\nUpdated 10:32`],
-    space: ['One extra space', `Home | News | Sport\n${art}\nUpdated 10:32`, `Home | News | Sport\n${art.replace('web crawler', 'web  crawler')}\nUpdated 10:32`],
-    time: ['Timestamp changed', `Home | News | Sport\n${art}\nUpdated 10:32`, `Home | News | Sport\n${art}\nUpdated 11:05`],
-    nav: ['Different navigation', `Home | News | Sport\n${art}\nUpdated 10:32`, `Menu | Latest | Weather | Login\n${art}\nUpdated 10:32 · Advertisement`],
-    diff: ['Different article', `Home | News | Sport\n${art}\nUpdated 10:32`, 'Home | News | Sport\nThe national football team won its qualifier on Tuesday evening, with two goals in the second half.\nUpdated 10:32'],
-  };
-  pills(document.getElementById('fp-presets'), Object.entries(P).map(([k, v]) => [k, v[0]]), 'time', (k) => { A.value = P[k][1]; B.value = P[k][2]; render(); });
-  A.value = P.time[1]; B.value = P.time[2];
-  const shingles = (s, k = 3) => { const w = s.toLowerCase().split(/\s+/).filter(Boolean), S = new Set(); for (let i = 0; i + k <= w.length; i++) S.add(w.slice(i, i + k).join(' ')); return S; };
-  async function sha(s) {
-    if (!(window.crypto && crypto.subtle)) return null;
-    const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
-    return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
-  }
-  let tok = 0;
-  async function render() {
-    const my = ++tok, a = A.value, b = B.value;
-    const [ha, hb] = await Promise.all([sha(a), sha(b)]);
-    if (my !== tok) return;
-    const sa = shingles(a), sb = shingles(b); let inter = 0; sa.forEach(x => { if (sb.has(x)) inter++; });
-    const uni = sa.size + sb.size - inter, J = uni ? inter / uni : 1;
-    const same = ha !== null ? ha === hb : a === b;
-    const verdict = same ? 'exact duplicate: same fingerprint' : J >= 0.8 ? 'near duplicate: the hashes differ completely, the shingles barely' : J >= 0.4 ? 'partly overlapping pages' : 'different pages';
-    const hx = (h) => h === null ? '(SHA-256 needs https or localhost)' : `<code class="fp-hash">${h}</code>`;
-    out.innerHTML = `<p class="big"><b>${verdict}</b></p><p>SHA-256 of page 1: ${hx(ha)}</p><p>SHA-256 of page 2: ${hx(hb)}</p>` +
-      `<p>Word 3-shingles: ${sa.size} and ${sb.size}, ${inter} shared. Jaccard \\(= ${inter} / ${uni} = ${J.toFixed(3)}\\).</p>` +
-      (a !== b && a.replace(/\s+/g, ' ') === b.replace(/\s+/g, ' ') ? '<p class="note">💡 The texts differ only in whitespace: normalizing the text (collapse whitespace, strip the page template) before hashing would make them exact duplicates.</p>' : '');
-    mathIn(out);
-  }
-  [A, B].forEach(x => x.addEventListener('input', render));
-  render();
-}
-
-/* ---------- Part IV: robots.txt tester ---------- */
-function initRobots() {
-  const T = document.getElementById('rb-txt'), UA = document.getElementById('rb-ua'), PI = document.getElementById('rb-path'), out = document.getElementById('rb-out'), chips = document.getElementById('rb-paths');
-  T.value = 'User-agent: *\nDisallow: /private/\nAllow: /private/press/\nDisallow: /*.pdf$\nDisallow: /search\n\nUser-agent: BadBot\nDisallow: /';
-  UA.value = 'MyCourseCrawler';
-  const PATHS = ['/page', '/private/notes', '/private/press/news', '/files/report.pdf', '/files/report.pdf?v=2', '/search?q=crawler', '/robots.txt'];
-  PI.placeholder = 'type another path, e.g. /private/press/';
-  chips.innerHTML = ['MyCourseCrawler', 'BadBot', 'badbot/2.1'].map(u => `<button type="button" class="strat-btn rb-ua" data-u="${u}">${u}</button>`).join('');
-  chips.querySelectorAll('.rb-ua').forEach(b => b.addEventListener('click', () => { UA.value = b.dataset.u; render(); }));
-  const mark = (r) => `<span class="rb-v ${r.ok ? 'ok' : 'no'}">${r.ok ? '✓ allowed' : '✕ disallowed'}</span><small>${esc(r.why)}</small>`;
-  function render() {
-    const groups = parseRobots(T.value), ua = UA.value.trim() || '*';
-    const list = (PI.value.trim() ? [PI.value.trim().startsWith('/') ? PI.value.trim() : '/' + PI.value.trim()] : []).concat(PATHS);
-    out.innerHTML = `<div class="table-wrap"><table class="summary sc-small rb-table"><thead><tr><th>Path</th><th>RFC 9309</th><th>Python robotparser</th></tr></thead><tbody>` +
-      list.map((p, i) => { const a = rfcAllowed(groups, ua, p), b = pyAllowed(T.value, ua, p); return `<tr class="${a.ok !== b.ok ? 'diff' : ''}${i === 0 && PI.value.trim() ? ' mine' : ''}"><td><code>${esc(p)}</code></td><td>${mark(a)}</td><td>${mark(b)}</td></tr>`; }).join('') +
-      `</tbody></table></div><p class="rr-note">Highlighted rows: the two parsers disagree.</p>`;
-  }
-  [T, UA, PI].forEach(x => x.addEventListener('input', render));
-  render();
-}
-
-/* ---------- Part IV: politeness timeline ---------- */
-function initPolite() {
-  const svg = document.getElementById('po-svg'), out = document.getElementById('po-out'), K = document.getElementById('po-k'), D = document.getElementById('po-d');
-  let mode = 'naive';
-  pills(document.getElementById('po-mode'), [['naive', 'Naive: one frontier'], ['polite', 'Polite: per-host queues']], mode, (m) => { mode = m; render(); });
-  function render() {
-    const k = +K.value, d = +D.value;
-    document.getElementById('po-k-val').textContent = k; document.getElementById('po-d-val').textContent = d + ' s';
-    const r = politeSchedule(mode, k, d), other = politeSchedule(mode === 'naive' ? 'polite' : 'naive', k, d);
-    svg.innerHTML = '';
-    const Lx = 58, Rx = 548, tmax = Math.max(r.total, other.total, 3), x = (t) => Lx + t / tmax * (Rx - Lx);
-    const hosts = ['a', 'b', 'c'], lane = {}, rowY = {}; let y = 12;
-    hosts.forEach(h => {
-      const xs = r.R.filter(q => q.h === h).sort((p, q) => p.s - q.s), ends = [];
-      xs.forEach(q => { let l = ends.findIndex(e => e <= q.s + 1e-9); if (l < 0) { l = ends.length; ends.push(0); } ends[l] = q.e; lane[q.u] = l; });
-      rowY[h] = y; const hgt = Math.max(1, ends.length) * 15 + 8;
-      el('rect', { x: Lx, y, width: Rx - Lx, height: hgt, class: 'po-row' }, svg);
-      txt(svg, Lx - 8, y + hgt / 2 + 4, h + '.org', 'lbl', 'end');
-      y += hgt + 6;
-    });
-    for (let t = 0; t <= tmax + 1e-9; t += tmax > 8 ? 2 : 1) { el('line', { x1: x(t), x2: x(t), y1: 8, y2: y, class: 'grid-line' }, svg); txt(svg, x(t), y + 13, t + ' s', 'tick', 'middle'); }
-    svg.setAttribute('viewBox', `0 0 560 ${y + 20}`);
-    r.R.forEach(q => {
-      const yy = rowY[q.h] + 4 + lane[q.u] * 15;
-      el('rect', { x: x(q.s) + 0.5, y: yy, width: Math.max(2, x(q.e) - x(q.s) - 1), height: 12, rx: 3, class: 'po-req ' + q.h }, svg);
-      txt(svg, (x(q.s) + x(q.e)) / 2, yy + 9.5, q.u, 'po-t', 'middle');
-    });
-    const gp = r.gapA === Infinity ? '–' : r.gapA < 0 ? 'overlapping' : r.gapA.toFixed(1) + ' s';
-    out.innerHTML = `<p class="big">All 12 pages in <b>${r.total.toFixed(1)} s</b>; a.org gets up to <b>${r.peakA}</b> simultaneous request${r.peakA > 1 ? 's' : ''}, shortest pause between its requests: <b>${gp}</b>.</p>` +
-      `<p class="note">The ${mode === 'naive' ? 'polite' : 'naive'} scheduler with the same settings: ${other.total.toFixed(1)} s, up to ${other.peakA} at once on a.org. ${mode === 'polite' ? 'The price of politeness is paid by the busiest host only; b.org and c.org are fetched in the gaps.' : 'Fast, but a.org sees a burst of parallel requests: exactly what gets a crawler blocked.'}</p>`;
-  }
-  [K, D].forEach(s => s.addEventListener('input', render));
-  render();
-}
-
 /* ---------- Part VII: PageRank playground ---------- */
 function initPageRank() {
   const $ = (id) => document.getElementById(id);
@@ -590,9 +496,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initTaxonomy();
   initFlow();
   initNormalizer();
-  initFingerprint();
-  initRobots();
-  initPolite();
   initPageRank();
   initCombine();
 });

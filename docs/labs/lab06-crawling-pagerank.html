@@ -53,7 +53,7 @@
     </div>
   </aside>
   <script>(function(){var b=document.body,t=document.querySelector(".side-toggle"),m=document.getElementById("lab-menu"),c=m.querySelector("[aria-current]");if(c&&m.scrollHeight>m.clientHeight)m.scrollTop=c.offsetTop-m.clientHeight/2;var ts=m.querySelectorAll(".lm-tab");ts.forEach(function(x){x.addEventListener("click",function(){ts.forEach(function(y){var o=y===x;y.setAttribute("aria-selected",o);document.getElementById(y.getAttribute("aria-controls")).hidden=!o})})});function s(o){b.classList.toggle("menu-open",o);t.setAttribute("aria-expanded",o)}t.addEventListener("click",function(e){e.stopPropagation();s(!b.classList.contains("menu-open"))});document.addEventListener("click",function(e){if(b.classList.contains("menu-open")&&!m.contains(e.target))s(false)});document.addEventListener("keydown",function(e){if(e.key==="Escape")s(false)})})();</script>
-<main class="lab-main">
+<main class="lab-main wide-text">
 
 
 <section class="hero art-hero art-wc6">
@@ -234,116 +234,53 @@ fingerprint = hashlib.sha256(
     text.encode("utf-8")
 ).hexdigest()</code></pre>
     </details>
-    <p class="section-lede"><b>Near duplicates</b>: two pages may differ only slightly: the same article with a different navigation bar, timestamp or ad. Exact hashes will not detect this. Large crawlers use approximate techniques such as <b>shingling</b>, <b>MinHash</b> and <b>SimHash</b>. We do not derive them here; the point is that duplicate detection is an IR systems problem, not merely a storage problem.</p>
-    <h4 style="margin:1.4rem 0 0.4rem;">Try it: exact vs near duplicates</h4>
-    <p class="section-lede">SHA-256 of both texts (computed in your browser), and, as a preview of shingling, the Jaccard overlap of their word 3-grams. One changed character changes the whole hash.</p>
-    <div class="playground">
-      <div class="pg-controls"><div class="strategy-pick" id="fp-presets"></div></div>
-      <div class="fp-two">
-        <div><label class="ii-lbl" for="fp-a">Page 1</label><textarea id="fp-a" class="ii-text" rows="4" spellcheck="false"></textarea></div>
-        <div><label class="ii-lbl" for="fp-b">Page 2</label><textarea id="fp-b" class="ii-text" rows="4" spellcheck="false"></textarea></div>
-      </div>
-      <div class="al-out" id="fp-out" style="margin-top:0.9rem;"></div>
-    </div>
-    <p class="caption-note">💡 This happens on real sites. The polite crawler of <a href="#real">Part VII</a> fetched 50 pages of quotes.toscrape.com and found <b>7 pairs of byte-identical pages</b>, like <code>/tag/love/</code> and <code>/tag/love/page/1/</code>: 14% of the crawl budget spent on copies.</p>
   </section>
 
   <!-- ===== PART IV: ROBOTS AND POLITENESS ===== -->
   <section class="block algo-section ucs" id="robots">
     <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Part IV</span>
     <h2 class="section-title">robots.txt and politeness</h2>
-    <p class="section-lede">A crawler should not fetch arbitrary URLs as fast as possible. Two concepts matter: <b>rules + politeness</b>.</p>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.4rem;">robots.txt</h3>
-    <p class="section-lede">Websites can publish a file at <code>/robots.txt</code>, e.g. <code>https://example.org/robots.txt</code>. The Robots Exclusion Protocol is standardized in <a href="https://www.rfc-editor.org/rfc/rfc9309.html" target="_blank" rel="noopener">RFC 9309</a>.</p>
+    <p class="section-lede">A website can publish a file at <code>/robots.txt</code>, e.g. <code>https://example.org/robots.txt</code>. The file says which parts of the site crawlers may visit and which they should skip.</p>
     <div class="def-mac" role="note" aria-labelledby="def-a-simple-robots-txt">
       <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
       <div class="def-mac-body">
-      <p class="def-mac-term" id="def-a-simple-robots-txt">A simple robots.txt</p>
+      <p class="def-mac-term" id="def-a-simple-robots-txt">Example: https://example.org/robots.txt</p>
       <pre class="rb-pre">User-agent: *
+Allow: /private/press/
 Disallow: /private/
-Allow: /public/</pre>
-      <p>Meaning: <b>all crawlers</b> should not crawl <code>/private/</code>. ❗ <code>robots.txt</code> is <b>not</b> an authentication or authorization mechanism: it communicates crawling preferences. Sensitive information should never be protected by relying on <code>robots.txt</code>.</p>
+Disallow: /search</pre>
+      <p><code>User-agent: *</code> means the rules apply to <b>all crawlers</b>, so also to ours. Each rule is a path prefix: it covers every URL that starts with it.</p>
       </div>
     </div>
-    <p class="section-lede" style="margin-top:1rem;">Python includes a parser:</p>
-    <details class="code-card" open>
-      <summary>
-        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="code-file">robots.py</span>
-        <span class="code-lang">Python</span>
-        <button type="button" class="code-copy">Copy</button>
-        <span class="code-chevron" aria-hidden="true">▾</span>
-      </summary>
-      <pre class="code-body"><code class="lang-py">from urllib.robotparser import RobotFileParser
-
-rp = RobotFileParser()
-rp.set_url("https://example.org/robots.txt")
-rp.read()
-
-allowed = rp.can_fetch(
-    "MyCourseCrawler",
-    "https://example.org/page"
-)
-
-# the same parser on rules given as text
-rp = RobotFileParser()
-rp.parse("""User-agent: *
-Disallow: /private/
-Allow: /private/press/""".splitlines())
-rp.can_fetch("MyCourseCrawler", "https://example.org/private/press/news")
-# False  (RFC 9309: allowed, see below)</code></pre>
-    </details>
-    <h4 style="margin:1.4rem 0 0.4rem;">Try it: a robots.txt tester</h4>
-    <p class="section-lede">Edit the file, the crawler name or the path. The tester applies RFC 9309 (the most specific, i.e. <b>longest</b>, matching rule wins; on a tie <code>Allow</code> wins; <code>*</code> and <code>$</code> are wildcards) and, next to it, what Python's <code>urllib.robotparser</code> answers.</p>
-    <div class="playground">
-      <div class="rb-grid">
-        <div><label class="ii-lbl" for="rb-txt">robots.txt</label><textarea id="rb-txt" class="ii-text" rows="10" spellcheck="false"></textarea></div>
-        <div>
-          <label class="ii-lbl" for="rb-ua">crawler (User-agent)</label><input id="rb-ua" class="ii-input" spellcheck="false" autocomplete="off">
-          <div id="rb-paths" class="rb-paths" style="margin-top:0.4rem;"></div>
-          <label class="ii-lbl" for="rb-path" style="display:block; margin:0.9rem 0 0.3rem;">add a path to test</label>
-          <input id="rb-path" class="ii-input" spellcheck="false" autocomplete="off">
-        </div>
-      </div>
-      <div id="rb-out" style="margin-top:1rem;"></div>
+    <p class="section-lede" style="margin-top:1rem;">What our crawler, <code>MyCourseCrawler</code>, may fetch on example.org:</p>
+    <div class="table-wrap">
+      <table class="summary sc-small">
+        <thead><tr><th>URL path</th><th>MyCourseCrawler</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>/</code></td><td>✅ allowed</td><td>no rule matches</td></tr>
+          <tr><td><code>/courses/ir</code></td><td>✅ allowed</td><td>no rule matches</td></tr>
+          <tr><td><code>/private/admin</code></td><td>❌ not allowed</td><td><code>Disallow: /private/</code></td></tr>
+          <tr><td><code>/private/press/news</code></td><td>✅ allowed</td><td><code>Allow: /private/press/</code> is more specific than <code>Disallow: /private/</code></td></tr>
+          <tr><td><code>/search?q=crawler</code></td><td>❌ not allowed</td><td><code>Disallow: /search</code></td></tr>
+        </tbody>
+      </table>
     </div>
-    <p class="caption-note">💡 Python's parser predates RFC 9309: it applies the rules <b>in file order</b> (first match wins) and treats <code>*</code> and <code>$</code> inside paths literally. On <code>/private/press/news</code> it says no, although the RFC says yes; on <code>/files/report.pdf</code> it says yes, although <code>Disallow: /*.pdf$</code> means no. Checked with Python 3.14. Order your rules from specific to general, or use a parser that follows the RFC.</p>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Can a crawler break the rules?</h3>
+    <p class="section-lede"><b style="color: var(--bfs);">Yes.</b> robots.txt only states what the site owner wants, and nothing on the server enforces it. A crawler that ignores it can still fetch <code>/private/</code>, but sites notice this and block such crawlers. ❗ So robots.txt does not protect anything: sensitive pages need real access control.</p>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Politeness</h3>
-    <p class="section-lede">Even when crawling is allowed, a crawler should avoid overwhelming a server. A basic policy: do not request many pages from the same host simultaneously, wait between requests, <b>identify the crawler</b> (an honest User-agent), handle HTTP errors, respect retry signals (<code>429 Too Many Requests</code>, <code>Retry-After</code>). The precise policy depends on the application.</p>
-    <p class="section-lede">Why this matters technically: <b>too many requests → server overload → blocking / failures → a worse crawl</b>. Politeness is not separate from system quality.</p>
-    <h4 style="margin:1.4rem 0 0.4rem;">Try it: one frontier vs per-host queues</h4>
-    <p class="section-lede">Twelve URLs wait in the frontier, eight of them on <b>a.org</b>. Each fetch takes 0.5 s. The naive scheduler gives the next URL to any free fetcher; the polite one keeps one queue per host, never has two requests open to the same host, and waits the delay between them.</p>
-    <div class="playground">
-      <div class="pg-controls">
-        <div class="strategy-pick" id="po-mode"></div>
-        <div class="beam-control show" style="margin:0;"><label for="po-k">parallel fetchers</label><input type="range" id="po-k" min="1" max="4" value="4" step="1"><span class="val" id="po-k-val">4</span></div>
-        <div class="beam-control show" style="margin:0;"><label for="po-d">per-host delay</label><input type="range" id="po-d" min="0" max="2" value="1" step="0.5"><span class="val" id="po-d-val">1 s</span></div>
-      </div>
-      <div class="fig-scroll"><svg id="po-svg" class="ml-plot po-svg" viewBox="0 0 560 170" aria-label="Request timeline per host"></svg></div>
-      <div class="al-out" id="po-out" style="margin-top:0.6rem;"></div>
-    </div>
+    <p class="section-lede">Even when robots.txt allows a page, a crawler should not overwhelm the server. Wait between requests to the same host, don't send many requests to one host at once, and slow down when the server answers <code>429 Too Many Requests</code>. Too many requests can overload the server, and then the site blocks the crawler.</p>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Crawl traps</h3>
     <p class="section-lede">Some sites generate effectively unlimited URL spaces. A crawler needs heuristics and limits, otherwise the frontier explodes.</p>
     <ul class="concept-list">
       <li><b>Calendars</b>: <code>?year=2026</code>, <code>?year=2027</code>, <code>?year=2028</code>, …</li>
-      <li><b>Faceted navigation</b>: <code>?color=red&amp;size=m&amp;sort=price</code>, every combination of filters is a URL.</li>
       <li><b>Session identifiers</b>: <code>?id=123</code>, <code>?id=456</code>, … the same page under endless names.</li>
       <li><b>Honeypot traps</b>: links in the HTML that only bots see, not human visitors. A crawler that follows them identifies itself as a bot that ignores the page as a user sees it.</li>
     </ul>
-
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Why crawlers get blocked</h3>
-    <ul class="concept-list">
-      <li><b>Too many requests</b> to the same pages or host: reduce the number of crawls for specific web pages, and slow down on <code>429</code> and <code>503</code> responses.</li>
-      <li><b>Ignoring robots.txt</b> or following honeypot links.</li>
-      <li><b>No agreement</b>: for large, repeated crawls the commercial solution is a contract with the site (whitelisted IPs and a permitted number of crawls per day, week or month), or its official API or data dumps.</li>
-    </ul>
-
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Recap: the crawl loop</h3>
-    <div class="rr-pipe">seed URLs → frontier → check URL → robots + politeness → fetch → parse → store content → extract links → normalize / deduplicate → frontier</div>
-    <p class="section-lede" style="margin-top:1rem;">Once we have crawled these pages, is the text the only information available to us? No: pages link to one another, and that link structure gives us another ranking signal (<a href="#graph">Part VI</a>). First, the notebook's practical tools.</p>
   </section>
 
   <!-- ===== PART V: CRAWLING IN PRACTICE ===== -->
