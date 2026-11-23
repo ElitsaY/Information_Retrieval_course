@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lab 06 — Web Crawling, Web Graphs and PageRank | Class Notes</title>
-<meta name="description" content="Interactive notes on web search: crawler types, crawling vs scraping, the crawl loop and URL frontier, URL normalization, duplicate detection, robots.txt and politeness, Scrapy and BeautifulSoup, the Web as a graph, PageRank and combining text and link signals.">
+<meta name="description" content="Interactive notes on web search: crawler types, crawling vs scraping, the crawl loop and URL frontier, URL normalization, duplicate detection, robots.txt and politeness, scraping static and dynamic pages, and how to crawl without getting blocked.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
@@ -283,101 +283,135 @@ Disallow: /search</pre>
     </ul>
   </section>
 
-  <!-- ===== PART V: CRAWLING IN PRACTICE ===== -->
-  <section class="block algo-section ids" id="practice">
+  <!-- ===== PART V: BEAUTIFULSOUP ===== -->
+  <section class="block algo-section ids" id="bs">
     <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part V</span>
-    <h2 class="section-title">Crawling in practice</h2>
-    <p class="section-lede">All examples use <a href="https://quotes.toscrape.com/" target="_blank" rel="noopener">quotes.toscrape.com</a>, a sandbox site made for practising scraping. Only crawl a site you own, have permission to crawl, or that is explicitly provided for the exercise.</p>
-
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.4rem;">Crawling with Scrapy</h3>
-    <p class="section-lede"><a href="https://scrapy.org/" target="_blank" rel="noopener">Scrapy</a> is a crawling framework: you write a <b>spider</b> (where to start, how to parse a page, which links to follow), and Scrapy runs the frontier, the scheduler, robots.txt, the delays and the output pipelines. Items go through <b>item pipelines</b> (pipeline 1: our own JSON-lines writer) and <b>feed exports</b> (pipeline 2: a JSON file).</p>
+    <h2 class="section-title">What is BeautifulSoup?</h2>
+    <p class="section-lede"><a href="https://www.crummy.com/software/BeautifulSoup/bs4/doc/" target="_blank" rel="noopener">BeautifulSoup</a> is a Python library that reads an HTML page and turns it into a tree of elements: the tags (<code>&lt;h2&gt;</code>, <code>&lt;div&gt;</code>, <code>&lt;a&gt;</code>, …), their attributes (<code>class</code>, <code>id</code>, <code>href</code>) and the text inside them. You then search the tree for the parts you need. It does not download anything: <code>requests</code> fetches the HTML and BeautifulSoup parses it. The most common calls, on a small page:</p>
     <details class="code-card">
       <summary>
         <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="code-file">quotes_spider.py</span>
+        <span class="code-file">bs_basics.py</span>
         <span class="code-lang">Python</span>
         <button type="button" class="code-copy">Copy</button>
         <span class="code-chevron" aria-hidden="true">▾</span>
       </summary>
-      <pre class="code-body"><code class="lang-py"># pip install scrapy
-import json
-import scrapy
-from scrapy.crawler import CrawlerProcess
+      <pre class="code-body"><code class="lang-py"># pip install beautifulsoup4
+from bs4 import BeautifulSoup
 
-class JsonWriterPipeline:
-    def open_spider(self):
-        self.file = open("quoteresult.jl", "w", encoding="utf-8")
+html = """
+&lt;html&gt;&lt;head&gt;&lt;title&gt;Jobs&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Open positions&lt;/h1&gt;
+  &lt;div class="job" id="job-1"&gt;
+    &lt;h2 class="title"&gt;Data Scientist&lt;/h2&gt;
+    &lt;span class="location"&gt;Sofia, Bulgaria&lt;/span&gt;
+    &lt;a href="/jobs/1"&gt;Details&lt;/a&gt;
+  &lt;/div&gt;
+  &lt;div class="job" id="job-2"&gt;
+    &lt;h2 class="title"&gt;ML Engineer&lt;/h2&gt;
+    &lt;span class="location"&gt;Remote&lt;/span&gt;
+    &lt;a href="/jobs/2"&gt;Details&lt;/a&gt;
+  &lt;/div&gt;
+  &lt;h3&gt;About us&lt;/h3&gt;
+  &lt;p&gt;We build search engines.&lt;/p&gt;
+&lt;/body&gt;&lt;/html&gt;
+"""
+soup = BeautifulSoup(html, "html.parser")     # the whole page as a tree
 
-    def close_spider(self):
-        self.file.close()
+soup.title.get_text()                         # the &lt;title&gt; tag
+# 'Jobs'
+soup.find("h2")                               # find: the FIRST matching tag
+# &lt;h2 class="title"&gt;Data Scientist&lt;/h2&gt;
+soup.find("h2").get_text()                    # get_text: only the text inside
+# 'Data Scientist'
+[h.get_text() for h in soup.find_all("h2")]   # find_all: ALL matching tags
+# ['Data Scientist', 'ML Engineer']
 
-    def process_item(self, item):
-        self.file.write(json.dumps(dict(item), ensure_ascii=False) + "\n")
-        return item
+# by id and class (class_ has "_", because class is a Python keyword)
+soup.find("div", id="job-2").find("span", class_="location").get_text()
+# 'Remote'
 
-class QuotesSpider(scrapy.Spider):
-    name = "quotes"
-    start_urls = ["https://quotes.toscrape.com/page/1/"]
-    custom_settings = {
-        "ITEM_PIPELINES": {"__main__.JsonWriterPipeline": 1},  # pipeline 1: our own writer
-        "FEEDS": {"quoteresult.json": {"format": "json"}},    # pipeline 2: a feed export
-    }
+# attributes: like a dictionary
+[a["href"] for a in soup.find_all("a")]
+# ['/jobs/1', '/jobs/2']
+soup.find("a").get("target")                  # .get gives None if the attribute is missing
+# None
 
-    def parse(self, response):
-        for quote in response.css("div.quote"):
-            yield {
-                "text": quote.css("span.text::text").get(),
-                "author": quote.css("small.author::text").get(),
-                "tags": quote.css("div.tags a.tag::text").getall(),
-            }
-        next_page = response.css("li.next a::attr(href)").get()
-        if next_page:                                  # follow the link: now it crawls
-            yield response.follow(next_page, self.parse)
+# CSS selectors: select_one (first match) and select (all matches)
+soup.select_one("#job-1 .location").get_text()
+# 'Sofia, Bulgaria'
+[s.get_text() for s in soup.select("div.job span.location")]
+# ['Sofia, Bulgaria', 'Remote']
 
-process = CrawlerProcess({
-    "USER_AGENT": "IRCourseBot/0.1 (student lab crawler)",
-    "ROBOTSTXT_OBEY": True,
-    "DOWNLOAD_DELAY": 1.0,
-    "CONCURRENT_REQUESTS_PER_DOMAIN": 1,
-    "LOG_LEVEL": "WARNING",
-})
-process.crawl(QuotesSpider)
-process.start()
-# 10 pages followed through "Next", 100 quotes in quoteresult.jl and quoteresult.json</code></pre>
+# find a tag by its text, then move to the tag after it
+soup.find("h3", string="About us").find_next_sibling("p").get_text()
+# 'We build search engines.'</code></pre>
     </details>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Example: title, location and description of a job ad</h3>
+    <p class="section-lede">We want the job title, the location and the description from <a href="https://www.google.com/about/careers/applications/jobs/results/78511373281043142-staff-machine-learning-engineer-youtube-live-discovery" target="_blank" rel="noopener">this Google Careers job ad</a>. The link we were given ended with <code>?_gl=1*1bdp7z1*…</code>. These are tracking parameters, so we remove them first (Part III). Google's robots.txt allows job pages for all crawlers; it only blocks the search result pages (<code>.../jobs/results?page=</code>).</p>
+    <p class="section-lede">Two things make this page harder than the small example. Next to the job, the page lists about 20 other jobs, so the first <code>&lt;h2&gt;</code> and the first location on the page may belong to something else. We first find the block with the job details and then search only inside it. Also, class names such as <code>DkhPwc</code> and <code>r0wTof</code> are generated by Google's tools and can change at any time. A visible text such as "About the job" usually stays the same longer.</p>
     <details class="code-card">
       <summary>
         <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="code-file">read_results.py</span>
-        <span class="code-lang">Python</span>
-        <button type="button" class="code-copy">Copy</button>
-        <span class="code-chevron" aria-hidden="true">▾</span>
-      </summary>
-      <pre class="code-body"><code class="lang-py">import pandas as pd
-
-df = pd.read_json("quoteresult.jl", lines=True)   # one JSON object per line
-df.shape
-# (100, 3)
-df.loc[0, "author"], df.loc[0, "tags"]
-# ('Albert Einstein', ['change', 'deep-thoughts', 'thinking', 'world'])
-
-df2 = pd.read_json("quoteresult.json")            # one JSON array
-df2.shape
-# (100, 3)</code></pre>
-    </details>
-    <p class="caption-note">💡 Updated from the course notebook for current Scrapy (2.19): the <code>FEEDS</code> setting replaces the deprecated <code>FEED_FORMAT</code> / <code>FEED_URI</code>, and pipeline methods no longer take a <code>spider</code> argument. The spider now follows the "Next" link, which turns a scraper of two pages into a small crawler, and it identifies itself honestly instead of pretending to be Internet Explorer 7.</p>
-
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">A single web page with BeautifulSoup</h3>
-    <p class="section-lede">For one page, <code>requests</code> fetches the HTML and <a href="https://www.crummy.com/software/BeautifulSoup/bs4/doc/" target="_blank" rel="noopener">BeautifulSoup</a> parses it. The notebook leaves <code>getPropertyFromPage</code> as an exercise; one possible solution:</p>
-    <details class="code-card">
-      <summary>
-        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="code-file">single_page.py</span>
+        <span class="code-file">job_page.py</span>
         <span class="code-lang">Python</span>
         <button type="button" class="code-copy">Copy</button>
         <span class="code-chevron" aria-hidden="true">▾</span>
       </summary>
       <pre class="code-body"><code class="lang-py">import requests
+from bs4 import BeautifulSoup
+
+URL = ("https://www.google.com/about/careers/applications/jobs/results/"
+       "78511373281043142-staff-machine-learning-engineer-youtube-live-discovery")
+HEADERS = {"User-Agent": "IRCourseBot/0.1 (student lab crawler)"}
+
+soup = BeautifulSoup(requests.get(URL, headers=HEADERS, timeout=10).text, "html.parser")
+
+# the page also lists other jobs, so the obvious searches find the wrong thing
+soup.find("h2").get_text(strip=True)
+# 'Jobs search results'
+len(soup.select("span.r0wTof"))               # a location for every job in the list
+# 29
+
+# so first find the block with the job details, then search only inside it
+job = soup.select_one("div.DkhPwc")
+
+title = job.find("h2").get_text(strip=True)
+# 'Staff Machine Learning Engineer, YouTube Live Discovery'
+location = job.select_one("span.r0wTof").get_text(strip=True)
+# 'Mountain View, CA, USA'
+
+# the description: the paragraphs after the heading "About the job"
+about = job.find("h3", string="About the job")
+description = "\n".join(p.get_text(" ", strip=True) for p in about.find_next_siblings(["p", "div"]))
+len(description.split())
+# 346
+description[:60]
+# "Google's software engineers develop the next-generation tech"</code></pre>
+    </details>
+  </section>
+
+  <!-- ===== PART VI: SCRAPING STATIC AND DYNAMIC CONTENT ===== -->
+  <section class="block algo-section bfs" id="practice">
+    <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Part VI</span>
+    <h2 class="section-title">Scraping static and dynamic content</h2>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.4rem;">Static content</h3>
+    <p class="section-lede">The examples of static and dynamic content use three Bulgarian news sites: <a href="https://btvnovinite.bg/bulgaria/" target="_blank" rel="noopener">btvnovinite.bg</a>, <a href="https://nova.bg/news" target="_blank" rel="noopener">nova.bg</a> and <a href="https://petel.bg/novini/Novini-__1__2" target="_blank" rel="noopener">petel.bg</a>. The robots.txt of all three allows crawling these pages. Before you scrape any site, check its robots.txt and terms of use, and keep your request rate low.</p>
+    <p class="section-lede">On a static page the content is already in the HTML the server sends. The news list of <a href="https://btvnovinite.bg/bulgaria/?page=4" target="_blank" rel="noopener">btvnovinite.bg/bulgaria/?page=4</a> is like this: open the page source (Ctrl + U) and you will find the headlines there. Every page of the list has its own URL (<code>?page=4</code>, <code>?page=5</code>, …), so a scraper only has to change the number. The notebook leaves <code>getPropertyFromPage</code> as an exercise; one possible solution:</p>
+    <details class="code-card">
+      <summary>
+        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="code-file">static_page.py</span>
+        <span class="code-lang">Python</span>
+        <button type="button" class="code-copy">Copy</button>
+        <span class="code-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <pre class="code-body"><code class="lang-py">import time
+import requests
+from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 HEADERS = {"User-Agent": "IRCourseBot/0.1 (student lab crawler)"}
@@ -388,337 +422,112 @@ def getPropertyFromPage(url):
     """
     html = requests.get(url, headers=HEADERS, timeout=10).text
     document = BeautifulSoup(html, "html.parser")
+    news = document.select(".left-part-listing-news a.small-title")   # the main news list only
     return {
         "title": document.title.get_text(strip=True),
-        "quotes": [q.get_text() for q in document.select("div.quote span.text")],
-        "authors": [a.get_text() for a in document.select("small.author")],
-        "links": [a["href"] for a in document.find_all("a", href=True)],
+        "headlines": [a.get_text(strip=True) for a in news],
+        "links": [urljoin(url, a["href"]) for a in news],             # relative → absolute
     }
 
-page = getPropertyFromPage("https://quotes.toscrape.com/page/1/")
+page = getPropertyFromPage("https://btvnovinite.bg/bulgaria/?page=4")
 page["title"]
-# 'Quotes to Scrape'
-len(page["quotes"]), page["authors"][:3]
-# (10, ['Albert Einstein', 'J.K. Rowling', 'Albert Einstein'])
-len(page["links"]), page["links"][:4]
-# (55, ['/', '/login', '/author/Albert-Einstein', '/tag/change/page/1/'])</code></pre>
-    </details>
-    <p class="section-lede">The links are relative: a crawler resolves them against the page URL (<code>urljoin</code>) and normalizes them before they enter the frontier (<a href="#urls">Part III</a>).</p>
+# 'България - bTV Новините - страница 4'
+len(page["headlines"])
+# 13   (the headlines themselves change as new news comes in)
+page["links"][0]
+# 'https://btvnovinite.bg/bulgaria/...'
 
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">The problem for all of the above: infinite scroll (dynamic content)</h3>
-    <p class="section-lede">Many pages load their content with JavaScript as you scroll. The HTML that <code>requests</code> or Scrapy downloads then contains no content at all.</p>
+for n in [5, 6]:                                  # the next pages: only the number changes
+    time.sleep(1)                                 # be polite: wait between requests
+    p = getPropertyFromPage(f"https://btvnovinite.bg/bulgaria/?page={n}")
+    print(n, len(p["headlines"]))
+# 5 13
+# 6 13</code></pre>
+    </details>
+
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Dynamic content</h3>
+    <p class="section-lede">Many pages load their content with JavaScript: when you scroll (infinite scroll) or click a button such as "Load more". This content is not in the HTML that <code>requests</code> downloads. On some pages the first HTML has no content at all.</p>
     <div class="table-wrap">
       <table class="summary sc-small">
         <thead><tr><th>Solution</th><th>✅ Pros</th><th>❌ Cons</th></tr></thead>
         <tbody>
           <tr data-s="ids"><td><b>1. Naive, semi-automatic</b>: open the page, scroll down as far as necessary, save it (Ctrl + S)</td><td>easy; surprisingly helps with hard-to-crawl websites</td><td>a lot of manual work; not scalable</td></tr>
           <tr data-s="ids"><td><b>2. Fully automatic</b>: a browser-automation tool (Selenium, Playwright) scrolls and renders the page</td><td>overcomes dynamic content; complex logic; scales</td><td>requires deeper understanding; much slower in most cases</td></tr>
-          <tr data-s="ids"><td><b>Extra option</b>: find the JavaScript's data source (the browser's <b>Network</b> tab) and request it directly</td><td>fast, structured JSON, no rendering</td><td>works only when such an endpoint exists; it can change without notice</td></tr>
+          <tr data-s="ids"><td><b>Extra option</b>: find the JavaScript's data source (the browser's <b>Network</b> tab) and request it directly</td><td>fast, no rendering</td><td>works only when such an endpoint exists; it can change without notice</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="section-lede" style="margin-top:1rem;">Not all dynamic pages are the same: some render content through JS APIs visible in the Network tab, others embed the JS-rendered content as JSON in the page. <code>quotes.toscrape.com/scroll</code> is an infinite-scroll page: its script calls <code>/api/quotes?page=N</code>.</p>
+    <p class="section-lede" style="margin-top:1rem;">Not all dynamic pages are the same: some load content through requests you can see in the Network tab, others embed it as JSON in the page. <a href="https://nova.bg/news" target="_blank" rel="noopener">nova.bg/news</a> uses the first kind. Its first 24 headlines are in the HTML, and below them is a <b>"Виж още"</b> (See more) button. Each click sends <code>POST /news/getmorenews/2</code>, then <code>/3</code>, and so on, and the server answers with an HTML fragment of 24 more headlines. We can send the same request ourselves (the extra option):</p>
     <details class="code-card">
       <summary>
         <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="code-file">scroll_api.py</span>
+        <span class="code-file">more_news.py</span>
         <span class="code-lang">Python</span>
         <button type="button" class="code-copy">Copy</button>
         <span class="code-chevron" aria-hidden="true">▾</span>
       </summary>
-      <pre class="code-body"><code class="lang-py">import requests
-
-r = requests.get("https://quotes.toscrape.com/api/quotes", params={"page": 1},
-                 headers={"User-Agent": "IRCourseBot/0.1 (student lab crawler)"}, timeout=10)
-data = r.json()
-data.keys()
-# dict_keys(['has_next', 'page', 'quotes', 'tag', 'top_ten_tags'])
-data["has_next"], len(data["quotes"])
-# (True, 10)
-data["quotes"][0]["author"]["name"]
-# 'Albert Einstein'</code></pre>
-    </details>
-
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Good practices for large-scale crawlers</h3>
-    <ul class="concept-list">
-      <li>Ensure you have full access to the server the crawler runs on.</li>
-      <li>Identify slow websites, e.g. with the <b>TTFB</b> (time to first byte) metric.</li>
-      <li>Crawl during low-traffic (off-peak) hours.</li>
-      <li>Use a fast and stable connection, preferably Ethernet: Wi-Fi is slower and less reliable.</li>
-      <li>For big-scale crawling, run crawlers on a server (cloud compute) instead of a desktop.</li>
-      <li><b>Partial crawls</b>: crawl a single website with several continuous crawlers, each focusing on a different section. Things stay simple and the data is updated faster.</li>
-      <li>Ignore URL parameters and other URLs that are duplicates of a canonical URL.</li>
-    </ul>
-  </section>
-
-  <!-- ===== PART VI: THE WEB AS A GRAPH ===== -->
-  <section class="block algo-section bfs" id="graph">
-    <span class="badge bfs" style="margin-bottom:0.6rem; display:inline-block;">Part VI</span>
-    <h2 class="section-title">The Web as a directed graph</h2>
-    <p class="section-lede">Represent each page as a <b>node</b> and each hyperlink as a <b>directed edge</b>: if page A links to page B, then \(A \rightarrow B\). A small web graph: <b>A → B, A → C, B → C, C → A, D → C, D → A</b>. It is the graph in the <a href="#pagerank">playground below</a>.</p>
-    <div class="def-mac" role="note" aria-labelledby="def-in-degree">
-      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
-      <div class="def-mac-body">
-      <p class="def-mac-term" id="def-in-degree">In-degree</p>
-      <div class="math-block">\[ \text{indegree}(p) = \text{number of pages linking to } p \]</div>
-      <p>A naive idea: a page with many incoming links may be important.</p>
-      </div>
-    </div>
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Why counting links is not enough</h3>
-    <p class="section-lede">100 obscure pages link to X; 1 very authoritative page links to Y. Should X automatically be more important? Not necessarily. We want a <b>recursive</b> idea: a link from an important page should count more than a link from an unimportant page. This is the intuition behind PageRank. (Load <b>Many weak vs one strong</b> in the playground.)</p>
-  </section>
-
-  <!-- ===== PART VII: PAGERANK ===== -->
-  <section class="block algo-section dfs" id="pagerank">
-    <span class="badge dfs" style="margin-bottom:0.6rem; display:inline-block;">Part VII</span>
-    <h2 class="section-title">PageRank</h2>
-    <p class="section-lede">PageRank can be explained with a <b>random surfer</b> browsing the Web. At each page: with probability \(d\), follow one outgoing link chosen at random; with probability \(1 - d\), jump to a random page. The <b>long-run probability</b> of being on a page is its PageRank.</p>
-    <div class="def-mac" role="note" aria-labelledby="def-pagerank">
-      <div class="def-mac-bar"><span class="def-mac-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="def-mac-title">Definition</span></div>
-      <div class="def-mac-body">
-      <p class="def-mac-term" id="def-pagerank">PageRank</p>
-      <div class="math-block">\[ PR(u) = \frac{1-d}{N} + d \sum_{v \in B_u} \frac{PR(v)}{L(v)} \]</div>
-      <p>\(N\) = number of pages; \(d\) = damping factor, commonly \(d = 0.85\); \(B_u\) = pages linking to \(u\); \(L(v)\) = number of outgoing links from \(v\).</p>
-      </div>
-    </div>
-    <ul class="concept-list" style="margin-top:1rem;">
-      <li><b>Incoming PageRank</b>: a page receives score from the pages that link to it, \(\sum_{v \in B_u} PR(v) / L(v)\).</li>
-      <li><b>Outgoing-link division</b>: if page A has PageRank 0.8 and links to four pages, it distributes 0.2 to each before damping. A page does not give its full score independently to every outgoing link.</li>
-      <li><b>Damping</b>: the \(1 - d\) component means the surfer can jump rather than follow links forever. This helps avoid problems caused by graph structure and gives a stable stochastic interpretation.</li>
-      <li><b>Computing it</b>: start with \(PR = 1/N\) everywhere and apply the formula to every page again and again (<b>power iteration</b>) until the values stop changing.</li>
-    </ul>
-
-    <h4 style="margin:1.4rem 0 0.4rem;">Try it: a PageRank playground</h4>
-    <p class="section-lede">Node size shows PageRank. <b>Click a node</b> to see its formula with the numbers plugged in; click one node and then another to <b>add or remove a link</b>. Step through the power iteration, or send a random surfer and compare its visit frequencies with PageRank. The last column is the converged value, the same as <code>nx.pagerank(G, alpha=d)</code>.</p>
-    <div class="playground" id="pr">
-      <div class="pg-controls"><div class="strategy-pick" id="pr-presets"></div></div>
-      <div class="pg-controls">
-        <div class="beam-control show" style="margin:0;"><label for="pr-d">damping \(d\)</label><input type="range" id="pr-d" min="0" max="1" value="0.85" step="0.01"><span class="val" id="pr-d-val">0.85</span></div>
-        <span class="ids-readout" id="pr-it" style="margin:0;">iteration 0</span>
-        <div class="play-btns">
-          <button class="icon-btn" id="pr-reset" type="button" aria-label="Back to iteration 0">⟲</button>
-          <button class="icon-btn" id="pr-prev" type="button" aria-label="Previous iteration">◀</button>
-          <button class="icon-btn" id="pr-next" type="button" aria-label="Next iteration">▶</button>
-          <button class="icon-btn" id="pr-end" type="button" aria-label="Iterate to convergence">⏭</button>
-        </div>
-      </div>
-      <div class="pg-grid pr-grid">
-        <div>
-          <svg id="pr-svg" class="ml-plot pr-svg" viewBox="0 0 440 320" aria-label="Link graph"></svg>
-          <div class="pg-controls" style="margin:0.4rem 0 0;">
-            <button type="button" class="strat-btn" id="pr-s1">Surfer: 1 step</button>
-            <button type="button" class="strat-btn" id="pr-s1k">+ 1,000 steps</button>
-            <button type="button" class="strat-btn" id="pr-s0">Reset surfer</button>
-          </div>
-        </div>
-        <div>
-          <div class="table-wrap"><table class="summary sc-small pr-table" id="pr-table"></table></div>
-          <div class="al-out" id="pr-out" style="margin-top:0.8rem;"></div>
-        </div>
-      </div>
-    </div>
-
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">PageRank is query-independent</h3>
-    <p class="section-lede">TF-IDF and BM25 compute \(score(q, d)\). PageRank computes something closer to \(importance(d)\), <b>without knowing the user's query</b>: BM25 is a query-dependent relevance signal, PageRank a query-independent authority / popularity signal. They measure different things. For the query <i>python sorting algorithm</i>, a globally important <i>world news</i> page should not rank highly merely because it has a high PageRank: textual relevance still matters.</p>
-
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">The live demo with NetworkX</h3>
-    <p class="section-lede">A small deterministic graph, not the live Web. Before running it: which node do you expect to get the largest score? Then compare the in-degree ranking with the PageRank ranking.</p>
-    <details class="code-card">
-      <summary>
-        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="code-file">pagerank_demo.py</span>
-        <span class="code-lang">Python</span>
-        <button type="button" class="code-copy">Copy</button>
-        <span class="code-chevron" aria-hidden="true">▾</span>
-      </summary>
-      <pre class="code-body"><code class="lang-py"># pip install networkx scipy
-import networkx as nx
-
-G = nx.DiGraph()
-G.add_edges_from([
-    ("A", "B"),
-    ("A", "C"),
-    ("B", "C"),
-    ("C", "A"),
-    ("D", "C"),
-    ("D", "A"),
-])
-
-list(G.edges())
-# [('A', 'B'), ('A', 'C'), ('B', 'C'), ('C', 'A'), ('D', 'C'), ('D', 'A')]
-dict(G.in_degree())
-# {'A': 2, 'B': 1, 'C': 3, 'D': 0}
-
-pr = nx.pagerank(G, alpha=0.85)
-for page, score in sorted(pr.items(), key=lambda x: x[1], reverse=True):
-    print(page, round(score, 4))
-# C 0.3839
-# A 0.3797
-# B 0.1989
-# D 0.0375</code></pre>
-    </details>
-    <p class="caption-note">💡 NetworkX's <code>pagerank</code> uses <code>alpha=0.85</code> by default (<a href="https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.link_analysis.pagerank_alg.pagerank.html" target="_blank" rel="noopener">docs</a>) and needs <b>SciPy</b>: with <code>pip install networkx</code> alone it fails with <code>No module named 'scipy'</code>. Are the two rankings identical? Here the <b>order</b> is: C, A, B, D both ways. But C has 3 in-links and A only 2, and A ends only 0.004 behind: A's one link from C carries C's whole score, while C's three links come from pages that split theirs.</p>
-
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Dangling nodes</h3>
-    <p class="section-lede">A <b>dangling node</b> has no outgoing links: <b>A → B → C → nothing</b>. In the random-surfer model the surfer would get stuck at C. Practical implementations redistribute this probability mass, usually uniformly over all pages (NetworkX does; the playground shows the extra term). Load <b>Dangling node</b> in the playground: C = 0.4744, B = 0.3412, A = 0.1844.</p>
-
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Link farms and manipulation</h3>
-    <p class="section-lede">Once links affect rankings, people have incentives to manipulate links, e.g. artificial networks of pages created to amplify authority. Load <b>Link farm</b>: five farm pages and a target S that link to each other push S (0.2838) above C (0.1536), although no real page links to any of them. This illustrates a broader IR principle: <b>a ranking feature can change user and publisher behaviour once people know it matters</b>. Link analysis is useful, but it is not an unquestionable measure of quality.</p>
-
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;" id="real">PageRank on real graphs</h3>
-    <p class="section-lede"><b>A tiny crawler on a controlled site</b>: one domain, at most 50 pages, one request at a time. It stores the URL, the page title and the outgoing links, builds the directed graph and calculates PageRank.</p>
-    <details class="code-card">
-      <summary>
-        <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="code-file">tiny_crawler.py</span>
-        <span class="code-lang">Python</span>
-        <button type="button" class="code-copy">Copy</button>
-        <span class="code-chevron" aria-hidden="true">▾</span>
-      </summary>
-      <pre class="code-body"><code class="lang-py"># pip install requests beautifulsoup4 networkx scipy
-import hashlib
-import time
-from collections import deque
-from urllib.parse import urljoin, urldefrag, urlparse
-from urllib.robotparser import RobotFileParser
-
-import networkx as nx
+      <pre class="code-body"><code class="lang-py">import time
 import requests
 from bs4 import BeautifulSoup
 
-SEED = "https://quotes.toscrape.com/"
-AGENT = "IRCourseBot/0.1 (student lab crawler)"
-MAX_PAGES, DELAY = 50, 1.0
+HEADERS = {"User-Agent": "IRCourseBot/0.1 (student lab crawler)"}
 
-def normalize(base, href):
-    url = urldefrag(urljoin(base, href)).url          # resolve relative, drop #fragment
-    p = urlparse(url)
-    return p._replace(netloc=p.netloc.lower()).geturl()
+def more_news(n):
+    """Return the headlines that the n-th "Виж още" click loads."""
+    r = requests.post(f"https://nova.bg/news/getmorenews/{n}", headers=HEADERS, timeout=10)
+    fragment = BeautifulSoup(r.text, "html.parser")   # an HTML fragment, not a full page
+    return [a.get_text(strip=True) for a in fragment.select(".thumb-title a")]
 
-robots = RobotFileParser()
-r = requests.get(urljoin(SEED, "/robots.txt"), headers={"User-Agent": AGENT}, timeout=10)
-robots.parse(r.text.splitlines() if r.status_code == 200 else [])   # 404: no rules, all allowed
-
-host = urlparse(SEED).netloc
-frontier, seen = deque([SEED]), {SEED}                 # BFS frontier + URL-duplicate check
-G, pages, fingerprints = nx.DiGraph(), {}, {}
-
-while frontier and len(pages) &lt; MAX_PAGES:
-    url = frontier.popleft()
-    if not robots.can_fetch(AGENT, url):
-        continue
-    r = requests.get(url, headers={"User-Agent": AGENT}, timeout=10)
-    time.sleep(DELAY)                                  # politeness: one request at a time
-    if r.status_code != 200 or "text/html" not in r.headers.get("Content-Type", ""):
-        continue
-    soup = BeautifulSoup(r.text, "html.parser")
-    pages[url] = soup.title.get_text(strip=True) if soup.title else ""
-    fp = hashlib.sha256(r.text.encode("utf-8")).hexdigest()   # exact-duplicate fingerprint
-    fingerprints.setdefault(fp, []).append(url)
-    G.add_node(url)
-    for a in soup.find_all("a", href=True):
-        link = normalize(url, a["href"])
-        if urlparse(link).netloc != host:              # stay on one domain
-            continue
-        G.add_edge(url, link)
-        if link not in seen:
-            seen.add(link)
-            frontier.append(link)
-
-G = G.subgraph(pages)                                  # keep only fetched pages
-print(len(pages), "pages,", G.number_of_edges(), "links,", len(frontier), "URLs still in the frontier")
-dupes = [urls for urls in fingerprints.values() if len(urls) &gt; 1]
-print(len(dupes), "groups of identical pages, e.g.", [u.replace(SEED, "/") for u in dupes[0]])
-
-pr = nx.pagerank(G, alpha=0.85)
-indeg = dict(G.in_degree())
-for url, score in sorted(pr.items(), key=lambda x: -x[1])[:8]:
-    print(f"{score:.4f}  in={indeg[url]:&gt;2}  {url.replace(SEED, '/')}")
-# 50 pages, 785 links, 99 URLs still in the frontier
-# 7 groups of identical pages, e.g. ['/tag/inspirational/page/1/', '/tag/inspirational/']
-# 0.1316  in=50  /
-# 0.1316  in=50  /login
-# 0.0343  in=40  /tag/truth/
-# 0.0343  in=40  /tag/life/
-# ...                                   (the ten "Top Ten tags" pages tie at 0.0343)</code></pre>
+for n in [2, 3]:
+    print(n, len(more_news(n)))
+    time.sleep(1)                                     # be polite: wait between requests
+# 2 24
+# 3 24</code></pre>
     </details>
-    <p class="section-lede">The winners are <code>/</code> and <code>/login</code>: every page's header links to them. Inside one site, PageRank mostly measures the <b>navigation template</b>, not content quality; the ten sidebar tag pages tie for the same reason. The run took about 75 seconds, almost all of it the politeness delay.</p>
 
-    <p class="section-lede" style="margin-top:1.2rem;"><b>A pre-existing web graph</b>, without live crawling: the <a href="https://snap.stanford.edu/data/web-Stanford.html" target="_blank" rel="noopener">Stanford web graph</a> from SNAP, pages of stanford.edu (2002) as nodes and hyperlinks as directed edges: <b>281,903 nodes, 2,312,497 edges</b> (an 8.9 MB file). PageRank on the whole graph takes a few seconds; do not try to <i>visualize</i> the whole graph.</p>
+    <p class="section-lede" style="margin-top:1rem;">A second example, with infinite scroll: <a href="https://petel.bg/novini/Novini-__1__2" target="_blank" rel="noopener">petel.bg/novini/Novini-__1__2</a>. The page arrives with 200 news items in the HTML. When you scroll to the bottom, its script asks for the next page with <code>$.getJSON(".../Novini-__1__3")</code>, adds the items to the list and changes the address bar to <code>...__1__3</code>. It is the <b>same URL</b> as the next page, but the answer is different. The script sends the header <code>X-Requested-With: XMLHttpRequest</code>, and with it the server returns JSON instead of a full HTML page. In the JSON, <code>data</code> holds the HTML of the 200 items, and <code>next</code> is the number of the page after it.</p>
     <details class="code-card">
       <summary>
         <span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="code-file">stanford_pagerank.py</span>
+        <span class="code-file">infinite_scroll.py</span>
         <span class="code-lang">Python</span>
         <button type="button" class="code-copy">Copy</button>
         <span class="code-chevron" aria-hidden="true">▾</span>
       </summary>
-      <pre class="code-body"><code class="lang-py"># download web-Stanford.txt.gz from https://snap.stanford.edu/data/web-Stanford.html
-import networkx as nx
+      <pre class="code-body"><code class="lang-py">import time
+import requests
+from bs4 import BeautifulSoup
 
-G = nx.read_edgelist("web-Stanford.txt.gz", create_using=nx.DiGraph, nodetype=int, comments="#")
-print(G.number_of_nodes(), G.number_of_edges())
-# 281903 2312497
+URL = "https://petel.bg/novini/Novini-__1__{}"
+HEADERS = {
+    "User-Agent": "IRCourseBot/0.1 (student lab crawler)",
+    "X-Requested-With": "XMLHttpRequest",   # what the page's own script sends: the server answers with JSON
+}
 
-pr = nx.pagerank(G, alpha=0.85)
-indeg = dict(G.in_degree())
-by_indeg = sorted(indeg, key=indeg.get, reverse=True)
-indeg_rank = {n: r for r, n in enumerate(by_indeg, start=1)}
+def load_page(n):
+    data = requests.get(URL.format(n), headers=HEADERS, timeout=10).json()
+    items = BeautifulSoup(data["data"], "html.parser").select("article h3")   # "data" holds HTML
+    return data, [h.get_text(strip=True) for h in items]
 
-for node, score in sorted(pr.items(), key=lambda x: -x[1])[:10]:
-    print(f"node {node:&gt;6}  PageRank {score:.5f}  in-degree {indeg[node]:&gt;6} (rank {indeg_rank[node]})")</code></pre>
+data, headlines = load_page(3)
+data["currentPage"], data["prev"], data["next"], data["perPage"]
+# (3, 2, 4, 200)
+len(headlines)
+# 200
+
+n = data["next"]
+for _ in range(2):                            # "scroll" two more times
+    time.sleep(1)                             # be polite: wait between requests
+    data, headlines = load_page(n)
+    print(data["currentPage"], len(headlines))
+    n = data["next"]
+# 4 200
+# 5 200
+
+# without the header, the same URL gives the normal HTML page
+requests.get(URL.format(3), headers={"User-Agent": HEADERS["User-Agent"]}, timeout=10).headers["Content-Type"]
+# 'text/html; charset=UTF-8'</code></pre>
     </details>
-    <div class="table-wrap">
-      <table class="summary sc-small rr-num">
-        <thead><tr><th>PageRank rank</th><th>Node</th><th>PageRank</th><th>In-degree</th><th>In-degree rank</th></tr></thead>
-        <tbody>
-          <tr data-s="dfs"><td>1</td><td>89073</td><td>0.01001</td><td>15,277</td><td class="hl">12</td></tr>
-          <tr data-s="dfs"><td>2</td><td>226411</td><td>0.00968</td><td>38,606</td><td>1</td></tr>
-          <tr data-s="dfs"><td>3</td><td>241454</td><td>0.00890</td><td>19,377</td><td>4</td></tr>
-          <tr data-s="dfs"><td>4</td><td>134832</td><td>0.00589</td><td>10,336</td><td class="hl">15</td></tr>
-          <tr data-s="dfs"><td>5</td><td>69358</td><td>0.00340</td><td>13,936</td><td>13</td></tr>
-          <tr data-s="dfs"><td>6</td><td>67756</td><td>0.00321</td><td>13,872</td><td>14</td></tr>
-          <tr data-s="dfs"><td>7</td><td>105607</td><td>0.00293</td><td>19,457</td><td>3</td></tr>
-          <tr data-s="dfs"><td>8</td><td>225872</td><td>0.00287</td><td>6,671</td><td class="hl">30</td></tr>
-          <tr data-s="dfs"><td>9</td><td>234704</td><td>0.00287</td><td>21,920</td><td>2</td></tr>
-          <tr data-s="dfs"><td>10</td><td>186750</td><td>0.00285</td><td>6,693</td><td class="hl">29</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="section-lede" style="margin-top:0.8rem;">On a real graph the two rankings clearly differ: the top PageRank page is only 12th by in-degree, and the 2nd page by in-degree (21,920 in-links) is 9th by PageRank. <b>Which</b> pages link matters, not only how many.</p>
-
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Exercises</h3>
-    <p class="section-lede">For the graph A → B, A → C, B → C, C → A, D → C, D → A (<b>Outline graph</b> in the playground). Answer first, then verify in the playground or with <code>nx.pagerank(G, alpha=0.85)</code>.</p>
-    <div class="dt-ex-list">
-      <details class="dt-ex"><summary><span class="dt-ex-no">3</span><span class="dt-ex-q">Which node has the highest in-degree?</span></summary>
-        <div class="dt-ex-sol"><p><b>C</b>, with 3 (from A, B and D). A has 2, B 1, D 0.</p></div></details>
-      <details class="dt-ex"><summary><span class="dt-ex-no">4</span><span class="dt-ex-q">Does the highest in-degree guarantee the highest PageRank?</span></summary>
-        <div class="dt-ex-sol"><p>No. Here C does win, but only by 0.3839 to 0.3797 over A, which has one link fewer. In <b>Many weak vs one strong</b>, X has 4 in-links and PageRank 0.0550, while Y has a single in-link, from the authority H, and 0.3893. In the Stanford graph the top PageRank page is 12th by in-degree.</p></div></details>
-      <details class="dt-ex"><summary><span class="dt-ex-no">5</span><span class="dt-ex-q">What happens if <code>C → A</code> is removed?</span></summary>
-        <div class="dt-ex-sol"><p>A loses its strongest in-link and falls from 0.3797 to 0.1919 (now 3rd, behind B with 0.2162). C rises to 0.4572. Less obviously, <b>D rises</b> from 0.0375 to 0.1347 with no new in-link: C now has no outgoing links, it became a <b>dangling node</b>, and its mass is spread over all pages.</p></div></details>
-      <details class="dt-ex"><summary><span class="dt-ex-no">6</span><span class="dt-ex-q">What happens if a high-PageRank page adds a link to <code>D</code>?</span></summary>
-        <div class="dt-ex-sol"><p>Add <code>A → D</code>: D jumps from 0.0375 to 0.1451. A's score is now split three ways instead of two, so B falls from 0.1989 to 0.1451 and C from 0.3839 to 0.3301; A itself stays at 0.3797. A link is a vote, and a page's votes are shared among its links.</p></div></details>
-      <details class="dt-ex"><summary><span class="dt-ex-no">7</span><span class="dt-ex-q">Why does the damping factor matter?</span></summary>
-        <div class="dt-ex-sol"><p>\(d\) sets how much of the score flows along links and how much is spread evenly. At \(d = 0\) every page gets \(1/N = 0.25\). At \(d = 0.5\): C 0.3413, A 0.3269, B 0.2067, D 0.1250. At \(d = 0.99\), D (no in-links) keeps only \((1 - d)/N = 0.0025\), and C and A are almost tied (0.3989, 0.3987). Without damping the surfer can be trapped in parts of the graph with no way out and the iteration may not converge; the closer \(d\) is to 1, the more iterations it needs.</p></div></details>
-    </div>
-  </section>
-
-  <!-- ===== PART VIII: COMBINING SIGNALS ===== -->
-  <section class="block algo-section ucs" id="combine">
-    <span class="badge ucs" style="margin-bottom:0.6rem; display:inline-block;">Part VIII</span>
-    <h2 class="section-title">Combining textual and link signals</h2>
-    <p class="section-lede">A conceptual search score might combine a query-dependent text score (e.g. BM25) with a query-independent link score (e.g. PageRank):</p>
-    <div class="math-block">\[ Score(q, d) = \alpha \cdot TextScore(q, d) + \beta \cdot LinkScore(d) \]</div>
-    <p class="section-lede">This formula is only illustrative: real search systems combine many signals with learned ranking models.</p>
-    <h4 style="margin:1.4rem 0 0.4rem;">Try it: move the weight</h4>
-    <p class="section-lede">Query <i>python sorting algorithm</i> over five pages with <b>invented</b> BM25 and PageRank values. The two signals live on very different scales, so each is first divided by its maximum. Then \(\alpha = 1 - w\), \(\beta = w\).</p>
-    <div class="playground">
-      <div class="pg-controls">
-        <div class="beam-control show" style="margin:0;"><label for="cb-w">link weight \(w = \beta\)</label><input type="range" id="cb-w" min="0" max="1" value="0.2" step="0.05"><span class="val" id="cb-w-val">0.20</span></div>
-      </div>
-      <div id="cb-out"></div>
-    </div>
-    <p class="section-lede" style="margin-top:1rem;">Document A has a high BM25 and a low PageRank, document B a medium BM25 and a high PageRank. Which should rank first? There is no universal answer: it depends on the <b>query</b>, the <b>task</b>, the <b>training data</b> and the <b>evaluation metric</b>. This connects directly back to <a href="lab05-evaluation.html">Lab 05</a>: choose \(w\) by evaluating the rankings.</p>
   </section>
 
   <!-- ===== CRAWLING IN PRACTICE: BLOCKING AND GOOD PRACTICES ===== -->
