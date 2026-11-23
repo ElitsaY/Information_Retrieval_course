@@ -75,36 +75,6 @@
   <!-- work-in-progress notice: remove from a lab once it is finished -->
   <div class="wip-note" role="note"><span class="wip-tag">Work in progress</span> These notes are still being written and reviewed: content may change, and some parts may still contain mistakes.</div>
 
-  <!-- ===== OVERVIEW ===== -->
-  <section class="block" id="overview">
-    <h2 class="section-title">Overview of the lab</h2>
-    <p class="section-lede">So far we assumed that the document collection already exists. For web search that assumption breaks: before we can index, rank and evaluate web pages, we must answer <b>"How do we discover and collect the documents?"</b> The Web also gives us something ordinary collections do not: <b>pages link to one another</b>. The links form a graph, and the graph itself provides ranking signals.</p>
-    <div class="rr-pipe">Web → crawler → document collection → index → content-based ranking + link-based ranking → search results</div>
-    <ol class="concept-list" style="margin-top:1.2rem;">
-      <li><a href="#web">From a fixed corpus to the Web</a>: what crawlers are, their types, crawling vs scraping.</li>
-      <li><a href="#arch">How a crawler works</a>: the crawl loop, seed URLs, the URL frontier.</li>
-      <li><a href="#urls">URLs are messier than they look</a>: normalization, URL and content duplicates.</li>
-      <li><a href="#robots">robots.txt and politeness</a>, and crawl traps.</li>
-      <li><a href="#practice">Crawling in practice</a>: Scrapy, BeautifulSoup, dynamic pages, good practices.</li>
-      <li><a href="#graph">The Web as a directed graph</a>: in-degree, and why counting links is not enough.</li>
-      <li><a href="#pagerank">PageRank</a>: the random surfer, damping, dangling nodes, link farms, real graphs.</li>
-      <li><a href="#combine">Combining textual and link signals</a>.</li>
-      <li><a href="#rag">Connection to modern retrieval and RAG</a>.</li>
-      <li><a href="#summary">Summary</a>, and optional exercises.</li>
-    </ol>
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Learning objectives</h3>
-    <p class="section-lede">By the end you should be able to explain:</p>
-    <ul class="concept-list">
-      <li>why web crawling is a separate problem from indexing, and the basic architecture of a crawler;</li>
-      <li>what a URL frontier is, and why URL normalization and duplicate detection are necessary;</li>
-      <li>the purpose and limitations of <code>robots.txt</code>, and why crawlers need politeness and rate limiting;</li>
-      <li>how hyperlinks form a directed graph, and why counting incoming links is not enough;</li>
-      <li>the intuition behind PageRank and the role of the damping factor;</li>
-      <li>why link-based authority and textual relevance are different signals;</li>
-      <li>how web crawling relates to modern search and RAG ingestion pipelines.</li>
-    </ul>
-  </section>
-
   <!-- ===== PART I: FROM A FIXED CORPUS TO THE WEB ===== -->
   <section class="block algo-section ids" id="web">
     <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part I</span>
@@ -117,7 +87,6 @@
       <span class="pipe-arrow" aria-hidden="true">→</span>
       <div class="pipe-card stage"><span class="pipe-l">3. Ranking</span><p class="pipe-lab">order the results for a query (<a href="lab04-ranked-retrieval.html">Lab 04</a>)</p></div>
     </div>
-    <p class="section-lede" style="margin-top:1rem;">These are different engineering problems. A crawler is not a search engine by itself, an inverted index is not a crawler, and a ranking function does not discover new pages.</p>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">What are web crawlers?</h3>
     <div class="def-mac" role="note" aria-labelledby="def-web-crawler">
@@ -215,45 +184,6 @@ while frontier:
       <li><b>URL frontier</b>: the collection of URLs waiting to be crawled. A naive implementation uses a list, a queue or a stack; a real crawler needs <b>scheduling</b>: Which URL should be fetched next? Which host was contacted recently? Which pages are likely to be important? Which should be revisited? How do we avoid crawling one site too aggressively?</li>
     </ul>
 
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.6rem;">Breadth-first vs depth-first</h3>
-    <p class="section-lede">With links <b>A → B → C → D</b> and <b>A → E</b>, a depth-first crawler may go <b>A, B, C, D, E</b>; a breadth-first crawler <b>A, B, E, C, D</b>. For web crawling a pure DFS or BFS policy is usually too simplistic, but they are useful starting points for understanding frontier scheduling.</p>
-
-    <h4 style="margin:1.4rem 0 0.4rem;">Try it: a crawl simulator</h4>
-    <p class="section-lede">Choose a site and a frontier policy, then step through the crawl loop. The <b>toy graph</b> is the example above. <b>example.org</b> is an invented site with the problems of Parts III and IV: messy links, a printer-friendly copy, a <code>/private/</code> area and an endless calendar. Switch the protections on one by one and watch the <b>wasted fetches</b> fall.</p>
-    <div class="playground" id="cs">
-      <div class="pg-controls">
-        <div class="strategy-pick" id="cs-site"></div>
-        <div class="strategy-pick" id="cs-pol"></div>
-      </div>
-      <div class="pg-controls cs-opts" id="cs-opts">
-        <label class="ii-check"><input type="checkbox" id="cs-norm"> normalize URLs</label>
-        <label class="ii-check"><input type="checkbox" id="cs-dup"> content fingerprints</label>
-        <label class="ii-check"><input type="checkbox" id="cs-rob"> obey robots.txt</label>
-        <label class="ii-check"><input type="checkbox" id="cs-trap"> trap limit (≤ 3 query variants per path)</label>
-        <div class="beam-control show" style="margin:0;"><label for="cs-max">fetch budget</label><input type="range" id="cs-max" min="8" max="40" value="20" step="1"><span class="val" id="cs-max-val">20</span></div>
-      </div>
-      <div class="pg-controls">
-        <span class="ids-readout" id="cs-step" style="margin:0;">step 0</span>
-        <div class="play-btns">
-          <button class="icon-btn" id="cs-reset" type="button" aria-label="Restart">⟲</button>
-          <button class="icon-btn" id="cs-prev" type="button" aria-label="Step back">◀</button>
-          <button class="icon-btn" id="cs-next" type="button" aria-label="Step forward">▶</button>
-          <button class="icon-btn" id="cs-end" type="button" aria-label="Run to the end">⏭</button>
-        </div>
-      </div>
-      <div class="pg-grid">
-        <div>
-          <svg id="cs-svg" class="ml-plot cs-svg" viewBox="0 0 460 300" aria-label="Site map with fetch counts"></svg>
-          <p class="bt-legend" style="margin:0.2rem 0 0;"><span class="k" style="background:var(--bfs);"></span> stored &nbsp; <span class="k" style="background:var(--ucs);"></span> fetched, wasted &nbsp; <span class="k" style="background:#d9546e;"></span> should not be fetched &nbsp; <span class="k cs-k-fr"></span> in frontier</p>
-        </div>
-        <div>
-          <div class="frontier-box"><h5 id="cs-fr-h">Frontier</h5><div class="chip-row" id="cs-frontier"></div></div>
-          <div class="stat-strip cs-stats" id="cs-stats"></div>
-        </div>
-      </div>
-      <div class="log-box cs-log" id="cs-log"></div>
-    </div>
-    <p class="caption-note">💡 The loop above uses <code>frontier.pop()</code>, which takes the <b>last</b> URL: a stack, so it is depth-first, and it visits A, E, B, C, D (the last link first). The simulator pushes each page's links in reverse, so its DFS follows the first link first: A, B, C, D, E. BFS uses <code>collections.deque</code> and <code>popleft()</code>.</p>
   </section>
 
   <!-- ===== PART III: URLS AND DUPLICATES ===== -->
@@ -396,7 +326,7 @@ rp.can_fetch("MyCourseCrawler", "https://example.org/private/press/news")
     </div>
 
     <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Crawl traps</h3>
-    <p class="section-lede">Some sites generate effectively unlimited URL spaces. A crawler needs heuristics and limits, otherwise the frontier explodes (try the calendar on example.org in the <a href="#cs">simulator</a> with DFS and no trap limit).</p>
+    <p class="section-lede">Some sites generate effectively unlimited URL spaces. A crawler needs heuristics and limits, otherwise the frontier explodes.</p>
     <ul class="concept-list">
       <li><b>Calendars</b>: <code>?year=2026</code>, <code>?year=2027</code>, <code>?year=2028</code>, …</li>
       <li><b>Faceted navigation</b>: <code>?color=red&amp;size=m&amp;sort=price</code>, every combination of filters is a URL.</li>
@@ -854,34 +784,41 @@ for node, score in sorted(pr.items(), key=lambda x: -x[1])[:10]:
     <p class="section-lede" style="margin-top:1rem;">Document A has a high BM25 and a low PageRank, document B a medium BM25 and a high PageRank. Which should rank first? There is no universal answer: it depends on the <b>query</b>, the <b>task</b>, the <b>training data</b> and the <b>evaluation metric</b>. This connects directly back to <a href="lab05-evaluation.html">Lab 05</a>: choose \(w\) by evaluating the rankings.</p>
   </section>
 
-  <!-- ===== PART IX: RAG ===== -->
-  <section class="block algo-section ids" id="rag">
-    <span class="badge ids" style="margin-bottom:0.6rem; display:inline-block;">Part IX</span>
-    <h2 class="section-title">Connection to modern retrieval and RAG</h2>
-    <p class="section-lede">Crawling is still relevant when the final application is a RAG system: a RAG system needs a knowledge collection, which may come from web pages, documentation, a company intranet, PDFs, APIs or databases. Before retrieval we still need an <b>ingestion pipeline</b>:</p>
-    <div class="rr-pipe">discover → fetch → parse → deduplicate → clean → chunk → index</div>
-    <p class="section-lede" style="margin-top:1rem;">The technology changes, but many crawler problems remain: duplicate content, stale pages, broken links, canonicalization, refresh scheduling, access restrictions. Crawling is not merely historical web-search material; it is part of modern retrieval infrastructure.</p>
-  </section>
-
-  <!-- ===== SUMMARY ===== -->
-  <section class="block" id="summary">
-    <h2 class="section-title">Summary: key takeaways</h2>
-    <div class="rr-pipe"><b>Web crawling</b>: seed URLs → frontier → robots / politeness → fetch → parse → normalize + deduplicate → store + index</div>
-    <div class="rr-pipe" style="margin-top:0.6rem;"><b>Web ranking</b>: query → textual relevance (TF-IDF / BM25) + link structure (PageRank) → ranked results</div>
-    <ol class="concept-list" style="margin-top:1.2rem;">
-      <li>Search cannot index pages it has not discovered.</li>
-      <li>A crawler requires scheduling, normalization, duplicate handling and politeness, not just HTTP requests.</li>
-      <li>Hyperlinks turn the Web into a directed graph.</li>
-      <li>PageRank recursively values links from already-important pages.</li>
-      <li>PageRank measures a query-independent graph signal; it does not replace textual relevance.</li>
-    </ol>
-
-    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Optional exercises</h3>
+  <!-- ===== CRAWLING IN PRACTICE: BLOCKING AND GOOD PRACTICES ===== -->
+  <section class="block" id="not-blocked">
+    <h2 class="section-title">How to crawl without getting blocked</h2>
     <ul class="concept-list">
-      <li><b>Option A: a tiny crawler on a controlled site.</b> One domain, at most 50 pages, one request at a time; store the URL, the page title and the outgoing links; build a directed graph and calculate PageRank. <a href="#real"><code>tiny_crawler.py</code></a> is one solution: extend it, e.g. skip the content duplicates it finds, or compare BFS with DFS.</li>
-      <li><b>Option B: a pre-existing web graph.</b> Use the <a href="https://snap.stanford.edu/data/web-Stanford.html" target="_blank" rel="noopener">SNAP Stanford web graph</a>. For visualization, take a sampled subgraph.</li>
+      <li><b>Use a proxy</b>: rotate IP addresses (proxy rotation).</li>
+      <li>Reduce the number of crawls for specific web pages.</li>
+      <li><b>Change the crawling pattern</b>: introduce random clicks, scrolls and mouse movements, and randomize the exact execution time without a range.</li>
+      <li><b>Be careful with honeypot traps</b>: links in the HTML code that are only visible to bots, not to organic users. They are very rare nowadays, because the effort required does not outweigh the result, and there are workarounds for such traps.</li>
+      <li><b>Commercial solution</b>: get your IPs whitelisted by different web pages (usually there is a contract with the permitted number of crawls per day, week or month).</li>
+      <li><b>Research lab solution</b>: buy 1 million IPs to use as proxies when crawling fake news data.</li>
     </ul>
 
+    <h3 class="section-title" style="font-size:1.15rem; margin-top:1.8rem;">Good practices when building large-scale web crawlers</h3>
+    <ul class="concept-list">
+      <li>Ensure you have full access to the server.</li>
+      <li>Identify slow websites, e.g. with the <b>TTFB</b> (time to first byte) metric.</li>
+      <li>Crawl during low-traffic (off-peak) hours.</li>
+      <li>Use a fast and stable internet connection, preferably Ethernet, as Wi-Fi is slower and less reliable.</li>
+      <li>If possible, run crawlers on a server (cloud compute) instead of a desktop. This applies to big-scale crawling.</li>
+      <li><b>Partial crawls</b>: crawl a single website with multiple continuous crawlers, each focusing on a different section. That way things stay simple and everything is updated faster with up-to-date data.</li>
+      <li>Ignore URL parameters and other URLs that are duplicates of a canonical URL.</li>
+    </ul>
+  </section>
+
+  <!-- ===== RESOURCES ===== -->
+  <section class="block" id="resources">
+    <h2 class="section-title">Resources</h2>
+    <ul class="concept-list">
+      <li><a href="https://web.stanford.edu/class/cs276/19handouts/lecture18-crawling-6per.pdf" target="_blank" rel="noopener">Stanford CS276, lecture 18: Crawling</a> (slides). Very good!</li>
+      <li><a href="https://www.zenrows.com/blog/dynamic-web-pages-scraping-python#alternatives" target="_blank" rel="noopener">Scraping dynamic web pages in Python</a> (ZenRows)</li>
+      <li><a href="https://www.zenrows.com/blog/bypass-bot-detection" target="_blank" rel="noopener">Bypassing bot detection</a> (ZenRows)</li>
+      <li><a href="https://iqss.github.io/dss-webscrape/web-scraping-approaches.html" target="_blank" rel="noopener">Web scraping approaches</a> (IQSS, Harvard)</li>
+      <li><a href="https://sharepoint.stackexchange.com/questions/84913/difference-between-continious-crawl-and-incremental-scheduled-crawl" target="_blank" rel="noopener">Difference between continuous crawl and incremental (scheduled) crawl</a> (SharePoint Stack Exchange)</li>
+    </ul>
+    <p class="section-lede" style="margin-top:1rem;">Stanford course on Information Retrieval: <a href="https://web.stanford.edu/class/cs276/" target="_blank" rel="noopener">CS276</a>, and its textbook, <a href="https://nlp.stanford.edu/IR-book/html/htmledition/irbook.html" target="_blank" rel="noopener">Introduction to Information Retrieval</a> (Manning, Raghavan and Schütze).</p>
   </section>
 
 </div>

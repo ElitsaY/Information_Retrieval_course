@@ -331,88 +331,6 @@ function initFlow() {
   show(1);
 }
 
-/* ---------- Part II: crawl simulator ---------- */
-function initCrawlSim() {
-  const $ = (id) => document.getElementById(id);
-  const svg = $('cs-svg'), fr = $('cs-frontier'), log = $('cs-log'), stats = $('cs-stats');
-  const cfg = { site: 'toy', pol: 'bfs' };
-  let snaps = [], i = 0;
-  const LAYOUT = {
-    toy: { A: [230, 40, 'A'], B: [150, 125, 'B'], E: [310, 125, 'E'], C: [150, 200, 'C'], D: [150, 272, 'D'] },
-    ex: { cal: [75, 38, 'Calendar'], '/': [230, 38, 'Home'], '/private/admin': [385, 38, 'Private'],
-      '/about': [75, 122, 'About'], '/courses': [230, 122, 'Courses'], '/people': [385, 122, 'People'],
-      '/courses?print=1': [75, 205, 'Print copy'], '/courses/ir': [190, 205, 'IR course'], '/courses/ai': [300, 205, 'AI course'],
-      '/people/ana': [245, 275, 'Ana'], '/people/boris': [385, 275, 'Boris'] },
-  };
-  const EDGES = {
-    toy: [['A', 'B'], ['A', 'E'], ['B', 'C'], ['C', 'D']],
-    ex: [['/', 'cal'], ['/', '/private/admin'], ['/', '/about'], ['/', '/courses'], ['/', '/people'], ['/courses', '/courses?print=1'], ['/courses', '/courses/ir'], ['/courses', '/courses/ai'],
-      ['/people', '/people/ana'], ['/people', '/people/boris'], ['/courses/ir', '/people/ana'], ['/courses/ai', '/people/boris']],
-  };
-  pills($('cs-site'), [['toy', 'Toy graph'], ['ex', 'example.org']], cfg.site, (k) => { cfg.site = k; rebuild(); });
-  pills($('cs-pol'), [['bfs', 'BFS (queue)'], ['dfs', 'DFS (stack)']], cfg.pol, (k) => { cfg.pol = k; rebuild(); });
-  ['cs-norm', 'cs-dup', 'cs-rob', 'cs-trap'].forEach(id => $(id).addEventListener('change', rebuild));
-  $('cs-max').addEventListener('input', () => { $('cs-max-val').textContent = $('cs-max').value; rebuild(); });
-  $('cs-reset').addEventListener('click', () => { i = 0; render(); });
-  $('cs-prev').addEventListener('click', () => { if (i > 0) { i--; render(); } });
-  $('cs-next').addEventListener('click', () => { if (i < snaps.length - 1) { i++; render(); } });
-  $('cs-end').addEventListener('click', () => { i = snaps.length - 1; render(); });
-
-  function rebuild() {
-    const ex = cfg.site === 'ex';
-    $('cs-opts').classList.toggle('dim', !ex);
-    $('cs-opts').querySelectorAll('input').forEach(x => { x.disabled = !ex; });
-    snaps = simulateCrawl({ site: ex ? 'ex' : 'toy', pol: cfg.pol, norm: $('cs-norm').checked, dup: $('cs-dup').checked, rob: $('cs-rob').checked, trap: $('cs-trap').checked, max: +$('cs-max').value });
-    i = 0; render();
-  }
-  function nodeOfUrl(u) {
-    if (cfg.site === 'toy') return u;
-    const p = splitUrl(canon(u)); if (!p) return null;
-    const k = p.path + p.query;
-    return /^\/calendar\?/.test(k) ? 'cal' : k;
-  }
-  function render() {
-    const s = snaps[i], ex = cfg.site === 'ex', L = LAYOUT[ex ? 'ex' : 'toy'];
-    $('cs-step').textContent = `step ${i} / ${snaps.length - 1}`;
-    $('cs-prev').disabled = i === 0; $('cs-next').disabled = i === snaps.length - 1;
-    svg.innerHTML = '';
-    const defs = el('defs', {}, svg);
-    const mk = el('marker', { id: 'cs-arrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, defs);
-    el('path', { d: 'M0,0 L10,5 L0,10 z', class: 'cs-arrowhead' }, mk);
-    const W = ex ? 39 : 21, H = ex ? 15 : 21;
-    EDGES[ex ? 'ex' : 'toy'].forEach(([a, b]) => {
-      const [x1, y1] = L[a], [x2, y2] = L[b], dx = x2 - x1, dy = y2 - y1;
-      const t = Math.min(W / Math.abs(dx || 1e-9), H / Math.abs(dy || 1e-9), 1);
-      el('line', { x1: x1 + dx * t, y1: y1 + dy * t, x2: x2 - dx * t, y2: y2 - dy * t, class: 'cs-edge', 'marker-end': 'url(#cs-arrow)' }, svg);
-    });
-    const inFr = new Set(s.frontier.map(nodeOfUrl));
-    Object.entries(L).forEach(([k, [x, y, name]]) => {
-      const n = s.fetches[k] || 0, stt = s.status[k];
-      const g = el('g', { class: 'cs-node' + (stt ? ' ' + stt : '') + (inFr.has(k) && !n ? ' fr' : '') + (s.cur === k ? ' cur' : '') }, svg);
-      if (ex) el('rect', { x: x - W, y: y - H, width: 2 * W, height: 2 * H, rx: 8 }, g);
-      else el('circle', { cx: x, cy: y, r: H }, g);
-      txt(g, x, y + (ex ? 4 : 5.5), name, 'cs-lbl' + (ex ? '' : ' big'), 'middle');
-      if (n) {
-        const ord = !ex ? s.order.indexOf(k) + 1 : 0;
-        const tag = ex ? '×' + n : '#' + ord;
-        const bx = x + W - 4, by = y - H - 2;
-        el('rect', { x: bx - 13, y: by - 9, width: 26, height: 16, rx: 8, class: 'cs-badge' + (ex && (n > 1 || stt === 'bad' || stt === 'trap') ? ' warn' : '') }, g);
-        txt(g, bx, by + 3, tag, 'cs-badge-t', 'middle');
-      }
-    });
-    const FMAX = 14, shown = cfg.pol === 'bfs' ? s.frontier.slice(0, FMAX) : s.frontier.slice(-FMAX).reverse();
-    $('cs-fr-h').textContent = `Frontier (${s.frontier.length}) · next out: ${cfg.pol === 'bfs' ? 'front of the queue' : 'top of the stack'}`;
-    fr.innerHTML = shown.map((u, j) => `<span class="chip${j === 0 ? ' cur' : ''}">${esc(short(u))}</span>`).join('') + (s.frontier.length > FMAX ? `<span class="chip cs-more">+${s.frontier.length - FMAX} more</span>` : '') + (!s.frontier.length ? '<span class="note">empty</span>' : '');
-    const st = s.stats;
-    stats.innerHTML = ex
-      ? `<div class="stat"><span class="n">${st.fetch}</span><span class="l">fetches</span></div><div class="stat"><span class="n">${st.real} / 8</span><span class="l">real pages found</span></div><div class="stat"><span class="n">${st.waste}</span><span class="l">wasted fetches</span></div><div class="stat"><span class="n">${st.bad}</span><span class="l">robots violations</span></div>`
-      : `<div class="stat"><span class="n">${s.order.join(', ') || '–'}</span><span class="l">fetch order</span></div>`;
-    log.innerHTML = snaps.slice(0, i + 1).map((x, j) => `<p class="${x.cls}${j === i ? ' current' : ''}">${j ? j + '. ' : ''}${esc(x.log)}</p>`).join('') + (i === snaps.length - 1 && s.end ? `<p class="iter">done: ${esc(s.end)}</p>` : '');
-    log.scrollTop = log.scrollHeight;
-  }
-  rebuild();
-}
-
 /* ---------- Part III: URL normalizer ---------- */
 function initNormalizer() {
   const base = document.getElementById('un-base'), href = document.getElementById('un-href'), out = document.getElementById('un-out');
@@ -671,7 +589,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initHero();
   initTaxonomy();
   initFlow();
-  initCrawlSim();
   initNormalizer();
   initFingerprint();
   initRobots();
