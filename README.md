@@ -17,6 +17,7 @@ Served from `docs/` on GitHub Pages: **[elitsay.github.io/Information_Retrieval_
 | 04 | [Ranked Retrieval: TF-IDF and BM25](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab04-ranked-retrieval.html) | coming soon | TF, DF and IDF, TF-IDF vectors, cosine similarity, BM25, the Cranfield collection |
 | 05 | [Evaluating IR Systems](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab05-evaluation.html) | [Quiz](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab05-quiz.html) | Accuracy, precision and recall, MRR, MAP, nDCG, per-query analysis |
 | 06 | [Web Crawling and Scraping](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab06-crawling-pagerank.html) | coming soon | Crawler types, the crawl loop and URL frontier, URL normalization and duplicates, robots.txt and politeness, BeautifulSoup, scraping static and dynamic pages |
+| 06.1 | [Working Example](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab061-working-example.html) | coming soon | Scraping one petel.bg news article: page anatomy, which images and words to keep, boilerplate, what naive selectors return |
 | 07 | [Query Expansion and Language Models](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab07-query-expansion-lm.html) | coming soon | Vocabulary mismatch, query expansion and drift, Rocchio, pseudo-relevance feedback, n-gram language models and smoothing, query likelihood |
 | 08 | [Neural Text Representations](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab08-dense-retrieval.html) | coming soon | Sparse vs dense vectors, tokens and token embeddings, self-attention (queries, keys, values), what a Transformer is and where it came from, Transformer layers and position |
 | 09 | [Sentence Embeddings and Semantic Search](https://elitsay.github.io/Information_Retrieval_course/docs/labs/lab09-sentence-embeddings.html) | coming soon | Encoders vs decoders, pooling into sentence embeddings, generic vs trained models, semantic search, bi-encoders, an embedding demo |
@@ -44,4 +45,4 @@ Small Python scripts that go with the class notes:
 
 | Folder | Scripts |
 | :--- | :--- |
-| [`lab06/`](lab06/) | [`url_normalization.py`](lab06/url_normalization.py) (URL normalization), [`bs_basics.py`](lab06/bs_basics.py) (BeautifulSoup basics), [`job_page.py`](lab06/job_page.py) (scraping a job ad) |
+| [`lab06/`](lab06/) | [`url_normalization.py`](lab06/url_normalization.py) (URL normalization), [`bs_basics.py`](lab06/bs_basics.py) (BeautifulSoup basics), [`job_page.py`](lab06/job_page.py) (scraping a job ad), [`petel_article.py`](lab06/petel_article.py) (text and image of a news article) |
